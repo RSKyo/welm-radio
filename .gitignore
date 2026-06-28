@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# lock files（可选）
+# package-lock.json
+
+# logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# vscode
+.vscode/
+
+# local env
+.env
+.env.*
+
+# temporary
+tmp/
+temp/
+
+# coverage
+coverage/
+
+# test output
+.nyc_output/
+
+# chrome profile
+chrome-profile/
+user-data-dir/

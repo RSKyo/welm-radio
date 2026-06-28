@@ -1,0 +1,19 @@
+{
+  "name": "welm-radio",
+  "version": "0.1.0",
+  "description": "xxx",
+  "type": "module",
+  "bin": {
+    "welm-radio": "./cmd.js"
+  },
+  "scripts": {
+    "start": "node ./cmd.js",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "chrome-remote-interface": "^0.34.0"
+  }
+}
