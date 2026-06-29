@@ -9,11 +9,7 @@ function ensureConfigFile() {
   if (!fs.existsSync(CONFIG_PATH)) {
     fs.mkdirSync(WELM_HOME, { recursive: true });
 
-    fs.writeFileSync(
-      CONFIG_PATH,
-      JSON.stringify({}, null, 2),
-      "utf-8"
-    );
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify({}, null, 2), "utf-8");
   }
 }
 
@@ -31,11 +27,7 @@ function readConfigFile() {
 }
 
 function writeConfigFile(config) {
-  fs.writeFileSync(
-    CONFIG_PATH,
-    JSON.stringify(config, null, 2),
-    "utf-8"
-  );
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
 }
 
 function getDeepValue(obj, path) {
@@ -67,18 +59,17 @@ function setDeepValue(obj, path, value) {
   return obj;
 }
 
-
 /**
  * 读取整个 config
  */
-export function loadConfig() {
+function load() {
   return readConfigFile();
 }
 
 /**
  * 获取某个配置值（a.b.c）
  */
-export function getConfigValue(p) {
+function get(p) {
   const config = readConfigFile();
   return getDeepValue(config, p);
 }
@@ -86,7 +77,7 @@ export function getConfigValue(p) {
 /**
  * 设置某个配置值（a.b.c = value）
  */
-export function setConfigValue(p, value) {
+function set(p, value) {
   const config = readConfigFile();
 
   setDeepValue(config, p, value);
@@ -95,3 +86,9 @@ export function setConfigValue(p, value) {
 
   return true;
 }
+
+export const config = {
+  load,
+  get,
+  set,
+};
