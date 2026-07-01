@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Audio Manager</title>
+</head>
+
+<body>
+  <h2>Audio Manager</h2>
+
+  <div id="statusBox">Loading...</div>
+
+  <table id="audioTable" border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Tags</th>
+        <th>Meta</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    async function loadAudioList() {
+      const res = await fetch("/api/audio-list");
+
+      if (!res.ok) {
+        throw new Error(`load audio list failed: ${res.status}`);
+      }
+
+      return await res.json();
+    }
+
+    function render(list) {
+      const statusBox = document.getElementById("statusBox");
+      const tbody = document.querySelector("#audioTable tbody");
+
+      statusBox.textContent = `${list.length} audio file(s)`;
+
+      tbody.innerHTML = list.map((item) => {
+        const tags = item.tags?.length ? item.tags.join(", ") : "-";
+        const meta = item.meta ? "yes" : "no";
+
+        return `
+          <tr>
+            <td>${escapeHtml(item.file)}</td>
+            <td>${escapeHtml(tags)}</td>
+            <td>${meta}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function init() {
+      try {
+        const list = await loadAudioList();
+        render(list);
+      } catch (error) {
+        document.getElementById("statusBox").textContent =
+          error?.message ?? String(error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

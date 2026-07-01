@@ -87,7 +87,7 @@ function set(p, value) {
   return true;
 }
 
-export default config = {
+export const config = {
   load,
   get,
   set,

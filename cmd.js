@@ -2,15 +2,13 @@
 
 import { run } from "./infra/protocol.js";
 import { resolveCommand } from "./infra/cmd-resolver.js";
-import { closeAllClients } from "./cdp/client.js";
+import { closeAllClients } from "welm-cdp/client";
 
-import { TEST_COMMANDS } from "./cmd/test.js";
-import { CHROME_COMMANDS } from "./cmd/chrome.js";
+import { AUDIOMANAGER_COMMANDS } from "./cmd/audiomanager.js";
 
 // 一级命令分组
 const COMMAND_GROUPS = {
-  test: TEST_COMMANDS,
-  chrome: CHROME_COMMANDS,
+  audiomanager: AUDIOMANAGER_COMMANDS,
 };
 
 const json = process.argv.includes("--json");
