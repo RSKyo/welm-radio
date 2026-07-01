@@ -1,7 +1,8 @@
 // infra/server.js
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,4 +59,38 @@ export async function ensureNodeHttpService(serverFile, url, options = {}) {
   }
 
   return true;
+}
+
+const execFileAsync = promisify(execFile);
+
+export async function stopServerByPort(port) {
+  let stdout = "";
+
+  try {
+    const result = await execFileAsync("lsof", ["-ti", `:${port}`]);
+    stdout = result.stdout;
+  } catch (error) {
+    // lsof 没找到进程时也会返回非 0，这不是错误
+    if (!error.stdout && !error.stderr) {
+      return [];
+    }
+
+    // 有 stderr 才认为是真错误
+    if (error.stderr) {
+      throw new Error(error.stderr.trim());
+    }
+
+    return [];
+  }
+
+  const pids = stdout
+    .split("\n")
+    .map((pid) => pid.trim())
+    .filter(Boolean);
+
+  for (const pid of pids) {
+    process.kill(Number(pid), "SIGTERM");
+  }
+
+  return pids;
 }

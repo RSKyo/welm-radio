@@ -23,7 +23,7 @@
 
   <script type="module">
     async function loadAudioList() {
-      const res = await fetch("/api/audio-list");
+      const res = await fetch("/api/audio/list");
 
       if (!res.ok) {
         throw new Error(`load audio list failed: ${res.status}`);
