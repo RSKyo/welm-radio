@@ -4,11 +4,11 @@ import { run } from "./infra/protocol.js";
 import { resolveCommand } from "./infra/cmd-resolver.js";
 import { closeAllClients } from "welm-cdp/client";
 
-import { AUDIOMANAGER_COMMANDS } from "./cmd/audiomanager.js";
+import { WEB_COMMANDS } from "./cmd/web.js";
 
 // 一级命令分组
 const COMMAND_GROUPS = {
-  audiomanager: AUDIOMANAGER_COMMANDS,
+  web: WEB_COMMANDS,
 };
 
 const json = process.argv.includes("--json");
