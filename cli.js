@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { run } from "./infra/runner.js";
-import { resolveCommand } from "./infra/cmd-resolver.js";
+import { resolveCommand } from "./infra/cmd.js";
 import { closeAllClients } from "welm-cdp/client";
 
 import { WEB_COMMANDS } from "./cmd/web.js";
@@ -12,14 +12,16 @@ const COMMAND_GROUPS = {
 };
 
 const json = process.argv.includes("--json");
+const stack = process.argv.includes("--stack");
 
 run(
   async () => {
-    const ctx = resolveCommand(process.argv, COMMAND_GROUPS);
+    const ctx = resolveCommand(process, COMMAND_GROUPS);
     return await ctx.handler(ctx);
   },
   {
     json,
+    stack,
     cleanup: closeAllClients,
   },
 );
