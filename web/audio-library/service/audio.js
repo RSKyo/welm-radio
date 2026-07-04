@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { config } from "../../../infra/config.js";
-import { scanFiles } from "./file.js";
+import { scanPath } from "../../../infra/file.js";
 import { loadMeta } from "./meta.js";
 
 const audioExts = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
@@ -22,7 +22,7 @@ export function getAudioList() {
     return [];
   }
 
-  return scanFiles(dir, {
+  return scanPath(dir, {
     includeExts: audioExts,
   }).map(({ base, name, dir, path: filePath }) => {
     const metaPath = path.join(dir, `${name}.meta.json`);

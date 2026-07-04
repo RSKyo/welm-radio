@@ -1,5 +1,3 @@
-import { ERROR_CODE, createError } from "./error.js";
-
 // -------------------------------
 // 原子判断（全部正向）
 // -------------------------------
@@ -94,12 +92,7 @@ export const isPlainObject = (value) => {
 
 export function assertRequired(value, fieldName = "value") {
   if (isNull(value)) {
-    throw createError(
-      ERROR_CODE.REQUIRED,
-      "{0} is required",
-      null,
-      fieldName,
-    );
+    throw new Error(`${fieldName} is required`);
   }
 
   return value;
@@ -107,12 +100,7 @@ export function assertRequired(value, fieldName = "value") {
 
 export function assertPositive(value, fieldName = "value") {
   if (!isPositive(value)) {
-    throw createError(
-      ERROR_CODE.INVALID,
-      "{0} must be a positive number",
-      null,
-      fieldName,
-    );
+    throw new Error(`${fieldName} must be a positive number`);
   }
 
   return value;
@@ -120,12 +108,7 @@ export function assertPositive(value, fieldName = "value") {
 
 export function assertString(value, fieldName = "value") {
   if (!isString(value)) {
-    throw createError(
-      ERROR_CODE.INVALID,
-      "{0} must be a string",
-      null,
-      fieldName,
-    );
+    throw new Error(`${fieldName} must be a string`); 
   }
 
   return value;
@@ -133,12 +116,7 @@ export function assertString(value, fieldName = "value") {
 
 export function assertNonBlank(value, fieldName = "value") {
   if (isBlank(value)) {
-    throw createError(
-      ERROR_CODE.INVALID,
-      "{0} must not be blank",
-      null,
-      fieldName,
-    );
+    throw new Error(`${fieldName} must not be blank`);
   }
 
   return value;
@@ -146,13 +124,24 @@ export function assertNonBlank(value, fieldName = "value") {
 
 export function assertHttpUrl(value, fieldName = "url") {
   if (!isHttpUrl(value)) {
-    throw createError(
-      ERROR_CODE.INVALID,
-      "{0} must be a valid http or https url",
-      null,
-      fieldName,
-    );
+    throw new Error(`${fieldName} must be a valid http or https url`);
   }
 
   return value;
+}
+
+export function assertNonEmptyArray(value, fieldName = "value") {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty array`);
+  }
+
+  return value;
+}
+
+export function assertStringOrNonEmptyArray(value, fieldName = "value") {
+  if (typeof value === "string" || (Array.isArray(value) && value.length > 0)) {
+    return value;
+  }
+
+  throw new Error(`${fieldName} must be a string or a non-empty array`);
 }

@@ -4,11 +4,14 @@
   "description": "xxx",
   "type": "module",
   "bin": {
-    "welm-radio": "./cmd.js"
+    "welm-radio": "./cli.js"
   },
   "scripts": {
-    "start": "node ./cmd.js",
-    "test": "node --test"
+    "start": "node ./cli.js",
+    "test": "node --test",
+    "compile:file-clipboard": "swiftc clipboard/file-clipboard.swift -o clipboard/file-clipboard.bin",
+    "compile:image-clipboard": "swiftc clipboard/image-clipboard.swift -o clipboard/image-clipboard.bin",
+    "compile:clipboard": "npm run compile:file-clipboard && npm run compile:image-clipboard"
   },
   "keywords": [],
   "author": "",

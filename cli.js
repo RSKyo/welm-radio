@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { run } from "./infra/protocol.js";
+import { run } from "./infra/runner.js";
 import { resolveCommand } from "./infra/cmd-resolver.js";
 import { closeAllClients } from "welm-cdp/client";
 
