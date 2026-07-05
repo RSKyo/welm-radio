@@ -17,8 +17,6 @@
 // Last updated: 2026-07-04
 // -----------------------------------------------------------------------------
 
-import { log } from "./log.js";
-
 // #region public API
 
 // CLI 入口执行器
@@ -32,7 +30,7 @@ export async function run(main, runOptions = {}) {
     process.exitCode = 0;
   } catch (error) {
     const caughtError = toError(error);
-    log.error(caughtError.message, runOptions);
+    runOptions.reporter?.error?.(caughtError.message, runOptions);
 
     const failPayload = fail(caughtError);
     writeProtocolPayload(failPayload, runOptions);
