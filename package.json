@@ -8,10 +8,7 @@
   },
   "scripts": {
     "start": "node ./cli.js",
-    "test": "node --test",
-    "compile:file-clipboard": "swiftc clipboard/file-clipboard.swift -o clipboard/file-clipboard.bin",
-    "compile:image-clipboard": "swiftc clipboard/image-clipboard.swift -o clipboard/image-clipboard.bin",
-    "compile:clipboard": "npm run compile:file-clipboard && npm run compile:image-clipboard"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
