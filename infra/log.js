@@ -7,6 +7,16 @@ const COLOR = {
 
 let lastLength = 0;
 
+export const log = {
+  info,
+  warn,
+  error,
+  success,
+  progress,
+  progressDone,
+  progressBar,
+};
+
 function getDisplayWidth(text) {
   let width = 0;
 
@@ -105,13 +115,3 @@ function progressBar(current, total, text = "") {
     `\r[${bar}] ${Math.floor(percent * 100)}% ${text}`
   );
 }
-
-export const log = {
-  info,
-  warn,
-  error,
-  success,
-  progress,
-  progressDone,
-  progressBar,
-};

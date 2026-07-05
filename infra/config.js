@@ -5,6 +5,12 @@ import os from "node:os";
 const WELM_HOME = `${os.homedir()}/.local/share/welm`;
 const CONFIG_PATH = path.join(WELM_HOME, "config.json");
 
+export const config = {
+  load,
+  get,
+  set,
+};
+
 function ensureConfigFile() {
   if (!fs.existsSync(CONFIG_PATH)) {
     fs.mkdirSync(WELM_HOME, { recursive: true });
@@ -86,9 +92,3 @@ function set(p, value) {
 
   return true;
 }
-
-export const config = {
-  load,
-  get,
-  set,
-};

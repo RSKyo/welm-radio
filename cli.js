@@ -2,13 +2,19 @@
 
 import { run } from "./infra/runner.js";
 import { resolveCommand } from "./infra/cmd.js";
-import { closeAllClients } from "welm-cdp/client";
+import { closeCdpClients } from "./cdp/lifecycle.js";
 
-import { WEB_COMMANDS } from "./cmd/web.js";
+import { TEST_COMMANDS } from "./cmd/test.js";
+import { CHROME_COMMANDS } from "./cmd/chrome.js";
+import { CLIPBOARD_COMMANDS } from "./cmd/clipboard.js";
+import { CHATGPT_COMMANDS } from "./cmd/chatgpt.js";
 
 // 一级命令分组
 const COMMAND_GROUPS = {
-  web: WEB_COMMANDS,
+  test: TEST_COMMANDS,
+  chrome: CHROME_COMMANDS,
+  clipboard: CLIPBOARD_COMMANDS,
+  chatgpt: CHATGPT_COMMANDS,
 };
 
 const json = process.argv.includes("--json");
@@ -22,6 +28,6 @@ run(
   {
     json,
     stack,
-    cleanup: closeAllClients,
+    cleanup: closeCdpClients,
   },
 );
