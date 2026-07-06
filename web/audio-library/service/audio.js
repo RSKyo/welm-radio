@@ -1,21 +1,20 @@
-import path from "node:path";
-
+import { joinPath, scanPath } from "welm-cdp/file";
 import { config } from "../../../infra/config.js";
-import { scanPath } from "../../../infra/file.js";
 import { loadMeta } from "./meta.js";
 
+const audio_library_dir_key = "radio.audio_library";
 const audioExts = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 
 export function getAudioLibraryDir() {
-  return config.get("radio.audio_library");
+  return config.get(audio_library_dir_key);
 }
 
 export function setAudioLibraryDir(dir) {
-  config.set("radio.audio_library", dir);
+  config.set(audio_library_dir_key, dir);
   return true;
 }
 
-export function getAudioList() {
+export function listAudio() {
   const dir = getAudioLibraryDir();
 
   if (!dir) {
@@ -24,14 +23,12 @@ export function getAudioList() {
 
   return scanPath(dir, {
     includeExts: audioExts,
-  }).map(({ base, name, dir, path: filePath }) => {
-    const metaPath = path.join(dir, `${name}.meta.json`);
+  }).map(({ name, filePath }) => {
+    const metaPath = joinPath(dir, `${name}.meta.json`);
     const meta = loadMeta(metaPath);
 
     return {
-      base,
-      path: filePath,
-      metaPath,
+      filePath,
       ...meta,
     };
   });

@@ -4,9 +4,60 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const serverPort = 3000;
-const serverPath = fileURLToPath(new URL("./server.js", import.meta.url));
+const serverPath = path.join(__dirname, "server.js");
 const readyUrl = `http://localhost:${serverPort}/__ready`;
+const execFileAsync = promisify(execFile);
+
+// #region Public API
+
+export async function ensureWebServer(options = {}) {
+  if (await isHttpReady()) {
+    return true;
+  }
+
+  const child = spawn(process.execPath, [serverPath], {
+    cwd: path.dirname(serverPath),
+    env: process.env,
+    detached: true,
+    stdio: options.verbose ? "inherit" : "ignore",
+  });
+
+  child.unref();
+
+  await waitHttpReady();
+
+  return true;
+}
+
+export async function stopWebServer() {
+  let stdout = "";
+
+  try {
+    const result = await execFileAsync("lsof", ["-ti", `:${serverPort}`]);
+    stdout = result.stdout;
+  } catch {
+    return [];
+  }
+
+  const pids = stdout
+    .split("\n")
+    .map((pid) => pid.trim())
+    .filter(Boolean);
+
+  for (const pid of pids) {
+    process.kill(Number(pid), "SIGTERM");
+  }
+
+  return pids;
+}
+
+// #endregion
+
+// #region Private helpers
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,45 +97,4 @@ async function waitHttpReady() {
   throw new Error(`Web server not ready: ${readyUrl}`);
 }
 
-export async function ensureWebServer(options = {}) {
-  if (await isHttpReady()) {
-    return true;
-  }
-
-  const child = spawn(process.execPath, [serverPath], {
-    cwd: path.dirname(serverPath),
-    env: process.env,
-    detached: true,
-    stdio: options.verbose ? "inherit" : "ignore",
-  });
-
-  child.unref();
-
-  await waitHttpReady();
-
-  return true;
-}
-
-const execFileAsync = promisify(execFile);
-
-export async function stopWebServer() {
-  let stdout = "";
-
-  try {
-    const result = await execFileAsync("lsof", ["-ti", `:${serverPort}`]);
-    stdout = result.stdout;
-  } catch {
-    return [];
-  }
-
-  const pids = stdout
-    .split("\n")
-    .map((pid) => pid.trim())
-    .filter(Boolean);
-
-  for (const pid of pids) {
-    process.kill(Number(pid), "SIGTERM");
-  }
-
-  return pids;
-}
+// #endregion

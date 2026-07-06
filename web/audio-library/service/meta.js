@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import { exists, readFileJson,writeFileJson } from "welm-cdp/file";
 
 function createDefaultMeta() {
   return {
@@ -26,14 +26,14 @@ function createDefaultMeta() {
 }
 
 export function loadMeta(metaPath) {
-  if (!fs.existsSync(metaPath)) {
+  if (!exists(metaPath)) {
     return createDefaultMeta();
   }
 
   try {
     return {
       ...createDefaultMeta(),
-      ...JSON.parse(fs.readFileSync(metaPath, "utf-8")),
+      ...readFileJson(metaPath),
     };
   } catch {
     return createDefaultMeta();
@@ -41,18 +41,17 @@ export function loadMeta(metaPath) {
 }
 
 export function saveMeta(metaPath, data = {}) {
-  const oldMeta = fs.existsSync(metaPath) ? loadMeta(metaPath) : null;
+  const oldMeta = loadMeta(metaPath);
   const now = new Date().toISOString();
 
   const meta = {
-    ...createDefaultMeta(),
     ...oldMeta,
     ...data,
     createdAt: oldMeta?.createdAt || now,
     updatedAt: now,
   };
 
-  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf-8");
+  writeFileJson(metaPath, meta);
 
   return meta;
 }

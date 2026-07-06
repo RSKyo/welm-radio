@@ -1,27 +1,36 @@
-import { ensureChrome, ensureChromePage } from "welm-cdp/chrome";
-
-import { log } from "../infra/log.js";
 import { ensureWebServer, stopWebServer } from "../web/runner.js";
+
+import {
+  ensureChrome,
+  ensureChromePage,
+  activateChromePage,
+} from "welm-cdp/chrome";
+
+const serverPort = 3000;
 
 export const WEB_COMMANDS = {
   "audio-library": {
-    handler: cmd_web_audio_library,
+    handler: cmd_audio_library,
   },
 
   stop: {
-    handler: cmd_web_stop,
+    handler: cmd_stop,
   },
 };
 
-export async function cmd_web_audio_library({ argv, options } = {}) {
-  const url = "http://localhost:3000/audio-library/";
+async function cmd_audio_library({ argv, options } = {}) {
+  // default index.html is in the web/audio-library directory.
+  const url = `http://localhost:${serverPort}/audio-library/index.html`;
 
+  // start the web server if not already running
   await ensureWebServer(options);
 
-  await ensureChrome(options);
-  const { targetId } = await ensureChromePage(url, options);
+  // ensure Chrome is running and open the audio-library page
+  const { targetId } = await ensureChromeAndPage(url, options);
 
-  log.info(`audio-library is ready: ${url}`, options);
+  const { reporter } = options;
+  reporter?.info?.(`${targetId}`, options);
+  reporter?.info?.(`${url}`, options);
 
   return {
     url,
@@ -29,18 +38,26 @@ export async function cmd_web_audio_library({ argv, options } = {}) {
   };
 }
 
-export async function cmd_web_stop({ argv, options } = {}) {
-  const pids = await stopWebServer(options);
+async function cmd_stop({ argv, options } = {}) {
+  let pids = [];
 
-  if (pids.length === 0) {
-    log.info("Web server is not running", options);
-    return true;
+  pids = await stopWebServer(options);
+
+  const { reporter } = options;
+
+  for (const pid of pids) {
+    reporter?.info?.(`Web server stopped: ${pid}`, options);
   }
 
-  log.info(`Web server stopped: ${pids.join(", ")}`, options);
-
   return {
-    stopped: true,
-    pids,
+    ...pids,
   };
+}
+
+async function ensureChromeAndPage(url, options = {}) {
+  await ensureChrome(options);
+
+  const target = await ensureChromePage(url, options);
+  await activateChromePage(target.targetId, options);
+  return target;
 }
