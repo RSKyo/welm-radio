@@ -1,47 +1,36 @@
-import { ensureWebServer, stopWebServer } from "../web/runner.js";
-
 import {
-  ensureChrome,
-  ensureChromePage,
-  activateChromePage,
-} from "welm-cdp/chrome";
+  ensureWebServer,
+  stopWebServer,
+  reloadWebServer,
+  ensureWebStarted,
+} from "../web/launcher.js";
 
 const serverPort = 3000;
 
 export const WEB_COMMANDS = {
-  "audio-library": {
-    handler: cmd_audio_library,
+  start: {
+    handler: cmd_web_start,
   },
 
   stop: {
-    handler: cmd_stop,
+    handler: cmd_web_stop,
+  },
+
+  reload: {
+    handler: cmd_web_reload,
+  },
+
+  "audio-library": {
+    handler: cmd_audio_library,
   },
 };
 
-async function cmd_audio_library({ argv, options } = {}) {
-  // default index.html is in the web/audio-library directory.
-  const url = `http://localhost:${serverPort}/audio-library/index.html`;
-
-  // start the web server if not already running
-  await ensureWebServer(options);
-
-  // ensure Chrome is running and open the audio-library page
-  const { targetId } = await ensureChromeAndPage(url, options);
-
-  const { reporter } = options;
-  reporter?.info?.(`${targetId}`, options);
-  reporter?.info?.(`${url}`, options);
-
-  return {
-    url,
-    targetId,
-  };
+export async function cmd_web_start({ argv, options } = {}) {
+  return await ensureWebServer(options);
 }
 
-async function cmd_stop({ argv, options } = {}) {
-  let pids = [];
-
-  pids = await stopWebServer(options);
+export async function cmd_web_stop({ argv, options } = {}) {
+  const pids = await stopWebServer(options);
 
   const { reporter } = options;
 
@@ -49,15 +38,17 @@ async function cmd_stop({ argv, options } = {}) {
     reporter?.info?.(`Web server stopped: ${pid}`, options);
   }
 
-  return {
-    ...pids,
-  };
+  return pids;
 }
 
-async function ensureChromeAndPage(url, options = {}) {
-  await ensureChrome(options);
+export async function cmd_web_reload({ argv, options } = {}) {
+  return await reloadWebServer(options);
+}
 
-  const target = await ensureChromePage(url, options);
-  await activateChromePage(target.targetId, options);
-  return target;
+export async function cmd_audio_library({ argv, options } = {}) {
+  const url = `http://localhost:${serverPort}/audio-library/index.html`;
+
+  await ensureWebServer(options);
+
+  return await ensureWebStarted(url, options);
 }

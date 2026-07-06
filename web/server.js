@@ -3,12 +3,13 @@
  *
  * Do not import this file.
  * Do not export from this file.
- *
  */
 
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { config } from "../infra/config.js";
 
 import { router as audioLibraryRouter } from "./audio-library/router.js";
 
@@ -21,17 +22,36 @@ const app = express();
 
 app.use(express.json());
 
+// -----------------------------------------------------------------------------
+// server
+// -----------------------------------------------------------------------------
+
+app.use("/assets", express.static(path.join(__dirname, "assets")));
+
 app.get("/__ready", (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/config-path", (req, res) => {
+  res.json({
+    path: config.configPath,
+  });
+});
+
+// -----------------------------------------------------------------------------
 // audio-library
+// -----------------------------------------------------------------------------
+
 app.use(
   "/audio-library",
   express.static(path.join(__dirname, "audio-library/ui")),
 );
 
 app.use("/audio-library/api", audioLibraryRouter);
+
+// -----------------------------------------------------------------------------
+// start
+// -----------------------------------------------------------------------------
 
 app.listen(serverPort, () => {
   console.log(`welm-radio web server running: http://localhost:${serverPort}`);

@@ -4,6 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import {
+  ensureChrome,
+  ensureChromePage,
+  closeChromePage,
+  activateChromePage,
+} from "welm-cdp/chrome";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -33,7 +40,7 @@ export async function ensureWebServer(options = {}) {
   return true;
 }
 
-export async function stopWebServer() {
+export async function stopWebServer(options = {}) {
   let stdout = "";
 
   try {
@@ -53,6 +60,26 @@ export async function stopWebServer() {
   }
 
   return pids;
+}
+
+export async function reloadWebServer(options = {}) {
+  await stopWebServer(options);
+  await ensureWebServer(options);
+}
+
+export async function ensureWebStarted(url, options = {}) {
+  // start the web server if not already running
+  await ensureWebServer(options);
+
+  // ensure Chrome is running and open the audio-library page
+  await ensureChrome(options);
+  const { targetId } = await ensureChromePage(url, options);
+  await activateChromePage(targetId, options);
+
+  return {
+    url,
+    targetId,
+  };
 }
 
 // #endregion

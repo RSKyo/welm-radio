@@ -1,77 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Audio Manager</title>
-</head>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
 
-<body>
-  <h2>Audio Manager</h2>
+    <title>Audio Library</title>
 
-  <div id="statusBox">Loading...</div>
+    <link rel="stylesheet" href="/assets/pico.cyan.min.css" />
+    <link rel="stylesheet" href="/assets/global.css" />
+    <link rel="stylesheet" href="index.css" />
 
-  <table id="audioTable" border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr>
-        <th>File</th>
-        <th>Tags</th>
-        <th>Meta</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <script src="/assets/split.min.js"></script>
+    <script src="/assets/global.js"></script>
+    <script src="index.js"></script>
+  </head>
 
-  <script type="module">
-    async function loadAudioList() {
-      const res = await fetch("/audio-library/api/list");
+  <body data-theme="light">
+    <div id="app" class="vbox">
+      <div class="toolbar b-line">
+        <h1 class="grow title">Audio Library</h1>
+        <button id="rootButton">Root</button>
+        <button id="saveButton">Save</button>
+        <button id="refreshButton">Refresh</button>
+      </div>
+      <div class="grow hbox">
+        <div class="panel grow minw-360 hbox">
+          <div class="panel grow vbox r-line">filter</div>
 
-      if (!res.ok) {
-        throw new Error(`load audio list failed: ${res.status}`);
-      }
+          <div class="panel grow vbox r-line">files</div>
+        </div>
 
-      return await res.json();
-    }
-
-    function render(list) {
-      const statusBox = document.getElementById("statusBox");
-      const tbody = document.querySelector("#audioTable tbody");
-
-      statusBox.textContent = `${list.length} audio file(s)`;
-
-      tbody.innerHTML = list.map((item) => {
-        const tags = item.tags?.length ? item.tags.join(", ") : "-";
-        const meta = item.meta ? "yes" : "no";
-
-        return `
-          <tr>
-            <td>${escapeHtml(item.file)}</td>
-            <td>${escapeHtml(tags)}</td>
-            <td>${meta}</td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    async function init() {
-      try {
-        const list = await loadAudioList();
-        render(list);
-      } catch (error) {
-        document.getElementById("statusBox").textContent =
-          error?.message ?? String(error);
-      }
-    }
-
-    init();
-  </script>
-</body>
+        <div class="panel grow minw-360 vbox">
+          <textarea id="metaEditor"></textarea>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>

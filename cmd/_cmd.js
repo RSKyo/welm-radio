@@ -1,5 +1,5 @@
 import { WEB_COMMANDS } from "./web.js";
 
-const COMMAND_GROUPS = {
+export const COMMAND_GROUPS = {
   web: WEB_COMMANDS,
 };
