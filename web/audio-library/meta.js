@@ -1,4 +1,4 @@
-import { exists, readFileJson,writeFileJson } from "welm-cdp/file";
+import { exists, readFileJson, writeFileJson } from "welm-cdp/fs";
 
 function createDefaultMeta() {
   return {

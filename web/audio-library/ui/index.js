@@ -1,14 +1,23 @@
 rootButton.addEventListener("click", async () => {
-  const res = await fetch("/audio-library/api/root/select", {
-    method: "POST",
-  });
+  await window.runAction(selectRoot);
+});
 
-  const data = await res.json();
+refreshButton.addEventListener("click", async () => {
+  await window.runAction(listAudio);
+});
 
-  if (!res.ok) {
-    alert(data.error ?? "Failed to select root");
-    return;
+async function selectRoot() {
+  const {root, canceled} = await window.api.post("/audio-library/api/select-root");
+
+  if (canceled) {
+    return null;
   }
 
-  await loadAudioList();
-});
+  await listAudio();
+}
+
+async function listAudio() {
+  const {list} = await window.api.get("/audio-library/api/list-audio");
+
+  // 接下来在filesPanel中显示这些文件
+}

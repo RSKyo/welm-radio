@@ -1,37 +1,52 @@
 import express from "express";
 
-import { getRoot, setRoot, listAudio } from "./library.js";
+import { getRoot, setRoot, listAudio, selectRoot } from "./library.js";
 
 export const router = express.Router();
 
 // GET /audio-library/api/root
-router.get("/root", (req, res) => {
-  res.json({
-    root: getRoot() ?? null,
-  });
-});
+router.get(
+  "/root",
+  withErrorHandler(async (req, res) => {
+    const root = getRoot();
 
-// POST /audio-library/api/root
-router.post("/root", (req, res) => {
-  const { dir } = req.body;
-
-  if (!dir) {
-    res.status(400).json({
-      error: "Missing 'dir' parameter",
+    res.json({
+      root,
     });
-    return;
-  }
+  }),
+);
 
-  dir = setRoot(dir);
+// POST /audio-library/api/select-root
+router.post(
+  "/select-root",
+  withErrorHandler(async (req, res) => {
+    const root = await selectRoot();
 
-  res.json({
-    root: dir,
-  });
-});
+    res.json({
+      root,
+      canceled: !root,
+    });
+  }),
+);
 
-// GET /audio-library/api/list
-router.get("/list", (req, res) => {
-  res.json({
-    list: listAudio(),
-  });
-});
+// GET /audio-library/api/list-audio
+router.get(
+  "/list-audio",
+  withErrorHandler(async (req, res) => {
+    const list = listAudio();
+
+    res.json({
+      list,
+    });
+  }),
+);
+
+function withErrorHandler(handler) {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
+}

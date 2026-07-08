@@ -6,7 +6,6 @@ const WELM_HOME = `${os.homedir()}/.local/share/welm`;
 const CONFIG_PATH = path.join(WELM_HOME, "config.json");
 
 export const config = {
-  configPath: path.resolve(path.join(WELM_HOME, "config.json")),
   load,
   get,
   set,

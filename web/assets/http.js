@@ -14,19 +14,37 @@ window.api = {
 };
 
 async function request(url, options = {}) {
-  const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
+  let res;
 
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(data?.error ?? `Request failed: ${res.status}`);
+  try {
+    res = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers ?? {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    throw new Error(`Request failed: ${error.message}`);
   }
 
-  return data;
+  const result = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(result?.error ?? `Request failed: ${res.status}`);
+  }
+
+  return result;
 }
+
+window.runAction = async function runAction(action, options = {}) {
+  try {
+    return await action();
+  } catch (error) {
+    if (!options.silent) {
+      alert(error?.message ?? String(error));
+    }
+
+    return null;
+  }
+};

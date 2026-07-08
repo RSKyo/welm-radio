@@ -1,4 +1,5 @@
-import { joinPath, scanPath } from "welm-cdp/file";
+import { joinPath, scanFiles } from "welm-cdp/fs";
+import { selectFolder } from "welm-cdp/dialog";
 
 import { config } from "../../infra/config.js";
 import { loadMeta } from "./meta.js";
@@ -7,37 +8,6 @@ const AUDIO_LIBRARY_DIR_KEY = "radio.audio_library";
 
 const AUDIO_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 
-// // root
-// getRoot()
-// setRoot()
-
-// // folder
-// listFolders()
-// createFolder()
-// renameFolder()
-// moveFolder()
-// deleteFolder()
-
-// // audio
-// list()
-// get()
-// rename()
-// move()
-// copy()
-// remove()
-
-// // meta
-// getMeta()
-// saveMeta()
-// ensureMeta()
-// removeMeta()
-
-// // search
-// search()
-// findByTag()
-
-// // statistics
-// stats()
 // -----------------------------------------------------------------------------
 // root
 // -----------------------------------------------------------------------------
@@ -63,17 +33,37 @@ export function listAudio() {
     return [];
   }
 
-  const files = scanPath(root, {
+  const files = scanFiles(root, {
     includeExts: AUDIO_EXTS,
   });
 
-  return files.map(({ name, filePath }) => {
-    const metaPath = joinPath(root, `${name}.meta.json`);
+  return files.map(({ root, dir, base, ext, name, filePath }) => {
+    const metaPath = joinPath(dir, `${name}.meta.json`);
     const meta = loadMeta(metaPath);
 
-      return {
-        filePath,
-        meta,
-      };
+    return {
+      root,
+      dir,
+      base,
+      ext,
+      name,
+      filePath,
+      metaPath,
+      meta,
+    };
   });
+}
+
+export function selectRoot() {
+  const root = selectFolder({
+    dialogTitle: "Choose Audio Library",
+  });
+
+  if (!root) {
+    return null;
+  }
+
+  setRoot(root);
+
+  return root;
 }
