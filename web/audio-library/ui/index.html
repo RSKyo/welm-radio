@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
 
     <title>Audio Library</title>
+    <link rel="icon" href="/assets/favicon.ico" />
 
     <link rel="stylesheet" href="/assets/pico.cyan.min.css" />
     <link rel="stylesheet" href="/assets/global.css" />
@@ -12,25 +13,48 @@
 
   <body data-theme="light">
     <div id="app" class="vbox">
+      <!-- Toolbar -->
       <div class="toolbar b-line">
         <h1 class="grow title">Audio Library</h1>
         <button id="rootButton" title="选择音频库根目录">Audio Folder</button>
         <button id="saveButton">Save</button>
         <button id="refreshButton">Refresh</button>
       </div>
+
+      <!-- Main Content Area -->
       <div class="grow hbox">
-        <div class="panel grow minw-360 hbox">
-          <div class="panel grow vbox r-line">filter</div>
 
-          <div class="panel grow vbox r-line">files</div>
-        </div>
+          <!-- Filter Area -->
+          <div class="panel vbox r-line w-240 ">filter</div>
 
-        <div class="panel grow minw-360 vbox">
+          <!-- Files Area -->
+          <div class="panel grow vbox r-line minw-360">
+            <!-- Audio Files Panel -->
+            <div class="panel grow vbox r-line">
+              <div class="panel-title">
+                <h4>Audio Files</h4>
+              </div>
+              <div id="filesPanel" class="file-list"></div>
+            </div>
+          </div>
+  
+
+        <!-- Meta Editor Area -->
+        <div class="panel w-480 vbox">
           <textarea id="metaEditor"></textarea>
         </div>
       </div>
     </div>
 
+    <!-- Templates -->
+    <!-- Template for a file item -->
+    <template id="fileItemTemplate">
+      <div class="file-item">
+        <div class="file-name"></div>
+      </div>
+    </template>
+
+    <!-- Scripts -->
     <script src="/assets/split.min.js"></script>
     <script src="/assets/global.js"></script>
     <script src="/assets/http.js"></script>

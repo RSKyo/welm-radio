@@ -21,6 +21,78 @@ body {
   --pico-form-element-spacing-horizontal: 0.7rem;
 }
 
+/* 160px  小过滤栏、小按钮组、小侧栏
+200px  普通侧栏
+240px  列表栏、窄面板
+280px  稍宽列表栏
+320px  表单栏、小编辑区
+360px  中等面板
+480px  大编辑区、详情区
+640px  大文本区、预览区 */
+.w-160 {
+  width: 160px;
+}
+
+.w-200 {
+  width: 200px;
+}
+
+.w-240 {
+  width: 240px;
+}
+
+.w-280 {
+  width: 280px;
+}
+
+.w-320 {
+  width: 320px;
+}
+
+.w-360 {
+  width: 360px;
+}
+
+.w-480 {
+  width: 480px;
+}
+
+.w-640 {
+  width: 640px;
+}
+
+.minw-0 {
+  min-width: 0;
+}
+
+.minw-160 {
+  min-width: 160px;
+}
+
+.minw-200 {
+  min-width: 200px;
+}
+
+.minw-240 {
+  min-width: 240px;
+}
+
+.minw-280 {
+  min-width: 280px;
+}
+
+.minw-320 {
+  min-width: 320px;
+}
+
+.minw-360 {
+  min-width: 360px;
+}
+
+.minw-480 {
+  min-width: 480px;
+}
+
 /* Flexbox layout classes */
 
 .hbox {
@@ -34,6 +106,54 @@ body {
 
 .grow {
   flex: 1;
+}
+
+.flex-1 {
+  flex: 1 1 0;
+}
+
+.flex-2 {
+  flex: 2 1 0;
+}
+
+.flex-3 {
+  flex: 3 1 0;
+}
+
+.flex-4 {
+  flex: 4 1 0;
+}
+
+.flex-5 {
+  flex: 5 1 0;
+}
+
+.flex-6 {
+  flex: 6 1 0;
+}
+
+.flex-7 {
+  flex: 7 1 0;
+}
+
+.flex-8 {
+  flex: 8 1 0;
+}
+
+.flex-9 {
+  flex: 9 1 0;
+}
+
+.flex-10 {
+  flex: 10 1 0;
+}
+
+.flex-11 {
+  flex: 11 1 0;
+}
+
+.flex-12 {
+  flex: 12 1 0;
 }
 
 /* Alignment classes */
@@ -90,14 +210,8 @@ body {
   padding: 0 8px;
 }
 
-.toolbar > :is(
-    h1, h2, h3, h4, h5, h6,
-    input,
-    button,
-    select,
-    textarea
-) {
-    margin: 0;
+.toolbar > :is(h1, h2, h3, h4, h5, h6, input, button, select, textarea) {
+  margin: 0;
 }
 
 .scroll {

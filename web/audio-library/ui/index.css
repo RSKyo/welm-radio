@@ -1,6 +1,6 @@
 #app {
-    width:100%;
-    height:100%;
+  width: 100%;
+  height: 100%;
 }
 
 .title {
@@ -9,10 +9,6 @@
 
 .panel {
   overflow: auto;
-}
-
-.minw-360 {
-  min-width: 360px;
 }
 
 #metaEditor {
@@ -24,4 +20,40 @@
   border-radius: 0;
   outline: none;
   box-shadow: none;
+}
+
+/* Audio Files Panel */
+.panel-title {
+  padding: 8px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.file-list {
+  flex: 1;
+  overflow: auto;
+}
+
+.file-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item:hover {
+  background: var(--pico-muted-border-color);
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 12px;
+  color: var(--pico-muted-color);
 }
