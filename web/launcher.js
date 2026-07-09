@@ -5,10 +5,13 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import {
+  isChromeReady,
   ensureChrome,
   ensureChromePage,
   closeChromePage,
+  findChromePages,
   activateChromePage,
+  reloadChromePage,
 } from "welm-cdp/chrome";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,6 +68,17 @@ export async function stopWebServer(options = {}) {
 export async function reloadWebServer(options = {}) {
   await stopWebServer(options);
   await ensureWebServer(options);
+
+  if (await isChromeReady()) {
+    const targets = await findChromePages(
+      `http://localhost:${serverPort}/`,
+      options,
+    );
+
+    for (const { targetId } of targets) {
+      await reloadChromePage(targetId, options);
+    }
+  }
 }
 
 export async function ensureWebStarted(url, options = {}) {

@@ -2,9 +2,10 @@ import { joinPath, scanFiles } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
 
 import { config } from "../../infra/config.js";
+import { log } from "../../infra/log.js";
 import { loadMeta } from "./meta.js";
 
-const AUDIO_LIBRARY_DIR_KEY = "radio.audio_library";
+const AUDIO_LIBRARY_DIR_KEY = "welm-radio.audio_library";
 
 const AUDIO_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 
@@ -54,10 +55,12 @@ export function listAudio() {
   });
 }
 
-export function selectRoot() {
-  const root = selectFolder({
+export async function selectRoot(options = {}) {
+  const root = await selectFolder({
     dialogTitle: "Choose Audio Library",
   });
+
+  log.debug(`Selected Root: ${root}`, options);
 
   if (!root) {
     return null;

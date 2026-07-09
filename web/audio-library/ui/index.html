@@ -8,18 +8,13 @@
     <link rel="stylesheet" href="/assets/pico.cyan.min.css" />
     <link rel="stylesheet" href="/assets/global.css" />
     <link rel="stylesheet" href="index.css" />
-
-    <script src="/assets/split.min.js"></script>
-    <script src="/assets/global.js"></script>
-    <script src="/assets/http.js"></script>
-    <script src="index.js"></script>
   </head>
 
   <body data-theme="light">
     <div id="app" class="vbox">
       <div class="toolbar b-line">
         <h1 class="grow title">Audio Library</h1>
-        <button id="rootButton">Root</button>
+        <button id="rootButton" title="选择音频库根目录">Audio Folder</button>
         <button id="saveButton">Save</button>
         <button id="refreshButton">Refresh</button>
       </div>
@@ -35,5 +30,10 @@
         </div>
       </div>
     </div>
+
+    <script src="/assets/split.min.js"></script>
+    <script src="/assets/global.js"></script>
+    <script src="/assets/http.js"></script>
+    <script src="index.js"></script>
   </body>
 </html>

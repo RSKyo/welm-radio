@@ -1,5 +1,6 @@
 import express from "express";
 
+import { webHandler } from "../handler.js";
 import { getRoot, setRoot, listAudio, selectRoot } from "./library.js";
 
 export const router = express.Router();
@@ -7,8 +8,8 @@ export const router = express.Router();
 // GET /audio-library/api/root
 router.get(
   "/root",
-  withErrorHandler(async (req, res) => {
-    const root = getRoot();
+  webHandler(async (req, res, options) => {
+    const root = getRoot(options);
 
     res.json({
       root,
@@ -19,8 +20,8 @@ router.get(
 // POST /audio-library/api/select-root
 router.post(
   "/select-root",
-  withErrorHandler(async (req, res) => {
-    const root = await selectRoot();
+  webHandler(async (req, res, options) => {
+    const root = await selectRoot(options);
 
     res.json({
       root,
@@ -32,21 +33,11 @@ router.post(
 // GET /audio-library/api/list-audio
 router.get(
   "/list-audio",
-  withErrorHandler(async (req, res) => {
-    const list = listAudio();
+  webHandler(async (req, res, options) => {
+    const list = listAudio(options);
 
     res.json({
       list,
     });
   }),
 );
-
-function withErrorHandler(handler) {
-  return async (req, res, next) => {
-    try {
-      await handler(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  };
-}
