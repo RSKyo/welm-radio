@@ -3,14 +3,6 @@
   height: 100%;
 }
 
-.title {
-  color: var(--pico-primary-background);
-}
-
-.panel {
-  overflow: auto;
-}
-
 #metaEditor {
   flex: 1;
 
@@ -22,17 +14,12 @@
   box-shadow: none;
 }
 
-/* Audio Files Panel */
-.panel-title {
-  padding: 8px 12px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+h1 {
+  color: var(--pico-primary-background);
 }
 
-.file-list {
-  flex: 1;
-  overflow: auto;
-}
+
+
 
 .file-item {
   padding: 6px 12px;

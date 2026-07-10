@@ -2,6 +2,7 @@ import express from "express";
 
 import { webHandler } from "../handler.js";
 import { getRoot, setRoot, listAudio, selectRoot } from "./library.js";
+import { listMetaType } from "./meta.js";
 
 export const router = express.Router();
 
@@ -30,11 +31,25 @@ router.post(
   }),
 );
 
-// GET /audio-library/api/list-audio
-router.get(
+// POST /audio-library/api/list-audio
+router.post(
   "/list-audio",
   webHandler(async (req, res, options) => {
-    const list = listAudio(options);
+    const filter = req.body || {};
+
+    const list = listAudio(filter, options);
+
+    res.json({
+      list,
+    });
+  }),
+);
+
+// GET /audio-library/api/list-meta-type
+router.get(
+  "/list-meta-type",
+  webHandler(async (req, res, options) => {
+    const list = listMetaType();
 
     res.json({
       list,

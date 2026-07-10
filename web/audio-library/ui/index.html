@@ -12,10 +12,10 @@
   </head>
 
   <body data-theme="light">
-    <div id="app" class="vbox">
+    <div id="app" class="vbox minh-0">
       <!-- Toolbar -->
       <div class="toolbar b-line">
-        <h1 class="grow title">Audio Library</h1>
+        <h1 class="grow">Audio Library</h1>
         <button id="rootButton" title="选择音频库根目录">Audio Folder</button>
         <button id="saveButton">Save</button>
         <button id="refreshButton">Refresh</button>
@@ -23,24 +23,28 @@
 
       <!-- Main Content Area -->
       <div class="grow hbox">
-
-          <!-- Filter Area -->
-          <div class="panel vbox r-line w-240 ">filter</div>
-
-          <!-- Files Area -->
-          <div class="panel grow vbox r-line minw-360">
-            <!-- Audio Files Panel -->
-            <div class="panel grow vbox r-line">
-              <div class="panel-title">
-                <h4>Audio Files</h4>
-              </div>
-              <div id="filesPanel" class="file-list"></div>
+        <!-- Filter Area -->
+        <div class="panel vbox r-line" style="width: 240px">
+          <div class="panel">
+            <div class="panel-body">
+              <div id="metaTypeList" class="chip-list"></div>
             </div>
           </div>
-  
+        </div>
+
+        <!-- Files Area -->
+        <div class="grow vbox r-line" style="min-width: 360px">
+          <!-- Audio Files -->
+          <div class="panel grow">
+            <div class="panel-header">
+              <h4>Audio Files</h4>
+            </div>
+            <div id="fileList" class="panel-body"></div>
+          </div>
+        </div>
 
         <!-- Meta Editor Area -->
-        <div class="panel w-480 vbox">
+        <div class="vbox" style="width: 640px">
           <textarea id="metaEditor"></textarea>
         </div>
       </div>
@@ -52,6 +56,11 @@
       <div class="file-item">
         <div class="file-name"></div>
       </div>
+    </template>
+
+    <!-- Template for a meta type -->
+    <template id="metaTypeTemplate">
+      <span class="chip"></span>
     </template>
 
     <!-- Scripts -->

@@ -9,10 +9,6 @@ const AUDIO_LIBRARY_DIR_KEY = "welm-radio.audio_library";
 
 const AUDIO_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 
-// -----------------------------------------------------------------------------
-// root
-// -----------------------------------------------------------------------------
-
 export function getRoot() {
   return config.get(AUDIO_LIBRARY_DIR_KEY);
 }
@@ -23,22 +19,18 @@ export function setRoot(dir) {
   return dir;
 }
 
-// -----------------------------------------------------------------------------
-// scan
-// -----------------------------------------------------------------------------
-
-export function listAudio() {
+export function listAudio(filter={}, options = {}) {
   const root = getRoot();
 
   if (!root) {
     return [];
   }
 
-  const files = scanFiles(root, {
+  let files = scanFiles(root, {
     includeExts: AUDIO_EXTS,
   });
 
-  return files.map(({ root, dir, base, ext, name, filePath }) => {
+  files = files.map(({ root, dir, base, ext, name, filePath }) => {
     const metaPath = joinPath(dir, `${name}.meta.json`);
     const meta = loadMeta(metaPath);
 
@@ -53,6 +45,14 @@ export function listAudio() {
       meta,
     };
   });
+
+  if (filter.type) {
+    files = files.filter((file) => {
+      return file.meta && file.meta.type === filter.type;
+    });
+  }
+
+  return files;
 }
 
 export async function selectRoot(options = {}) {

@@ -21,86 +21,32 @@ body {
   --pico-form-element-spacing-horizontal: 0.7rem;
 }
 
-/* 160px  小过滤栏、小按钮组、小侧栏
-200px  普通侧栏
-240px  列表栏、窄面板
-280px  稍宽列表栏
-320px  表单栏、小编辑区
-360px  中等面板
-480px  大编辑区、详情区
-640px  大文本区、预览区 */
-.w-160 {
-  width: 160px;
+.scroll {
+  overflow: auto;
 }
 
-.w-200 {
-  width: 200px;
+.hidden {
+  display: none;
 }
 
-.w-240 {
-  width: 240px;
+.wrap {
+  flex-wrap: wrap;
 }
 
-.w-280 {
-  width: 280px;
-}
-
-.w-320 {
-  width: 320px;
-}
-
-.w-360 {
-  width: 360px;
-}
-
-.w-480 {
-  width: 480px;
-}
-
-.w-640 {
-  width: 640px;
-}
-
-.minw-0 {
-  min-width: 0;
-}
-
-.minw-160 {
-  min-width: 160px;
-}
-
-.minw-200 {
-  min-width: 200px;
-}
-
-.minw-240 {
-  min-width: 240px;
-}
-
-.minw-280 {
-  min-width: 280px;
-}
-
-.minw-320 {
-  min-width: 320px;
-}
-
-.minw-360 {
-  min-width: 360px;
-}
-
-.minw-480 {
-  min-width: 480px;
+.nowrap {
+  flex-wrap: nowrap;
 }
 
 /* Flexbox layout classes */
 
-.hbox {
+.hbox,
+.vbox {
   display: flex;
+  min-width: 0;
+  min-height: 0;
 }
 
 .vbox {
-  display: flex;
   flex-direction: column;
 }
 
@@ -207,25 +153,74 @@ body {
 
   gap: 8px;
 
-  padding: 0 8px;
+  padding: 12px 8px;
 }
 
-.toolbar > :is(h1, h2, h3, h4, h5, h6, input, button, select, textarea) {
+.toolbar :is(h1, h2, h3, h4, h5, h6, input, button, select, textarea) {
   margin: 0;
 }
 
-.scroll {
+/* Panel styles */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
 }
 
-.hidden {
-  display: none;
+.panel :is(h1, h2, h3, h4, h5, h6, input, button, select, textarea) {
+  margin: 0;
 }
 
-.wrap {
+.panel-header {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.panel-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* -----------------------------------------------------------------------------
+   chip
+----------------------------------------------------------------------------- */
+
+.chip-group {
+  display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
 }
 
-.nowrap {
-  flex-wrap: nowrap;
+.chip-group .chip {
+  display: inline-flex;
+  align-items: center;
+
+  height: 22px;
+  padding: 0 8px;
+
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 999px;
+
+  font-size: 12px;
+  line-height: 1;
+  color: var(--pico-muted-color);
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-group .chip:hover {
+  border-color: var(--pico-primary);
+  color: var(--pico-primary);
+  background: var(--pico-primary-background);
+}
+
+.chip-group .chip.active {
+  border-color: var(--pico-primary);
+  color: var(--pico-primary-inverse);
+  background: var(--pico-primary);
 }

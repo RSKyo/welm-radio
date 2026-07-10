@@ -20,19 +20,23 @@ export const AUDIO_META_POSITIONS = [
 
 function createDefaultMeta() {
   return {
-    title: "",
-    duration: null, // HH:MM:SS.mmm
-    start: "00:00:00.000", // HH:MM:SS.mmm
-    end: null, // HH:MM:SS.mmm
-    type: "",
-    language: "",
-    content: "",
-    category: [], // 示例：["天气", "新闻", "故事", "段子", "心情", "闲聊", "歌词"]
-    position: "",
-    cutPoints: [], // HH:MM:SS.mmm[]
-    createdAt: "",
-    updatedAt: "",
+    "title": "",
+    "duration": null, // HH:MM:SS.mmm
+    "start": "00:00:00.000", // HH:MM:SS.mmm
+    "end": null, // HH:MM:SS.mmm
+    "type": "",
+    "language": "",
+    "content": "",
+    "category": [], // 示例：["天气", "新闻", "故事", "段子", "心情", "闲聊", "歌词"]
+    "position": "",
+    "cutPoints": [], // HH:MM:SS.mmm[]
+    "createdAt": "",
+    "updatedAt": "",
   };
+}
+
+export function listMetaType() {
+  return AUDIO_META_TYPES;
 }
 
 export function loadMeta(metaPath) {
