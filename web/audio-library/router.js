@@ -10,11 +10,7 @@ export const router = express.Router();
 router.get(
   "/root",
   webHandler(async (req, res, options) => {
-    const root = getRoot(options);
-
-    res.json({
-      root,
-    });
+    res.json(getRoot(options));
   }),
 );
 
@@ -35,13 +31,9 @@ router.post(
 router.post(
   "/list-audio",
   webHandler(async (req, res, options) => {
-    const filter = req.body || {};
+    const filter = req.body ?? {};
 
-    const list = listAudio(filter, options);
-
-    res.json({
-      list,
-    });
+    res.json(listAudio(filter, options));
   }),
 );
 
@@ -49,10 +41,6 @@ router.post(
 router.get(
   "/list-meta-type",
   webHandler(async (req, res, options) => {
-    const list = listMetaType();
-
-    res.json({
-      list,
-    });
+    res.json(listMetaType());
   }),
 );

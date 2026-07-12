@@ -1,33 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="utf-8" />
 
     <title>Audio Library</title>
     <link rel="icon" href="/assets/favicon.ico" />
 
-    <link rel="stylesheet" href="/assets/pico.cyan.min.css" />
+    <link rel="stylesheet" href="/assets/blue.css" />
     <link rel="stylesheet" href="/assets/global.css" />
+    <link rel="stylesheet" href="/components/chip-group.css" />
+    <link rel="stylesheet" href="/components/list-group.css" />
     <link rel="stylesheet" href="index.css" />
   </head>
 
-  <body data-theme="light">
+  <body>
     <div id="app" class="vbox minh-0">
-      <!-- Toolbar -->
-      <div class="toolbar b-line">
-        <h1 class="grow">Audio Library</h1>
-        <button id="rootButton" title="选择音频库根目录">Audio Folder</button>
-        <button id="saveButton">Save</button>
-        <button id="refreshButton">Refresh</button>
+      <div
+        class="hbox align-center b-line"
+        style="padding: 12px 8px; gap: 8px; height: 40px"
+      >
+        <h1 class="grow page-title">Audio Library</h1>
+        <button id="selectRootEl" title="选择音频库根目录">Audio Folder</button>
+        <button id="saveMetaEl">Save</button>
       </div>
 
       <!-- Main Content Area -->
       <div class="grow hbox">
         <!-- Filter Area -->
-        <div class="panel vbox r-line" style="width: 240px">
+        <div class="vbox r-line" style="width: 240px; min-width: 120px">
           <div class="panel">
             <div class="panel-body">
-              <div id="metaTypeList" class="chip-list"></div>
+              <div id="typeChipsEl"></div>
             </div>
           </div>
         </div>
@@ -36,37 +39,50 @@
         <div class="grow vbox r-line" style="min-width: 360px">
           <!-- Audio Files -->
           <div class="panel grow">
-            <div class="panel-header">
-              <h4>Audio Files</h4>
+            <div class="panel-header" style="padding: 2px 0; gap: 2px">
+              <div class="list-item-checkbox">
+                <input id="checkAllEl" type="checkbox" />
+              </div>
+
+              <button
+                id="deleteButton"
+                type="button"
+                title="删除"
+                aria-label="删除"
+              >
+                Delete
+              </button>
             </div>
-            <div id="fileList" class="panel-body"></div>
+            <div class="panel-body">
+              <div id="audioListEl"></div>
+            </div>
           </div>
         </div>
 
         <!-- Meta Editor Area -->
-        <div class="vbox" style="width: 640px">
-          <textarea id="metaEditor"></textarea>
+        <div class="vbox" style="width: 640px; min-width: 480px">
+          <textarea id="metaEditor" class="wrap"></textarea>
         </div>
       </div>
     </div>
 
     <!-- Templates -->
     <!-- Template for a file item -->
-    <template id="fileItemTemplate">
-      <div class="file-item">
-        <div class="file-name"></div>
+    <template id="audioItemTemplate">
+      <div>
+        <span></span>
       </div>
     </template>
 
     <!-- Template for a meta type -->
-    <template id="metaTypeTemplate">
-      <span class="chip"></span>
+    <template id="typeItemTemplate">
+      <div>
+        <span></span>
+      </div>
     </template>
 
     <!-- Scripts -->
     <script src="/assets/split.min.js"></script>
-    <script src="/assets/global.js"></script>
-    <script src="/assets/http.js"></script>
-    <script src="index.js"></script>
+    <script type="module" src="index.js"></script>
   </body>
 </html>

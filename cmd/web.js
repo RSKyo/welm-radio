@@ -8,15 +8,15 @@ import {
 const serverPort = 3000;
 
 export const WEB_COMMANDS = {
-  start: {
+  "start": {
     handler: cmd_web_start,
   },
 
-  stop: {
+  "stop": {
     handler: cmd_web_stop,
   },
 
-  reload: {
+  "reload": {
     handler: cmd_web_reload,
   },
 
@@ -47,8 +47,6 @@ export async function cmd_web_reload({ argv, options } = {}) {
 
 export async function cmd_audio_library({ argv, options } = {}) {
   const url = `http://localhost:${serverPort}/audio-library/index.html`;
-
-  await ensureWebServer(options);
 
   return await ensureWebStarted(url, options);
 }

@@ -14,9 +14,9 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "welm-cdp": "file:../welm-cdp",
+    "@radix-ui/colors": "^3.0.0",
     "express": "^5.2.1",
-    "@picocss/pico": "^2.1.1",
-    "split.js": "^1.6.5"
+    "split.js": "^1.6.5",
+    "welm-cdp": "file:../welm-cdp"
   }
 }

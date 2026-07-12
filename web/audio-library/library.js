@@ -1,4 +1,6 @@
-import { joinPath, scanFiles } from "welm-cdp/fs";
+import nodePath from "node:path";
+
+import { scanFiles } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
 
 import { config } from "../../infra/config.js";
@@ -19,7 +21,7 @@ export function setRoot(dir) {
   return dir;
 }
 
-export function listAudio(filter={}, options = {}) {
+export function listAudio(filter = {}, options = {}) {
   const root = getRoot();
 
   if (!root) {
@@ -31,7 +33,7 @@ export function listAudio(filter={}, options = {}) {
   });
 
   files = files.map(({ root, dir, base, ext, name, filePath }) => {
-    const metaPath = joinPath(dir, `${name}.meta.json`);
+    const metaPath = nodePath.join(dir, `${name}.meta.json`);
     const meta = loadMeta(metaPath);
 
     return {
@@ -46,9 +48,9 @@ export function listAudio(filter={}, options = {}) {
     };
   });
 
-  if (filter.type) {
+  if (filter.types.length > 0) {
     files = files.filter((file) => {
-      return file.meta && file.meta.type === filter.type;
+      return file.meta && filter.types.includes(file.meta.type);
     });
   }
 

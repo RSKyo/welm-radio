@@ -1,0 +1,272 @@
+@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/slate.css";
+@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/slate-dark.css";
+
+@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/blue.css";
+@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/blue-dark.css";
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------------------------
+   * Page and surfaces
+   * ------------------------------------------------------------------------ */
+
+  /* 页面最底层背景 */
+  --color-page: var(--slate-1);
+
+  /* 普通内容区域，如侧边栏、面板 */
+  --color-surface: var(--slate-2);
+
+  /* 视觉上浮起的区域，如卡片、工具栏 */
+  --color-surface-raised: white;
+
+  /* 视觉上凹下的区域，如输入框、内嵌列表 */
+  --color-surface-sunken: var(--slate-3);
+
+  /* 覆盖在页面上的浮层，如下拉菜单、弹窗 */
+  --color-surface-overlay: white;
+
+  /* ---------------------------------------------------------------------------
+   * Text
+   * ------------------------------------------------------------------------ */
+
+  /* 主要文字，如标题、正文、列表内容 */
+  --color-text: var(--slate-12);
+
+  /* 次要文字，如副标题、时间、文件大小 */
+  --color-text-secondary: var(--slate-11);
+
+  /* 弱化文字，如提示、辅助说明、空状态文本 */
+  --color-text-muted: var(--slate-10);
+
+  /* 禁用状态文字，如不可用按钮、禁用选项 */
+  --color-text-disabled: var(--slate-8);
+
+  /* 反色文字，用于深色或主色背景 */
+  --color-text-inverse: white;
+
+  /* 兼容旧变量名，后续可逐步改用 --color-text-muted */
+  --color-muted: var(--color-text-muted);
+
+  /* ---------------------------------------------------------------------------
+   * Interaction
+   * ------------------------------------------------------------------------ */
+
+  /* 鼠标悬停 */
+  --color-hover: var(--slate-3);
+  --color-hover-text: var(--blue-12);
+  --color-hover-indicator: var(--slate-5);
+
+  /* 鼠标按下 */
+  --color-active: var(--slate-4);
+  --color-active-text: var(--blue-12);
+  --color-active-indicator: var(--slate-5);
+
+  /* 已勾选项 */
+  --color-checked: var(--slate-3);
+  --color-checked-text: var(--color-text);
+  --color-checked-indicator: var(--slate-3);
+
+  --color-checked-hover: var(--slate-3);
+  --color-checked-hover-text: var(--color-text);
+  --color-checked-hover-indicator: var(--slate-5);
+
+  /* 当前选中项 */
+  --color-selected: var(--blue-3);
+  --color-selected-text: var(--blue-12);
+  --color-selected-indicator: var(--blue-8);
+
+  --color-selected-hover: var(--blue-3);
+  --color-selected-hover-text: var(--color-text);
+  --color-selected-hover-indicator: var(--blue-9);
+
+  /* ---------------------------------------------------------------------------
+   * Borders and separators
+   * ------------------------------------------------------------------------ */
+
+  --color-border: var(--slate-6);
+  --color-border-hover: var(--slate-7);
+  --color-border-strong: var(--slate-8);
+  --color-divider: var(--slate-5);
+
+  /* ---------------------------------------------------------------------------
+   * Primary
+   * ------------------------------------------------------------------------ */
+
+  --color-primary: var(--blue-9);
+  --color-primary-hover: var(--blue-10);
+  --color-primary-active: var(--blue-11);
+  --color-primary-text: var(--blue-11);
+  --color-primary-inverse: white;
+
+  /* ---------------------------------------------------------------------------
+   * Focus
+   * ------------------------------------------------------------------------ */
+
+  --color-focus-border: var(--slate-8);
+  --color-focus-shadow: var(--slate-a5);
+
+  /* ---------------------------------------------------------------------------
+   * Form controls
+   * ------------------------------------------------------------------------ */
+
+  --color-input-background: var(--slate-1);
+  --color-input-background-disabled: var(--slate-3);
+
+  --color-input-text: var(--slate-12);
+  --color-input-placeholder: var(--slate-9);
+
+  --color-input-border: var(--slate-7);
+  --color-input-border-hover: var(--slate-8);
+  --color-input-border-focus: var(--slate-9);
+
+  /* ---------------------------------------------------------------------------
+   * Buttons
+   * ------------------------------------------------------------------------ */
+
+  --color-button-background: var(--slate-3);
+  --color-button-background-hover: var(--slate-4);
+  --color-button-background-active: var(--slate-5);
+
+  --color-button-border: var(--slate-7);
+  --color-button-border-hover: var(--slate-8);
+  --color-button-text: var(--slate-12);
+
+  --color-button-primary-background: var(--blue-9);
+  --color-button-primary-background-hover: var(--blue-10);
+  --color-button-primary-background-active: var(--blue-11);
+  --color-button-primary-border: var(--blue-9);
+  --color-button-primary-text: white;
+
+  /* ---------------------------------------------------------------------------
+   * Titles
+   * ------------------------------------------------------------------------ */
+
+  --color-page-title: var(--slate-12);
+  --color-page-subtitle: var(--slate-11);
+
+  --color-component-title: var(--blue-11);
+  --color-section-title: var(--slate-12);
+
+  /* ---------------------------------------------------------------------------
+   * Status
+   * ------------------------------------------------------------------------ */
+
+  --color-info-background: var(--blue-3);
+  --color-info-text: var(--blue-11);
+
+  --color-success-background: var(--green-3);
+  --color-success-text: var(--green-11);
+
+  --color-warning-background: var(--amber-3);
+  --color-warning-text: var(--amber-11);
+
+  --color-danger-background: var(--red-3);
+  --color-danger-text: var(--red-11);
+}
+
+:root.dark,
+.dark-theme {
+  color-scheme: dark;
+
+  /* Page and surfaces */
+
+  --color-page: var(--slate-1);
+
+  --color-surface: var(--slate-2);
+  --color-surface-raised: var(--slate-3);
+  --color-surface-sunken: var(--slate-1);
+  --color-surface-overlay: var(--slate-3);
+
+  /* Interaction */
+
+  --color-hover: var(--slate-3);
+  --color-active: var(--slate-4);
+
+  --color-selected: var(--blue-4);
+  --color-selected-hover: var(--blue-5);
+  --color-selected-text: var(--blue-11);
+
+  --color-checked: var(--blue-4);
+  --color-checked-text: var(--blue-11);
+
+  /* Text */
+
+  --color-text: var(--slate-12);
+  --color-text-secondary: var(--slate-11);
+  --color-text-muted: var(--slate-10);
+  --color-text-disabled: var(--slate-8);
+  --color-text-inverse: var(--slate-1);
+
+  --color-muted: var(--color-text-muted);
+
+  /* Borders and separators */
+
+  --color-border: var(--slate-6);
+  --color-border-hover: var(--slate-7);
+  --color-border-strong: var(--slate-8);
+  --color-divider: var(--slate-5);
+
+  /* Primary */
+
+  --color-primary: var(--blue-9);
+  --color-primary-hover: var(--blue-10);
+  --color-primary-active: var(--blue-11);
+  --color-primary-text: var(--blue-11);
+  --color-primary-inverse: white;
+
+  /* Focus */
+
+  --color-focus-border: var(--slate-8);
+  --color-focus-shadow: var(--slate-a6);
+
+  /* Form controls */
+
+  --color-input-background: var(--slate-2);
+  --color-input-background-disabled: var(--slate-3);
+
+  --color-input-text: var(--slate-12);
+  --color-input-placeholder: var(--slate-9);
+
+  --color-input-border: var(--slate-7);
+  --color-input-border-hover: var(--slate-8);
+  --color-input-border-focus: var(--slate-9);
+
+  /* Buttons */
+
+  --color-button-background: var(--slate-3);
+  --color-button-background-hover: var(--slate-4);
+  --color-button-background-active: var(--slate-5);
+
+  --color-button-border: var(--slate-7);
+  --color-button-border-hover: var(--slate-8);
+  --color-button-text: var(--slate-12);
+
+  --color-button-primary-background: var(--blue-9);
+  --color-button-primary-background-hover: var(--blue-10);
+  --color-button-primary-background-active: var(--blue-11);
+  --color-button-primary-border: var(--blue-9);
+  --color-button-primary-text: white;
+
+  /* Titles */
+
+  --color-page-title: var(--slate-12);
+  --color-page-subtitle: var(--slate-11);
+
+  --color-component-title: var(--blue-11);
+  --color-section-title: var(--slate-12);
+
+  /* Status */
+
+  --color-info-background: var(--blue-3);
+  --color-info-text: var(--blue-11);
+
+  --color-success-background: var(--green-3);
+  --color-success-text: var(--green-11);
+
+  --color-warning-background: var(--amber-3);
+  --color-warning-text: var(--amber-11);
+
+  --color-danger-background: var(--red-3);
+  --color-danger-text: var(--red-11);
+}

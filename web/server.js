@@ -30,8 +30,8 @@ const app = express();
 // express.json() 内部会 next()
 app.use(express.json());
 
-// express.static 负责处理静态资源请求，返回静态文件，例如 /assets/logo.png
 app.use("/assets", express.static(path.join(__dirname, "assets")));
+app.use("/components", express.static(path.join(__dirname, "components")));
 
 // 自己写的测试用的地址，用来检查服务是否启动成功。
 // 前端可以请求这个地址，如果返回 200，就说明服务已经启动了
