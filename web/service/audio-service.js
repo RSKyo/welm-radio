@@ -2,12 +2,12 @@ import nodePath from "node:path";
 
 import { scanFiles } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
+import { config } from "welm-cdp/common/config";
+import { log } from "welm-cdp/common/log";
 
-import { config } from "../../infra/config.js";
-import { log } from "../../infra/log.js";
-import { loadMeta } from "./meta.js";
+import { loadMeta } from "./meta-service.js";
 
-const AUDIO_LIBRARY_DIR_KEY = "welm-radio.audio_library";
+const AUDIO_LIBRARY_DIR_KEY = "radio.audio_library";
 
 const AUDIO_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 

@@ -1,4 +1,5 @@
-import { exists, readFileJson, writeFileJson } from "welm-cdp/fs";
+import nodePath from "node:path";
+import { readFileJson, writeFileJson } from "welm-cdp/fs";
 
 export const AUDIO_META_TYPES = [
   { value: "voice", label: "人声" },
@@ -40,7 +41,7 @@ export function listMetaType() {
 }
 
 export function loadMeta(metaPath) {
-  if (!exists(metaPath)) {
+  if (!nodePath.existsSync(metaPath)) {
     return createDefaultMeta();
   }
 

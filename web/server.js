@@ -1,66 +1,62 @@
 /**
- * Executable web server entry.
+ * Executable entry point for the welm-radio web server.
  *
- * Do not import this file.
- * Do not export from this file.
+ * This file starts the HTTP server directly.
+ * It must not be imported by other modules and must not export any values.
  */
 
 import express from "express";
-import path from "node:path";
+import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { config } from "../infra/config.js";
-
-import { router as audioLibraryRouter } from "./audio-library/router.js";
+import { router as audioRouter } from "./router/audio-router.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = nodePath.dirname(__filename);
 
-const serverPort = 3000;
+const defaultHost = "localhost";
+const defaultPort = 3000;
+  
+const serverHost = String(process.env.serverHost) ?? defaultHost;
+const serverPort = Number(process.env.serverPort) || defaultPort;
 
 const app = express();
 
 // -----------------------------------------------------------------------------
-// server
+// middleware
 // -----------------------------------------------------------------------------
 
-// 解析 JSON body。POST 请求一般有 body，所以要解析
-// 例如 POST /audio-library/api/select-root
-// 解析后 req.body 就是 { foo: "bar", baz: "qux" }
-// express.json() 内部会 next()
+// Parse JSON request bodies and expose the parsed value through req.body.
 app.use(express.json());
 
-app.use("/assets", express.static(path.join(__dirname, "assets")));
-app.use("/components", express.static(path.join(__dirname, "components")));
+// Expose only browser-accessible static resources.
+// Server-side modules under infra, router, and service are not exposed.
+app.use("/assets", express.static(nodePath.join(__dirname, "assets")));
+app.use("/ui", express.static(nodePath.join(__dirname, "ui")));
 
-// 自己写的测试用的地址，用来检查服务是否启动成功。
-// 前端可以请求这个地址，如果返回 200，就说明服务已经启动了
+// Health-check endpoint used by the launcher to verify that the server
+// has started and is ready to accept requests.
 app.get("/__ready", (req, res) => {
   res.json({ ok: true });
 });
 
 // -----------------------------------------------------------------------------
-// audio-library
+// business routes
 // -----------------------------------------------------------------------------
 
-app.use(
-  "/audio-library",
-  express.static(path.join(__dirname, "audio-library/ui")),
-);
-
-app.use("/audio-library/api", audioLibraryRouter);
+// Mount audio-related API routes under /audio/api.
+app.use("/audio/api", audioRouter);
 
 // -----------------------------------------------------------------------------
-// error handler
+// error handling
 // -----------------------------------------------------------------------------
 
-// 错误处理中间件：
-// - 普通 middleware: (req, res, next)
-// - error middleware: (error, req, res, next)
+// Handle errors forwarded through next(error).
 //
-// next(error) 会跳转到错误处理流程。
-// error 推荐使用 Error 对象。
-// 必须放在所有 route/middleware 之后。
+// Express identifies error-handling middleware by its four parameters:
+// (error, req, res, next).
+//
+// This middleware must be registered after all other middleware and routes.
 app.use((error, req, res, next) => {
   console.error(error);
 
@@ -73,8 +69,8 @@ app.use((error, req, res, next) => {
 // start
 // -----------------------------------------------------------------------------
 
-app.listen(serverPort, () => {
-  console.log(`welm-radio web server running: http://localhost:${serverPort}`);
+// Start the web server.
+// This file is executed as a standalone process by the web launcher.
+app.listen(defaultPort, () => {
+  console.log(`welm-radio web server running: http://localhost:${defaultPort}`);
 });
-
-

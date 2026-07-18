@@ -1,141 +1,126 @@
-// web/runner.js
-import { spawn, execFile } from "node:child_process";
-import path from "node:path";
+// web/launcher.js
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
+import nodePath from "node:path";
 
+import { config } from "welm-cdp/common/config";
 import {
-  isChromeReady,
-  ensureChrome,
-  ensureChromePage,
-  closeChromePage,
-  findChromePages,
-  activateChromePage,
-  reloadChromePage,
-} from "welm-cdp/chrome";
+  isServerReady,
+  startServer,
+  stopServer,
+  reloadServer,
+  startServerAndPage,
+} from "welm-cdp/web";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = nodePath.dirname(__filename);
 
-const serverPort = 3000;
-const serverPath = path.join(__dirname, "server.js");
-const readyUrl = `http://localhost:${serverPort}/__ready`;
-const execFileAsync = promisify(execFile);
+const serverFilePath = nodePath.join(__dirname, "server.js");
 
-// #region Public API
+const defaultHost = "localhost";
+const defaultPort = 3000;
 
-export async function ensureWebServer(options = {}) {
-  if (await isHttpReady()) {
-    return true;
-  }
+const configHostKeyPath = "radio.web.host";
+const configPortKeyPath = "radio.web.port";
 
-  const child = spawn(process.execPath, [serverPath], {
-    cwd: path.dirname(serverPath),
-    env: process.env,
-    detached: true,
-    stdio: options.verbose ? "inherit" : "ignore",
+let configHost = config.get(configHostKeyPath);
+let configPort = config.get(configPortKeyPath);
+
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
+
+export function setServerHost(host) {
+  assertNonBlankString(host, "host");
+
+  config.set(configHostKeyPath, host);
+  configHost = host;
+
+  return host;
+}
+
+export function setServerPort(port) {
+  assertPort(port);
+
+  config.set(configPortKeyPath, port);
+  configPort = port;
+
+  return port;
+}
+
+export async function isWebServerReady(options = {}) {
+  const { serverHost, serverPort } = getServerOptions(options);
+
+  return await isServerReady({
+    ...options,
+    serverHost,
+    serverPort,
   });
+}
 
-  child.unref();
+export async function startWebServer(options = {}) {
+  const { serverHost, serverPort } = getServerOptions(options);
 
-  await waitHttpReady();
-
-  return true;
+  return await startServer(serverFilePath, {
+    ...options,
+    serverHost,
+    serverPort,
+  });
 }
 
 export async function stopWebServer(options = {}) {
-  let stdout = "";
+  const { serverHost, serverPort } = getServerOptions(options);
 
-  try {
-    const result = await execFileAsync("lsof", ["-ti", `:${serverPort}`]);
-    stdout = result.stdout;
-  } catch {
-    return [];
-  }
-
-  const pids = stdout
-    .split("\n")
-    .map((pid) => pid.trim())
-    .filter(Boolean);
-
-  for (const pid of pids) {
-    process.kill(Number(pid), "SIGTERM");
-  }
-
-  return pids;
+  return await stopServer({
+    ...options,
+    serverHost,
+    serverPort,
+  });
 }
 
 export async function reloadWebServer(options = {}) {
-  await stopWebServer(options);
-  await ensureWebServer(options);
+  const { serverHost, serverPort } = getServerOptions(options);
 
-  if (await isChromeReady()) {
-    const targets = await findChromePages(
-      `http://localhost:${serverPort}/`,
-      options,
-    );
+  return await reloadServer(serverFilePath, {
+    ...options,
+    serverHost,
+    serverPort,
+  });
+}
 
-    for (const { targetId } of targets) {
-      await reloadChromePage(targetId, options);
-    }
+export async function startWebServerAndPage(url, options = {}) {
+  const { serverHost, serverPort } = getServerOptions(options);
+
+  return await startServerAndPage(serverFilePath, url, {
+    ...options,
+    serverHost,
+    serverPort,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Private helpers
+// -----------------------------------------------------------------------------
+
+function assertNonBlankString(value, fieldName) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${fieldName} must be a non-empty string`);
   }
 }
 
-export async function ensureWebStarted(url, options = {}) {
-  // start the web server if not already running
-  await ensureWebServer(options);
+function assertPort(port) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("port must be an integer between 1 and 65535");
+  }
 
-  // ensure Chrome is running and open the audio-library page
-  await ensureChrome(options);
-  const { targetId } = await ensureChromePage(url, options);
-  await activateChromePage(targetId, options);
+  return port;
+}
+
+function getServerOptions(options = {}) {
+  const serverHost = options.serverHost ?? configHost ?? defaultHost;
+  const serverPort = options.serverPort ?? configPort ?? defaultPort;
 
   return {
-    url,
-    targetId,
+    serverHost,
+    serverPort,
   };
 }
-
-// #endregion
-
-// #region Private helpers
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function isHttpReady() {
-  const timeout = 500;
-
-  try {
-    const response = await fetch(readyUrl, {
-      signal: AbortSignal.timeout(timeout),
-    });
-
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function waitHttpReady() {
-  const timeout = 10000;
-  const interval = 200;
-
-  const start = Date.now();
-
-  while (Date.now() - start < timeout) {
-    if (await isHttpReady()) {
-      return true;
-    }
-
-    const remaining = timeout - (Date.now() - start);
-    if (remaining <= 0) break;
-
-    await sleep(Math.min(interval, remaining));
-  }
-
-  throw new Error(`Web server not ready: ${readyUrl}`);
-}
-
-// #endregion

@@ -1,15 +1,15 @@
 import express from "express";
 
-import { webHandler } from "../handler.js";
-import { getRoot, setRoot, listAudio, selectRoot } from "./library.js";
-import { listMetaType } from "./meta.js";
+import { withOptions } from "welm-cdp/web";
+import { getRoot, setRoot, listAudio, selectRoot } from "../service/audio-service.js";
+import { listMetaType } from "../service/meta-service.js";
 
 export const router = express.Router();
 
 // GET /audio-library/api/root
 router.get(
   "/root",
-  webHandler(async (req, res, options) => {
+  withOptions(async (req, res, options) => {
     res.json(getRoot(options));
   }),
 );
@@ -17,7 +17,7 @@ router.get(
 // POST /audio-library/api/select-root
 router.post(
   "/select-root",
-  webHandler(async (req, res, options) => {
+  withOptions(async (req, res, options) => {
     const root = await selectRoot(options);
 
     res.json({
@@ -30,7 +30,7 @@ router.post(
 // POST /audio-library/api/list-audio
 router.post(
   "/list-audio",
-  webHandler(async (req, res, options) => {
+  withOptions(async (req, res, options) => {
     const filter = req.body ?? {};
 
     res.json(listAudio(filter, options));
@@ -40,7 +40,7 @@ router.post(
 // GET /audio-library/api/list-meta-type
 router.get(
   "/list-meta-type",
-  webHandler(async (req, res, options) => {
+  withOptions(async (req, res, options) => {
     res.json(listMetaType());
   }),
 );
