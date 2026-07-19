@@ -1,7 +1,8 @@
 import nodePath from "node:path";
 import { readFileJson, writeFileJson } from "welm-cdp/fs";
+import { assertExistingFile } from "welm-cdp/common/assert";
 
-export const AUDIO_META_TYPES = [
+const audio_types = [
   { value: "voice", label: "人声" },
   { value: "music", label: "音乐" },
   { value: "bed", label: "背景垫乐" },
@@ -11,7 +12,7 @@ export const AUDIO_META_TYPES = [
   { value: "mixed", label: "混合成品" },
 ];
 
-export const AUDIO_META_POSITIONS = [
+const audio_positions = [
   { value: "opening", label: "节目开头" },
   { value: "closing", label: "节目结束" },
   { value: "before_break", label: "插播前" },
@@ -36,87 +37,41 @@ function createDefaultMeta() {
   };
 }
 
-export function listMetaType() {
-  return AUDIO_META_TYPES;
+export function listAudioType() {
+  return audio_types;
 }
 
-export function loadMeta(metaPath) {
-  if (!nodePath.existsSync(metaPath)) {
+export function listAudioPosition() {
+  return audio_positions;
+}
+
+export function loadMeta(metaFilePath) {
+  if (!assertExistingFile(metaFilePath,"metaFilePath")) {
     return createDefaultMeta();
   }
 
   try {
     return {
       ...createDefaultMeta(),
-      ...readFileJson(metaPath),
+      ...readFileJson(metaFilePath),
     };
   } catch {
     return createDefaultMeta();
   }
 }
 
-export function saveMeta(metaPath, data = {}) {
-  const oldMeta = loadMeta(metaPath);
+export function saveMeta(metaFilePath, data = {}) {
+  const oldMeta = loadMeta(metaFilePath);
   const now = new Date().toISOString();
 
   const meta = {
     ...oldMeta,
     ...data,
-    createdAt: oldMeta?.createdAt || now,
+    createdAt: oldMeta.createdAt === "" ? now : oldMeta.createdAt,
     updatedAt: now,
   };
 
-  writeFileJson(metaPath, meta);
+  writeFileJson(metaFilePath, meta);
 
   return meta;
-}
-
-
-export function parseTimeText(value) {
-  if (value == null || value === "") {
-    return null;
-  }
-
-  if (typeof value === "number") {
-    return value;
-  }
-
-  if (typeof value !== "string") {
-    throw new Error(`invalid time value: ${value}`);
-  }
-
-  const text = value.trim();
-  const match = text.match(/^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/);
-
-  if (!match) {
-    throw new Error(`invalid time format: ${value}`);
-  }
-
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const seconds = Number(match[3]);
-  const milliseconds = Number((match[4] ?? "0").padEnd(3, "0"));
-
-  return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
-}
-
-export function formatTimeText(seconds) {
-  if (seconds == null) {
-    return null;
-  }
-
-  const totalMs = Math.round(seconds * 1000);
-
-  const ms = totalMs % 1000;
-  const totalSeconds = Math.floor(totalMs / 1000);
-  const s = totalSeconds % 60;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const m = totalMinutes % 60;
-  const h = Math.floor(totalMinutes / 60);
-
-  return [
-    String(h).padStart(2, "0"),
-    String(m).padStart(2, "0"),
-    String(s).padStart(2, "0"),
-  ].join(":") + `.${String(ms).padStart(3, "0")}`;
 }

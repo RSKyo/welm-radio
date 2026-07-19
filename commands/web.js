@@ -1,35 +1,35 @@
 import {
-  ensureWebServer,
+  startWebServer,
   stopWebServer,
   reloadWebServer,
-  ensureWebStarted,
-} from "../web/infra/launcher.js";
+  startWebServerAndPage,
+} from "../web/launcher.js";
 
 const serverPort = 3000;
 
 export const WEB_COMMANDS = {
   "start": {
-    handler: cmd_ensureWebServer,
+    handler: cmd_start,
   },
 
   "stop": {
-    handler: cmd_stopWebServer,
+    handler: cmd_stop,
   },
 
   "reload": {
-    handler: cmd_reloadWebServer,
+    handler: cmd_reload,
   },
 
   "audio-library": {
-    handler: cmd_ensureWebStarted,
+    handler: cmd_audioLibrary,
   },
 };
 
-export async function cmd_ensureWebServer({ argv, options } = {}) {
-  return await ensureWebServer(options);
+export async function cmd_start({ argv, options } = {}) {
+  return await startWebServer(options);
 }
 
-export async function cmd_stopWebServer({ argv, options } = {}) {
+export async function cmd_stop({ argv, options } = {}) {
   const pids = await stopWebServer(options);
 
   const { reporter } = options;
@@ -41,12 +41,12 @@ export async function cmd_stopWebServer({ argv, options } = {}) {
   return pids;
 }
 
-export async function cmd_reloadWebServer({ argv, options } = {}) {
+export async function cmd_reload({ argv, options } = {}) {
   return await reloadWebServer(options);
 }
 
-export async function cmd_ensureWebStarted({ argv, options } = {}) {
-  const url = `http://localhost:${serverPort}/audio-library/index.html`;
+export async function cmd_audioLibrary({ argv, options } = {}) {
+  const url = `http://localhost:${serverPort}/index.html`;
 
-  return await ensureWebStarted(url, options);
+  return await startWebServerAndPage(url, options);
 }

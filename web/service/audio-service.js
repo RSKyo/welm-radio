@@ -4,32 +4,30 @@ import { scanFiles } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
+import { assertAbsolutePath } from "welm-cdp/common/assert";
 
 import { loadMeta } from "./meta-service.js";
 
-const AUDIO_LIBRARY_DIR_KEY = "radio.audio_library";
+const audio_library_key_path = "radio.audio_library";
+const audio_exts = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
 
-const AUDIO_EXTS = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
+let audio_dir = config.get(audio_library_key_path);
 
-export function getRoot() {
-  return config.get(AUDIO_LIBRARY_DIR_KEY);
-}
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
 
-export function setRoot(dir) {
-  config.set(AUDIO_LIBRARY_DIR_KEY, dir);
-
-  return dir;
+export function getAudioDir(options = {}) {
+  return audio_dir;
 }
 
 export function listAudio(filter = {}, options = {}) {
-  const root = getRoot();
-
-  if (!root) {
+  if (!audio_dir || !nodePath.existsSync(audio_dir)) {
     return [];
   }
 
-  let files = scanFiles(root, {
-    includeExts: AUDIO_EXTS,
+  let files = scanFiles(audio_dir, {
+    includeExts: audio_exts,
   });
 
   files = files.map(({ root, dir, base, ext, name, filePath }) => {
@@ -48,7 +46,8 @@ export function listAudio(filter = {}, options = {}) {
     };
   });
 
-  if (filter.types.length > 0) {
+  // filter by audio type if specified
+  if (filter.types && filter.types.length > 0) {
     files = files.filter((file) => {
       return file.meta && filter.types.includes(file.meta.type);
     });
@@ -57,18 +56,31 @@ export function listAudio(filter = {}, options = {}) {
   return files;
 }
 
-export async function selectRoot(options = {}) {
-  const root = await selectFolder({
+export async function selectAudioDir(options = {}) {
+  const dir = await selectFolder({
     dialogTitle: "Choose Audio Library",
   });
 
-  log.debug(`Selected Root: ${root}`, options);
+  log.debug(`Selected Audio Dir: ${dir}`, options);
 
-  if (!root) {
+  if (!dir) {
     return null;
   }
 
-  setRoot(root);
+  setAudioDir(dir);
 
-  return root;
+  return dir;
+}
+
+// -----------------------------------------------------------------------------
+// Private Helpers
+// -----------------------------------------------------------------------------
+
+function setAudioDir(dir) {
+  assertAbsolutePath(dir, "dir");
+
+  config.set(audio_library_key_path, dir);
+  audio_dir = dir;
+
+  return dir;
 }

@@ -16,9 +16,10 @@ const __dirname = nodePath.dirname(__filename);
 
 const defaultHost = "localhost";
 const defaultPort = 3000;
-  
-const serverHost = String(process.env.serverHost) ?? defaultHost;
-const serverPort = Number(process.env.serverPort) || defaultPort;
+
+// Read server host and port from environment variables, if set.
+const serverHost = String(process.env.serverHost ?? defaultHost);
+const serverPort = Number(process.env.serverPort ?? defaultPort);
 
 const app = express();
 
@@ -31,8 +32,8 @@ app.use(express.json());
 
 // Expose only browser-accessible static resources.
 // Server-side modules under infra, router, and service are not exposed.
+app.use("/", express.static(nodePath.join(__dirname, "ui")));
 app.use("/assets", express.static(nodePath.join(__dirname, "assets")));
-app.use("/ui", express.static(nodePath.join(__dirname, "ui")));
 
 // Health-check endpoint used by the launcher to verify that the server
 // has started and is ready to accept requests.
@@ -71,6 +72,4 @@ app.use((error, req, res, next) => {
 
 // Start the web server.
 // This file is executed as a standalone process by the web launcher.
-app.listen(defaultPort, () => {
-  console.log(`welm-radio web server running: http://localhost:${defaultPort}`);
-});
+app.listen(serverPort, serverHost);

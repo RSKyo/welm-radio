@@ -17,7 +17,7 @@ const filters = {
 // -----------------------------------------------------------------------------
 
 rootButton.addEventListener("click", async () => {
-  await safeRun(selectRoot);
+  await safeRun(selectAudioDir);
 });
 
 checkAllEl.addEventListener("change", async (event) => {
@@ -80,16 +80,16 @@ async function init() {
     },
   });
 
-  await listMetaType();
+  await listAudioType();
   await listAudio();
 }
 
 // -----------------------------------------------------------------------------
-// Select Root
+// Select Audio Directory
 // -----------------------------------------------------------------------------
 
-async function selectRoot() {
-  const { root, canceled } = await api.post("/audio-library/api/select-root");
+async function selectAudioDir() {
+  const { dir: root, canceled } = await api.post("/audio/api/select-audio-dir");
 
   if (canceled) {
     return null;
@@ -101,11 +101,11 @@ async function selectRoot() {
 }
 
 // -----------------------------------------------------------------------------
-// List Meta Type
+// List Audio Type
 // -----------------------------------------------------------------------------
 
-async function listMetaType() {
-  const types = await api.get("/audio-library/api/list-meta-type");
+async function listAudioType() {
+  const types = await api.get("/audio/api/list-audio-type");
 
   await typeChipGroup.setItems(types);
 }
@@ -115,7 +115,7 @@ async function listMetaType() {
 // -----------------------------------------------------------------------------
 
 async function listAudio() {
-  const audios = await api.post("/audio-library/api/list-audio", filters);
+  const audios = await api.post("/audio/api/list-audio", filters);
 
   await audioListGroup.setItems(audios);
 }

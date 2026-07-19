@@ -1,33 +1,33 @@
 import express from "express";
 
 import { withOptions } from "welm-cdp/web";
-import { getRoot, setRoot, listAudio, selectRoot } from "../service/audio-service.js";
-import { listMetaType } from "../service/meta-service.js";
+import { getAudioDir, listAudio, selectAudioDir } from "../service/audio-service.js";
+import { listAudioType } from "../service/meta-service.js";
 
 export const router = express.Router();
 
-// GET /audio-library/api/root
+// GET /audio/api/audio-dir
 router.get(
-  "/root",
+  "/audio-dir",
   withOptions(async (req, res, options) => {
-    res.json(getRoot(options));
+    res.json(getAudioDir(options));
   }),
 );
 
-// POST /audio-library/api/select-root
-router.post(
-  "/select-root",
+// GET /audio/api/select-audio-dir
+router.get(
+  "/select-audio-dir",
   withOptions(async (req, res, options) => {
-    const root = await selectRoot(options);
+    const dir = await selectAudioDir(options);
 
     res.json({
-      root,
-      canceled: !root,
+      dir,
+      canceled: !dir,
     });
   }),
 );
 
-// POST /audio-library/api/list-audio
+// POST /audio/api/list-audio
 router.post(
   "/list-audio",
   withOptions(async (req, res, options) => {
@@ -37,10 +37,10 @@ router.post(
   }),
 );
 
-// GET /audio-library/api/list-meta-type
+// GET /audio/api/list-audio-type
 router.get(
-  "/list-meta-type",
+  "/list-audio-type",
   withOptions(async (req, res, options) => {
-    res.json(listMetaType());
+    res.json(listAudioType());
   }),
 );
