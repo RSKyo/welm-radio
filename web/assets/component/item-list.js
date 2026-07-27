@@ -1,3 +1,12 @@
+import {
+  assertItem,
+  assertItems,
+  resolveValue,
+  resolveValues,
+  filterValue,
+  filterValues,
+} from "./item.js";
+
 export class ItemList {
   #container;
   #textField;
@@ -20,13 +29,20 @@ export class ItemList {
     this.#textField = options.textField ?? "text";
     this.#valueField = options.valueField ?? "value";
 
-    this.#items = [...this.#validateItems(options.items ?? [])];
+    this.#items = [
+      ...assertItems(options.items ?? [], this.#textField, this.#valueField),
+    ];
 
-    this.#value = this.#validateValue(options.value ?? null, this.#items);
+    this.#value = resolveValue(
+      options.value ?? null,
+      this.#items,
+      this.#valueField,
+    );
 
-    this.#checkedValues = this.#validateValues(
+    this.#checkedValues = resolveValues(
       options.checkedValues ?? [],
       this.#items,
+      this.#valueField,
     );
 
     this.#onChange = options.onChange ?? null;
@@ -34,7 +50,7 @@ export class ItemList {
     this.#onRenderItem = options.onRenderItem ?? null;
     this.#onSetItems = options.onSetItems ?? null;
 
-    this.#container.classList.add("list-group");
+    this.#container.classList.add("item-list");
 
     this.#bindEvents();
     this.#render();
@@ -43,16 +59,16 @@ export class ItemList {
   // #region Public Methods
 
   async setItems(items = []) {
-    const validatedItems = this.#validateItems(items);
+    assertItems(items, this.#textField, this.#valueField);
 
     const oldItems = this.#items;
     const oldValue = this.#value;
     const oldCheckedValues = this.#checkedValues;
 
-    const value = this.#filterValue(oldValue, validatedItems);
-    const checkedValues = this.#filterValues(oldCheckedValues, validatedItems);
+    const value = filterValue(oldValue, items, this.#valueField);
+    const checkedValues = filterValues(oldCheckedValues, items, this.#valueField);
 
-    this.#items = [...validatedItems];
+    this.#items = [...items];
     this.#value = value;
     this.#checkedValues = checkedValues;
 

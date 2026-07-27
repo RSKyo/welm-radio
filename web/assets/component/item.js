@@ -1,0 +1,164 @@
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
+
+/**
+ * Validate an item and return it unchanged.
+ */
+export function assertItem(item, textField = "text", valueField = "value") {
+  if (!isPlainObject(item)) {
+    throw new Error("item must be a plain object");
+  }
+
+  if (!isNonBlankString(item[textField])) {
+    throw new Error(`item.${textField} must be a non-blank string`);
+  }
+
+  if (!isNonBlankString(item[valueField])) {
+    throw new Error(`item.${valueField} must be a non-blank string`);
+  }
+
+  return item;
+}
+
+/**
+ * Validate an item array and ensure that all item values are unique.
+ */
+export function assertItems(items, textField = "text", valueField = "value") {
+  if (!isArray(items)) {
+    throw new Error("items must be an array");
+  }
+
+  const values = new Set();
+
+  for (const item of items) {
+    assertItem(item, textField, valueField);
+
+    const value = item[valueField];
+
+    if (values.has(value)) {
+      throw new Error(`duplicate item value: ${value}`);
+    }
+
+    values.add(value);
+  }
+
+  return items;
+}
+
+/**
+ * Resolve a value against an item array.
+ * 
+ * A null or undefined value is resolved to null.
+ * Any other value must exist in the item array.
+ */
+export function resolveValue(value, items, valueField = "value") {
+  if (value == null) {
+    return null;
+  }
+
+  if (!isNonBlankString(value)) {
+    throw new Error("value must be a non-blank string");
+  }
+
+  if (!isArray(items)) {
+    throw new Error("items must be an array");
+  }
+
+  if (!items.some((item) => item[valueField] === value)) {
+    throw new Error(`value not found: ${value}`);
+  }
+
+  return value;
+}
+
+/**
+ * Resolve an array of unique values against an item array.
+ * 
+ * A null or undefined value is resolved to an empty array.
+ * Every provided value must exist in the item array.
+ */
+export function resolveValues(values, items, valueField = "value") {
+  if (values == null) {
+    return [];
+  }
+
+  if (!isArray(values)) {
+    throw new Error("values must be an array");
+  }
+
+  if (values.length !== new Set(values).size) {
+    throw new Error("values must not contain duplicates");
+  }
+
+  if (!isArray(items)) {
+    throw new Error("items must be an array");
+  }
+
+  const validatedValues = [];
+
+  for (const value of values) {
+    if (!isNonBlankString(value)) {
+      throw new Error("value must be a non-blank string");
+    }
+
+    const validatedValue = resolveValue(value, items, valueField);
+
+    validatedValues.push(validatedValue);
+  }
+
+  return validatedValues;
+}
+
+/**
+ * Keep a value only when it exists in the item array.
+ * 
+ * This function is tolerant of invalid input and returns null
+ * instead of throwing an error.
+ */
+export function filterValue(value, items, valueField = "value") {
+  if (!isNonBlankString(value) || !isArray(items)) {
+    return null;
+  }
+
+  return items.some((item) => item?.[valueField] === value) ? value : null;
+}
+
+/**
+ * Keep only values that exist in the item array.
+ * 
+ * Duplicate and unavailable values are removed.
+ * This function is tolerant of invalid input and returns an empty
+ * array instead of throwing an error.
+ */
+export function filterValues(values, items, valueField = "value") {
+  if (!Array.isArray(values) || !Array.isArray(items)) {
+    return [];
+  }
+
+  const itemValues = new Set(items.map((item) => item?.[valueField]));
+
+  return [...new Set(values)].filter((value) => itemValues.has(value));
+}
+
+// -----------------------------------------------------------------------------
+// Private Helpers
+// -----------------------------------------------------------------------------
+
+function isNonBlankString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function isArray(value) {
+  return Array.isArray(value);
+}
+
+const isPlainObject = (value) => {
+  if (Object.prototype.toString.call(value) !== "[object Object]") {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+
+  return proto === Object.prototype || proto === null;
+};
