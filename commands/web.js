@@ -46,7 +46,7 @@ export async function cmd_reload({ argv, options } = {}) {
 }
 
 export async function cmd_audioLibrary({ argv, options } = {}) {
-  const url = `http://localhost:${serverPort}/index.html`;
+  const url = `http://localhost:${serverPort}/audio.html`;
 
   return await startWebServerAndPage(url, options);
 }

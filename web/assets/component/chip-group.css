@@ -1,9 +1,8 @@
 .chip-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-content: flex-start;
-  padding: 20px 6px;
 }
 
 .chip-group .chip-item {

@@ -1,26 +1,63 @@
-import { safeRun, api } from "/assets/global.js";
-import { ChipGroup } from "/components/chip-group.js";
-import { ListGroup } from "/components/list-group.js";
+import { safeRun, api } from "/assets/js/global.js";
+import { ChipGroup } from "/assets/component/chip-group.js";
+import { ItemList } from "/assets/component/item-list.js";
 
-const rootButton = document.querySelector("#selectRootEl");
-const checkAllEl = document.querySelector("#checkAllEl");
-const typeItemTemplate = document.querySelector("#typeItemTemplate");
-const audioItemTemplate = document.querySelector("#audioItemTemplate");
+const chkSelectAll = document.querySelector("#chkSelectAll");
+const btnDeleteAudio = document.querySelector("#btnDeleteAudio");
+const btnSelectAudioDir = document.querySelector("#btnSelectAudioDir");
 
-let typeChipGroup, audioListGroup;
+const btnResetMeta = document.querySelector("#btnResetMeta");
+const btnSaveMeta = document.querySelector("#btnSaveMeta");
+
+const frmMeta = document.querySelector("#frmMeta");
+const metaFields = frmMeta.elements;
+const spnMetaPath = document.querySelector("#spnMetaPath");
+
+let chipGrpAudioType, chipGrpAudioLanguage, chipGrpAudioPosition;
+let audioListGroup;
+let chipGrpMetaType, chipGrpMetaLanguage, chipGrpMetaPosition;
+
 const filters = {
   types: [],
+  languages: [],
+  positions: [],
 };
+
+// -----------------------------------------------------------------------------
+// API Calls
+// -----------------------------------------------------------------------------
+
+async function getAudioTypes() {
+  return await api.get("/audio/api/list-audio-type");
+}
+
+async function getAudioLanguages() {
+  return await api.get("/audio/api/list-audio-language");
+}
+
+async function getAudioPositions() {
+  return await api.get("/audio/api/list-audio-position");
+}
+
+async function getAudioList() {
+  return await api.post("/audio/api/list-audio", filters);
+}
 
 // -----------------------------------------------------------------------------
 // event listeners
 // -----------------------------------------------------------------------------
 
-rootButton.addEventListener("click", async () => {
-  await safeRun(selectAudioDir);
+btnSelectAudioDir.addEventListener("click", async () => {
+  const { dir, canceled } = await api.post("/audio/api/select-audio-dir");
+
+  if (canceled) {
+    return null;
+  }
+
+  await renderAudioList();
 });
 
-checkAllEl.addEventListener("change", async (event) => {
+chkSelectAll.addEventListener("change", async (event) => {
   const isChecked = event.target.checked;
 
   if (isChecked) {
@@ -30,6 +67,34 @@ checkAllEl.addEventListener("change", async (event) => {
   }
 });
 
+btnSaveMeta.addEventListener("click", async () => {
+  const metaPath = spnMetaPath.textContent.trim();
+  const meta = getMetaFormValue();
+
+  const savedMeta = await api.post("/audio/api/save-meta", {
+    metaPath,
+    meta,
+  });
+
+  await setMetaFormValue(savedMeta);
+
+  await renderAudioList();
+});
+
+btnResetMeta.addEventListener("click", async () => {
+  const metaPath = spnMetaPath.textContent.trim();
+
+  if (!metaPath) {
+    return;
+  }
+
+  const { meta } = await api.post("/audio/api/load-meta", {
+    metaPath,
+  });
+
+  await setMetaFormValue(metaPath, meta);
+});
+
 // -----------------------------------------------------------------------------
 // init
 // -----------------------------------------------------------------------------
@@ -37,85 +102,176 @@ checkAllEl.addEventListener("change", async (event) => {
 await safeRun(init);
 
 async function init() {
-  // new chip-group for audio types
-  typeChipGroup = new ChipGroup("#typeChipsEl", {
+  chipGrpAudioType = new ChipGroup("#chipGrpAudioType", {
     textField: "label",
     valueField: "value",
     onChange: async (items) => {
       filters.types = items.map((item) => item.value);
-      await listAudio();
+      await renderAudioList();
     },
-    onRenderItem: (item) => {
-      const element =
-        typeItemTemplate.content.firstElementChild?.cloneNode(true);
-      const span = element.querySelector("span");
+  });
 
-      span.textContent = item.label;
+  chipGrpAudioLanguage = new ChipGroup("#chipGrpAudioLanguage", {
+    textField: "label",
+    valueField: "value",
+    onChange: async (items) => {
+      filters.languages = items.map((item) => item.value);
+      await renderAudioList();
+    },
+  });
 
-      return element;
+  chipGrpAudioPosition = new ChipGroup("#chipGrpAudioPosition", {
+    textField: "label",
+    valueField: "value",
+    onChange: async (items) => {
+      filters.positions = items.map((item) => item.value);
+      await renderAudioList();
     },
   });
 
   // new list-group for audio files
-  audioListGroup = new ListGroup("#audioListEl", {
+  audioListGroup = new ItemList("#audioListEl", {
     textField: "base",
     valueField: "filePath",
     onSetItems: async (items) => {
-      checkAllEl.checked = false;
+      chkSelectAll.checked = false;
     },
     onChange: async (item, oldItem) => {
-      alert(JSON.stringify(item, null, 2));
+      await setMetaFormValue(item.metaPath, item.meta);
     },
     onCheckedChange: async (items) => {
-      checkAllEl.checked = items.length === audioListGroup.getItems().length;
-    },
-    onRenderItem: (item) => {
-      const element =
-        audioItemTemplate.content.firstElementChild?.cloneNode(true);
-      const span = element.querySelector("span");
-
-      span.textContent = item.base;
-
-      return element;
+      chkSelectAll.checked = items.length === audioListGroup.getItems().length;
     },
   });
 
-  await listAudioType();
-  await listAudio();
+  chipGrpMetaType = new ChipGroup("#chipGrpMetaType", {
+    textField: "label",
+    valueField: "value",
+    mode: "single",
+  });
+
+  chipGrpMetaLanguage = new ChipGroup("#chipGrpMetaLanguage", {
+    textField: "label",
+    valueField: "value",
+    mode: "single",
+  });
+
+  chipGrpMetaPosition = new ChipGroup("#chipGrpMetaPosition", {
+    textField: "label",
+    valueField: "value",
+    mode: "single",
+  });
+
+  await initAudioType();
+  await initAudioLanguage();
+  await initAudioPosition();
+  await renderAudioList();
+  await initMetaType();
+  await initMetaLanguage();
+  await initMetaPosition();
 }
 
 // -----------------------------------------------------------------------------
 // Select Audio Directory
 // -----------------------------------------------------------------------------
 
-async function selectAudioDir() {
-  const { dir: root, canceled } = await api.post("/audio/api/select-audio-dir");
+// -----------------------------------------------------------------------------
+// Init Audio Types, Languages, Positions
+// -----------------------------------------------------------------------------
 
-  if (canceled) {
-    return null;
-  }
+async function initAudioType() {
+  const types = await getAudioTypes();
+  await chipGrpAudioType.setItems(types);
+}
 
-  await listAudio();
+async function initAudioLanguage() {
+  const languages = await getAudioLanguages();
+  await chipGrpAudioLanguage.setItems(languages);
+}
 
-  return root;
+async function initAudioPosition() {
+  const positions = await getAudioPositions();
+  await chipGrpAudioPosition.setItems(positions);
 }
 
 // -----------------------------------------------------------------------------
-// List Audio Type
+// Render Audio List
 // -----------------------------------------------------------------------------
 
-async function listAudioType() {
-  const types = await api.get("/audio/api/list-audio-type");
-
-  await typeChipGroup.setItems(types);
-}
-
-// -----------------------------------------------------------------------------
-// List Audio
-// -----------------------------------------------------------------------------
-
-async function listAudio() {
-  const audios = await api.post("/audio/api/list-audio", filters);
-
+async function renderAudioList() {
+  const audios = await getAudioList();
   await audioListGroup.setItems(audios);
+}
+
+// -----------------------------------------------------------------------------
+// Init Meta Types, Languages, Positions
+// -----------------------------------------------------------------------------
+
+async function initMetaType() {
+  const types = await getAudioTypes();
+  await chipGrpMetaType.setItems(types);
+}
+
+async function initMetaLanguage() {
+  const languages = await getAudioLanguages();
+  await chipGrpMetaLanguage.setItems(languages);
+}
+
+async function initMetaPosition() {
+  const positions = await getAudioPositions();
+  await chipGrpMetaPosition.setItems(positions);
+}
+
+async function setMetaFormValue(metaPath, meta = {}) {
+  spnMetaPath.textContent = metaPath ?? "";
+
+  metaFields.title.value = meta.title ?? "";
+  metaFields.category.value = Array.isArray(meta.category)
+    ? meta.category.join(", ")
+    : (meta.category ?? "");
+  metaFields.content.value = meta.content ?? "";
+
+  metaFields.duration.value = meta.duration ?? "";
+  metaFields.start.value = meta.start ?? "00:00:00.000";
+  metaFields.end.value = meta.end ?? "";
+
+  metaFields.cutPoints.value = Array.isArray(meta.cutPoints)
+    ? meta.cutPoints.join("\n")
+    : "";
+
+  metaFields.createdAt.value = meta.createdAt ?? "";
+  metaFields.updatedAt.value = meta.updatedAt ?? "";
+
+  await chipGrpMetaType.select(meta.type ?? null);
+  await chipGrpMetaLanguage.select(meta.language ?? null);
+  await chipGrpMetaPosition.select(meta.position ?? null);
+}
+
+function getMetaFormValue() {
+  return {
+    title: metaFields.title.value.trim(),
+
+    category: metaFields.category.value
+      .split(/[,，]/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+
+    content: metaFields.content.value.trim(),
+
+    duration: metaFields.duration.value.trim() || null,
+    start: metaFields.start.value.trim() || "00:00:00.000",
+    end: metaFields.end.value.trim() || null,
+
+    type: chipGrpMetaType.getValue(),
+    language: chipGrpMetaLanguage.getValue(),
+    position: chipGrpMetaPosition.getValue(),
+
+    cutPoints: metaFields.cutPoints.value
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+
+    createdAt: metaFields.createdAt.value.trim() || null,
+    updatedAt: metaFields.updatedAt.value.trim() || null,
+  };
 }

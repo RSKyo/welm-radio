@@ -4,13 +4,14 @@
     <meta charset="utf-8" />
 
     <title>Audio Library</title>
-    <link rel="icon" href="/assets/favicon.ico" />
+    <link rel="icon" href="/assets/image/favicon.ico" />
 
-    <link rel="stylesheet" href="/assets/blue.css" />
-    <link rel="stylesheet" href="/assets/global.css" />
-    <link rel="stylesheet" href="/components/chip-group.css" />
-    <link rel="stylesheet" href="/components/list-group.css" />
-    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="/assets/css/global.css" />
+    <link rel="stylesheet" href="/assets/css/theme-blue.css" />
+    <link rel="stylesheet" href="/assets/component/chip-group.css" />
+    <link rel="stylesheet" href="/assets/component/item-list.css" />
+
+    <link rel="stylesheet" href="audio.css" />
   </head>
 
   <body>
@@ -20,18 +21,28 @@
         style="padding: 12px 8px; gap: 8px; height: 40px"
       >
         <h1 class="grow page-title">Audio Library</h1>
-        <button id="selectRootEl" title="选择音频库根目录">Audio Folder</button>
-        <button id="saveMetaEl">Save</button>
       </div>
 
       <!-- Main Content Area -->
       <div class="grow hbox">
         <!-- Filter Area -->
-        <div class="vbox r-line" style="width: 240px; min-width: 120px">
-          <div class="panel">
-            <div class="panel-body">
-              <div id="typeChipsEl"></div>
-            </div>
+        <div
+          class="vbox r-line"
+          style="width: 240px; min-width: 120px; padding: 8px; gap: 8px"
+        >
+          <div class="form-field" style="margin-bottom: 8px">
+            <label>音频类型</label>
+            <div id="chipGrpAudioType"></div>
+          </div>
+
+          <div class="form-field" style="margin-bottom: 8px">
+            <label>音频位置</label>
+            <div id="chipGrpAudioPosition"></div>
+          </div>
+
+          <div class="form-field" style="margin-bottom: 8px">
+            <label>音频语言</label>
+            <div id="chipGrpAudioLanguage"></div>
           </div>
         </div>
 
@@ -41,16 +52,20 @@
           <div class="panel grow">
             <div class="panel-header" style="padding: 2px 0; gap: 2px">
               <div class="list-item-checkbox">
-                <input id="checkAllEl" type="checkbox" />
+                <input id="chkSelectAll" type="checkbox" />
               </div>
 
               <button
-                id="deleteButton"
+                id="btnDeleteAudio"
                 type="button"
                 title="删除"
                 aria-label="删除"
               >
-                Delete
+                删除
+              </button>
+
+              <button id="btnSelectAudioDir" title="选择音频库根目录">
+                选择音频库根目录
               </button>
             </div>
             <div class="panel-body">
@@ -61,28 +76,148 @@
 
         <!-- Meta Editor Area -->
         <div class="vbox" style="width: 640px; min-width: 480px">
-          <textarea id="metaEditor" class="wrap"></textarea>
+          <div class="panel grow">
+            <div
+              class="panel-header hbox justify-end"
+              style="padding: 2px 8px; gap: 8px"
+            >
+              <button
+                id="btnResetMeta"
+                type="button"
+                title="Reset"
+                aria-label="Reset"
+              >
+                重置
+              </button>
+
+              <button
+                id="btnSaveMeta"
+                type="button"
+                title="Save"
+                aria-label="Save"
+              >
+                保存
+              </button>
+            </div>
+            <div class="panel-body" style="padding: 8px">
+              <form id="frmMeta" class="form">
+                <span id="spnMetaPath" name="metaPath" style="color: var(--color-primary-text);"> </span>
+
+                <div class="form-field">
+                  <label for="txtMetaTitle">标题</label>
+                  <input id="txtMetaTitle" name="title" type="text" />
+                </div>
+
+                <div class="form-field">
+                  <label for="chipGrpMetaType">类型</label>
+                  <div id="chipGrpMetaType"></div>
+                </div>
+
+                <div class="form-field">
+                  <label for="chipGrpMetaPosition">位置</label>
+                  <div id="chipGrpMetaPosition"></div>
+                </div>
+
+                <div class="form-field">
+                  <label for="chipGrpMetaLanguage">语言</label>
+                  <div id="chipGrpMetaLanguage"></div>
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaCategory">分类</label>
+
+                  <textarea
+                    id="txtMetaCategory"
+                    name="category"
+                    rows="3"
+                    placeholder="天气, 新闻, 故事"
+                  ></textarea>
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaContent">内容</label>
+                  <textarea id="txtMetaContent" name="content" rows="8"></textarea>
+                  <div>
+                    <button id="btnTranscribe" type="button">
+                      自动识别内容
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaDuration">总时长</label>
+                  <div class="input-action">
+                    <input
+                      id="txtMetaDuration"
+                      name="duration"
+                      type="text"
+                      placeholder="HH:MM:SS.mmm"
+                    />
+                    <button id="btnDetectDuration" type="button">
+                      自动获取
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaStart">开始时间</label>
+                  <input
+                    id="txtMetaStart"
+                    name="start"
+                    type="text"
+                    placeholder="HH:MM:SS.mmm"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaEnd">结束时间</label>
+                  <input
+                    id="txtMetaEnd"
+                    name="end"
+                    type="text"
+                    placeholder="HH:MM:SS.mmm"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaCutPoints">剪切点</label>
+
+                  <textarea
+                    id="txtMetaCutPoints"
+                    name="cutPoints"
+                    rows="5"
+                    placeholder="每行填写一个时间 HH:MM:SS.mmm"
+                  ></textarea>
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaCreatedAt">创建时间</label>
+                  <input
+                    id="txtMetaCreatedAt"
+                    name="createdAt"
+                    type="text"
+                    readonly
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="txtMetaUpdatedAt">更新时间</label>
+                  <input
+                    id="txtMetaUpdatedAt"
+                    name="updatedAt"
+                    type="text"
+                    readonly
+                  />
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Templates -->
-    <!-- Template for a file item -->
-    <template id="audioItemTemplate">
-      <div>
-        <span></span>
-      </div>
-    </template>
-
-    <!-- Template for a meta type -->
-    <template id="typeItemTemplate">
-      <div>
-        <span></span>
-      </div>
-    </template>
-
     <!-- Scripts -->
-    <script src="/assets/split.min.js"></script>
-    <script type="module" src="index.js"></script>
+    <script src="/assets/js/split.min.js"></script>
+    <script type="module" src="audio.js"></script>
   </body>
 </html>

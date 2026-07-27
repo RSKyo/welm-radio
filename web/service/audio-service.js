@@ -1,4 +1,5 @@
 import nodePath from "node:path";
+import fs from "node:fs";
 
 import { scanFiles } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
@@ -22,7 +23,7 @@ export function getAudioDir(options = {}) {
 }
 
 export function listAudio(filter = {}, options = {}) {
-  if (!audio_dir || !nodePath.existsSync(audio_dir)) {
+  if (!audio_dir || !fs.existsSync(audio_dir)) {
     return [];
   }
 

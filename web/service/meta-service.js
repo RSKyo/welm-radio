@@ -1,6 +1,6 @@
 import nodePath from "node:path";
+import fs from "node:fs";
 import { readFileJson, writeFileJson } from "welm-cdp/fs";
-import { assertExistingFile } from "welm-cdp/common/assert";
 
 const audio_types = [
   { value: "voice", label: "人声" },
@@ -10,6 +10,11 @@ const audio_types = [
   { value: "effect", label: "音效" },
   { value: "jingle", label: "标识音" },
   { value: "mixed", label: "混合成品" },
+];
+
+const audio_languages = [
+  { value: "zh", label: "中文" },
+  { value: "en", label: "英文" },
 ];
 
 const audio_positions = [
@@ -41,12 +46,16 @@ export function listAudioType() {
   return audio_types;
 }
 
+export function listAudioLanguage() {
+  return audio_languages;
+}
+
 export function listAudioPosition() {
   return audio_positions;
 }
 
 export function loadMeta(metaFilePath) {
-  if (!assertExistingFile(metaFilePath,"metaFilePath")) {
+  if (!metaFilePath || !fs.existsSync(metaFilePath)) {
     return createDefaultMeta();
   }
 
