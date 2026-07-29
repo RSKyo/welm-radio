@@ -47,12 +47,12 @@ export function assertItems(items, textField = "text", valueField = "value") {
 }
 
 /**
- * Resolve a value against an item array.
- * 
- * A null or undefined value is resolved to null.
- * Any other value must exist in the item array.
+ * Validate an optional value against an item array.
+ *
+ * A null or undefined value returns an empty string.
+ * Any other value must be a non-blank string and exist in the item array.
  */
-export function resolveValue(value, items, valueField = "value") {
+export function assertValue(value, items, valueField = "value") {
   if (value == null) {
     return null;
   }
@@ -73,12 +73,12 @@ export function resolveValue(value, items, valueField = "value") {
 }
 
 /**
- * Resolve an array of unique values against an item array.
- * 
- * A null or undefined value is resolved to an empty array.
- * Every provided value must exist in the item array.
+ * Validate an optional array of unique values against an item array.
+ *
+ * A null or undefined value returns an empty array.
+ * Every provided value must be a non-blank string and exist in the item array.
  */
-export function resolveValues(values, items, valueField = "value") {
+export function assertValues(values, items, valueField = "value") {
   if (values == null) {
     return [];
   }
@@ -102,7 +102,7 @@ export function resolveValues(values, items, valueField = "value") {
       throw new Error("value must be a non-blank string");
     }
 
-    const validatedValue = resolveValue(value, items, valueField);
+    const validatedValue = assertValue(value, items, valueField);
 
     validatedValues.push(validatedValue);
   }
@@ -112,9 +112,9 @@ export function resolveValues(values, items, valueField = "value") {
 
 /**
  * Keep a value only when it exists in the item array.
- * 
- * This function is tolerant of invalid input and returns null
- * instead of throwing an error.
+ *
+ * Invalid input returns an empty string instead of throwing an error.
+ * A valid value that does not exist in the item array returns null.
  */
 export function filterValue(value, items, valueField = "value") {
   if (!isNonBlankString(value) || !isArray(items)) {
@@ -126,10 +126,9 @@ export function filterValue(value, items, valueField = "value") {
 
 /**
  * Keep only values that exist in the item array.
- * 
+ *
  * Duplicate and unavailable values are removed.
- * This function is tolerant of invalid input and returns an empty
- * array instead of throwing an error.
+ * Invalid input returns an empty array instead of throwing an error.
  */
 export function filterValues(values, items, valueField = "value") {
   if (!Array.isArray(values) || !Array.isArray(items)) {
@@ -139,6 +138,33 @@ export function filterValues(values, items, valueField = "value") {
   const itemValues = new Set(items.map((item) => item?.[valueField]));
 
   return [...new Set(values)].filter((value) => itemValues.has(value));
+}
+
+export function getItemsByValues(values, items, valueField = "value") {
+  if (!Array.isArray(values) || !Array.isArray(items)) {
+    return [];
+  }
+
+  const itemValues = new Set(items.map((item) => item?.[valueField]));
+
+  return [...new Set(values)]
+    .filter((value) => itemValues.has(value))
+    .map((value) => items.find((item) => item?.[valueField] === value));
+}
+
+export function haveSameValues(values1, values2) {
+  if (!Array.isArray(values1) || !Array.isArray(values2)) {
+    throw new Error("values1 and values2 must be arrays");
+  }
+
+  if (values1.length !== values2.length) {
+    return false;
+  }
+
+  const sortedValues1 = [...values1].sort();
+  const sortedValues2 = [...values2].sort();
+
+  return sortedValues1.every((value, index) => value === sortedValues2[index]);
 }
 
 // -----------------------------------------------------------------------------

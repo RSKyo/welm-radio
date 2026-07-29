@@ -1,10 +1,12 @@
 import {
   assertItem,
   assertItems,
-  resolveValue,
-  resolveValues,
+  assertValue,
+  assertValues,
   filterValue,
   filterValues,
+  getItemsByValues,
+  haveSameValues,
 } from "./item.js";
 
 export class ItemList {
@@ -33,13 +35,13 @@ export class ItemList {
       ...assertItems(options.items ?? [], this.#textField, this.#valueField),
     ];
 
-    this.#value = resolveValue(
+    this.#value = assertValue(
       options.value ?? null,
       this.#items,
       this.#valueField,
     );
 
-    this.#checkedValues = resolveValues(
+    this.#checkedValues = assertValues(
       options.checkedValues ?? [],
       this.#items,
       this.#valueField,
@@ -56,7 +58,13 @@ export class ItemList {
     this.#render();
   }
 
-  // #region Public Methods
+  // -----------------------------------------------------------------------------
+  // Public API
+  // -----------------------------------------------------------------------------
+
+  getItems() {
+    return [...this.#items];
+  }
 
   async setItems(items = []) {
     assertItems(items, this.#textField, this.#valueField);
@@ -66,7 +74,11 @@ export class ItemList {
     const oldCheckedValues = this.#checkedValues;
 
     const value = filterValue(oldValue, items, this.#valueField);
-    const checkedValues = filterValues(oldCheckedValues, items, this.#valueField);
+    const checkedValues = filterValues(
+      oldCheckedValues,
+      items,
+      this.#valueField,
+    );
 
     this.#items = [...items];
     this.#value = value;
@@ -74,17 +86,20 @@ export class ItemList {
 
     this.#render();
 
-    if (value !== oldValue) {
+    if (this.#onChange && value !== oldValue) {
       const item = this.#items.find((item) => item[this.#valueField] === value);
 
       const oldItem = oldItems.find(
         (item) => item[this.#valueField] === oldValue,
       );
 
-      await this.#onChange?.(item, oldItem);
+      await this.#onChange(item, oldItem);
     }
 
-    if (!this.#compareArrayValues(checkedValues, oldCheckedValues)) {
+    if (
+      this.#onCheckedChange &&
+      !haveSameValues(checkedValues, oldCheckedValues)
+    ) {
       const checkedItems = this.#items.filter((item) =>
         checkedValues.includes(item[this.#valueField]),
       );
@@ -93,18 +108,14 @@ export class ItemList {
         oldCheckedValues.includes(item[this.#valueField]),
       );
 
-      await this.#onCheckedChange?.(checkedItems, oldCheckedItems);
+      await this.#onCheckedChange(checkedItems, oldCheckedItems);
     }
 
     await this.#onSetItems?.([...this.#items]);
   }
 
-  getItems() {
-    return [...this.#items];
-  }
-
   updateItem(item) {
-    this.#validateItem(item);
+    assertItem(item, this.#textField, this.#valueField);
 
     const value = item[this.#valueField];
 
@@ -116,26 +127,21 @@ export class ItemList {
       throw new Error(`item not found: ${value}`);
     }
 
-    const oldItemElement = this.#container.children[index];
-    const newItemElement = this.#renderItem(item);
+    this.#items[index] = { ...item };
 
-    this.#items[index] = item;
-    oldItemElement.replaceWith(newItemElement);
-
-    this.#updateActiveState();
-    this.#updateCheckedState();
-  }
-
-  async setValue(value) {
-    const validatedValue = this.#validateValue(value, this.#items);
-    await this.#changeValue(validatedValue);
+    this.setItems(this.#items);
   }
 
   getValue() {
     return this.#value;
   }
 
-  async clearValue() {
+  async setValue(value) {
+    const validatedValue = assertValue(value, this.#items, this.#valueField);
+    await this.#changeValue(validatedValue);
+  }
+
+  async unselect() {
     await this.setValue(null);
   }
 
@@ -144,7 +150,7 @@ export class ItemList {
   }
 
   async setCheckedValues(values) {
-    const validatedValues = this.#validateValues(values, this.#items);
+    const validatedValues = assertValues(values, this.#items, this.#valueField);
     await this.#changeCheckedValues(validatedValues);
   }
 
@@ -157,112 +163,11 @@ export class ItemList {
     await this.#changeCheckedValues([]);
   }
 
-  // #endregion Public Methods
+  // -----------------------------------------------------------------------------
+  // Private Helpers
+  // -----------------------------------------------------------------------------
 
-  // #region Private Methods
-
-  #validateItem(item) {
-    if (item === null || typeof item !== "object" || Array.isArray(item)) {
-      throw new TypeError("item must be an object");
-    }
-
-    const value = item[this.#valueField];
-
-    if (typeof value !== "string" || value === "") {
-      throw new Error(
-        `item must contain a non-empty string "${this.#valueField}" field`,
-      );
-    }
-
-    return item;
-  }
-
-  #validateItems(items) {
-    if (items == null) {
-      return [];
-    }
-
-    if (!Array.isArray(items)) {
-      throw new TypeError("items must be an array");
-    }
-
-    const values = new Set();
-
-    for (const item of items) {
-      this.#validateItem(item);
-
-      const value = item[this.#valueField];
-
-      if (values.has(value)) {
-        throw new Error(`duplicate item value: ${value}`);
-      }
-
-      values.add(value);
-    }
-
-    return items;
-  }
-
-  #validateValue(value, items) {
-    if (value == null) {
-      return null;
-    }
-
-    if (typeof value !== "string") {
-      throw new Error("value must be a string");
-    }
-
-    if (items && !items.some((item) => item[this.#valueField] === value)) {
-      throw new Error(`value not found: ${value}`);
-    }
-
-    return value;
-  }
-
-  #validateValues(values, items) {
-    if (values == null) {
-      return [];
-    }
-
-    if (!Array.isArray(values)) {
-      throw new TypeError("values must be an array");
-    }
-
-    for (const value of values) {
-      this.#validateValue(value, items);
-    }
-
-    if (new Set(values).size !== values.length) {
-      throw new Error("duplicate values are not allowed");
-    }
-
-    return [...values];
-  }
-
-  #filterValue(value, items) {
-    if (typeof value !== "string") {
-      return null;
-    }
-
-    if (items && items.some((item) => item[this.#valueField] === value)) {
-      return value;
-    }
-
-    return null;
-  }
-
-  #filterValues(values, items) {
-    if (!Array.isArray(values)) {
-      return [];
-    }
-
-    const filteredValues = values.filter(
-      (value) => this.#filterValue(value, items) !== null,
-    );
-    return [...new Set(filteredValues)];
-  }
-
-  async #changeValue(value, options = {}) {
+  async #changeValue(value, event) {
     const oldValue = this.#value;
 
     if (value === oldValue) {
@@ -270,78 +175,70 @@ export class ItemList {
     }
 
     this.#value = value;
+    this.#updateSelectedState();
 
-    this.#updateActiveState();
-    const item = this.#items.find((item) => item[this.#valueField] === value);
-    const oldItem = this.#items.find(
-      (item) => item[this.#valueField] === oldValue,
-    );
-
-    await this.#onChange?.(item, oldItem, options.event);
+    if (this.#onChange) {
+      const [item, oldItem] = getItemsByValues(
+        [value, oldValue],
+        this.#items,
+        this.#valueField,
+      );
+      await this.#onChange(item, oldItem, event);
+    }
   }
 
   async #changeCheckedValues(values, options = {}) {
-    const oldCheckedValues = this.#checkedValues;
+    const oldValues = this.#checkedValues;
 
-    if (this.#compareArrayValues(values, oldCheckedValues)) {
+    if (haveSameValues(values, oldValues)) {
       return;
     }
 
     this.#checkedValues = values;
-
     this.#updateCheckedState();
 
-    const items = this.#items.filter((item) =>
-      this.#checkedValues.includes(item[this.#valueField]),
-    );
+    if (this.#onCheckedChange) {
+      const items = getItemsByValues(values, this.#items, this.#valueField);
 
-    const oldItems = this.#items.filter((item) =>
-      oldCheckedValues.includes(item[this.#valueField]),
-    );
+      const oldItems = getItemsByValues(
+        oldValues,
+        this.#items,
+        this.#valueField,
+      );
 
-    await this.#onCheckedChange?.(items, oldItems, options.event);
+      await this.#onCheckedChange(items, oldItems, options.event);
+    }
   }
 
-  #compareArrayValues(arr1, arr2) {
-    if (arr1.length !== arr2.length) {
-      return false;
+  #eventDelegation(event, container, selector, callback) {
+    const targetElement = event.target.closest(selector);
+
+    if (targetElement && container.contains(targetElement)) {
+      callback(targetElement, event);
     }
-
-    const sortedArr1 = [...arr1].sort();
-    const sortedArr2 = [...arr2].sort();
-
-    for (let i = 0; i < sortedArr1.length; i++) {
-      if (sortedArr1[i] !== sortedArr2[i]) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   #bindEvents() {
     this.#container.addEventListener("click", async (event) => {
-      const itemElement = event.target.closest(".list-item");
-      const itemContentElement = event.target.closest(".list-item-content");
-      const itemCheckboxElement = event.target.closest(".list-item-checkbox");
-      const checkedValue = itemElement?.dataset.value;
+      const itemEl = event.target.closest(".list-item");
+      const itemContentEl = event.target.closest(".list-item-content-container");
+      const itemCheckboxEl = event.target.closest(".list-item-checkbox");
 
-      if (itemContentElement && this.#container.contains(itemContentElement)) {
-        await this.#changeValue(itemElement.dataset.value, { event });
+      const value = itemEl?.dataset.value;
+
+      if (itemContentEl && this.#container.contains(itemContentEl)) {
+        await this.#changeValue(value, event);
         return;
       }
 
-      if (
-        itemCheckboxElement &&
-        this.#container.contains(itemCheckboxElement)
-      ) {
+      if (itemCheckboxEl && this.#container.contains(itemCheckboxEl)) {
         const oldCheckedValues = this.#checkedValues;
         let newCheckedValues = [];
 
-        if (oldCheckedValues.includes(checkedValue)) {
-          newCheckedValues = oldCheckedValues.filter((v) => v !== checkedValue);
+        if (oldCheckedValues.includes(value)) {
+          newCheckedValues = oldCheckedValues.filter((v) => v !== value);
         } else {
-          newCheckedValues = [...oldCheckedValues, checkedValue];
+          newCheckedValues = [...oldCheckedValues, value];
         }
 
         await this.#changeCheckedValues(newCheckedValues, { event });
@@ -358,7 +255,7 @@ export class ItemList {
       this.#container.appendChild(itemElement);
     }
 
-    this.#updateActiveState();
+    this.#updateSelectedState();
     this.#updateCheckedState();
   }
 
@@ -368,8 +265,8 @@ export class ItemList {
     const contentContainer = document.createElement("div");
 
     itemElement.className = "list-item";
-    checkboxContainer.className = "list-item-check";
-    contentContainer.className = "list-item-content";
+    checkboxContainer.className = "list-item-checkbox-container";
+    contentContainer.className = "list-item-content-container";
 
     const checkbox = document.createElement("input");
 
@@ -403,7 +300,7 @@ export class ItemList {
     return textElement;
   }
 
-  #updateActiveState() {
+  #updateSelectedState() {
     const itemElements = this.#container.querySelectorAll(".list-item");
 
     for (const itemElement of itemElements) {
@@ -424,6 +321,4 @@ export class ItemList {
       itemElement.classList.toggle("is-checked", checked);
     }
   }
-
-  // #endregion Private Methods
 }
