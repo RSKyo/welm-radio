@@ -49,20 +49,20 @@ export function assertItems(items, textField = "text", valueField = "value") {
 /**
  * Validate an optional value against an item array.
  *
- * A null or undefined value returns an empty string.
+ * A null, undefined, or empty-string value returns an empty string.
  * Any other value must be a non-blank string and exist in the item array.
  */
 export function assertValue(value, items, valueField = "value") {
-  if (value == null) {
-    return null;
+  if (!isArray(items)) {
+    throw new Error("items must be an array");
+  }
+
+  if (value == null || value === "") {
+    return "";
   }
 
   if (!isNonBlankString(value)) {
     throw new Error("value must be a non-blank string");
-  }
-
-  if (!isArray(items)) {
-    throw new Error("items must be an array");
   }
 
   if (!items.some((item) => item[valueField] === value)) {
@@ -79,6 +79,10 @@ export function assertValue(value, items, valueField = "value") {
  * Every provided value must be a non-blank string and exist in the item array.
  */
 export function assertValues(values, items, valueField = "value") {
+  if (!isArray(items)) {
+    throw new Error("items must be an array");
+  }
+
   if (values == null) {
     return [];
   }
@@ -91,17 +95,9 @@ export function assertValues(values, items, valueField = "value") {
     throw new Error("values must not contain duplicates");
   }
 
-  if (!isArray(items)) {
-    throw new Error("items must be an array");
-  }
-
   const validatedValues = [];
 
   for (const value of values) {
-    if (!isNonBlankString(value)) {
-      throw new Error("value must be a non-blank string");
-    }
-
     const validatedValue = assertValue(value, items, valueField);
 
     validatedValues.push(validatedValue);
@@ -113,15 +109,15 @@ export function assertValues(values, items, valueField = "value") {
 /**
  * Keep a value only when it exists in the item array.
  *
- * Invalid input returns an empty string instead of throwing an error.
- * A valid value that does not exist in the item array returns null.
+ * Invalid and unavailable values return an empty string
+ * instead of throwing an error.
  */
 export function filterValue(value, items, valueField = "value") {
   if (!isNonBlankString(value) || !isArray(items)) {
-    return null;
+    return "";
   }
 
-  return items.some((item) => item?.[valueField] === value) ? value : null;
+  return items.some((item) => item?.[valueField] === value) ? value : "";
 }
 
 /**
@@ -137,19 +133,9 @@ export function filterValues(values, items, valueField = "value") {
 
   const itemValues = new Set(items.map((item) => item?.[valueField]));
 
-  return [...new Set(values)].filter((value) => itemValues.has(value));
-}
-
-export function getItemsByValues(values, items, valueField = "value") {
-  if (!Array.isArray(values) || !Array.isArray(items)) {
-    return [];
-  }
-
-  const itemValues = new Set(items.map((item) => item?.[valueField]));
-
-  return [...new Set(values)]
-    .filter((value) => itemValues.has(value))
-    .map((value) => items.find((item) => item?.[valueField] === value));
+  return [...new Set(values)].filter(
+    (value) => isNonBlankString(value) && itemValues.has(value),
+  );
 }
 
 export function haveSameValues(values1, values2) {

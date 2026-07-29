@@ -11,10 +11,9 @@ const btnSaveMeta = document.querySelector("#btnSaveMeta");
 
 const frmMeta = document.querySelector("#frmMeta");
 const metaFields = frmMeta.elements;
-const spnMetaPath = document.querySelector("#spnMetaPath");
 
 let chipGrpAudioType, chipGrpAudioLanguage, chipGrpAudioPosition;
-let audioListGroup;
+let itemLstAudio;
 let chipGrpMetaType, chipGrpMetaLanguage, chipGrpMetaPosition;
 
 const filters = {
@@ -61,38 +60,48 @@ chkSelectAll.addEventListener("change", async (event) => {
   const isChecked = event.target.checked;
 
   if (isChecked) {
-    audioListGroup.checkAll();
+    itemLstAudio.checkAll();
   } else {
-    audioListGroup.uncheckAll();
+    itemLstAudio.uncheckAll();
   }
 });
 
 btnSaveMeta.addEventListener("click", async () => {
-  const metaPath = spnMetaPath.textContent.trim();
-  const meta = getMetaFormValue();
+  const metaPath = metaFields.metaPath.value.trim();
+
+  if (!metaPath) {
+    return;
+  }
+
+  const meta = getFormMeta();
 
   const savedMeta = await api.post("/audio/api/save-meta", {
     metaPath,
     meta,
   });
 
-  await setMetaFormValue(savedMeta);
+  await setFormMeta(metaPath, savedMeta);
 
-  await renderAudioList();
+  const selectedItem = itemLstAudio.getSelectedItem();
+  if (selectedItem) {
+    await itemLstAudio.updateItem({
+      ...selectedItem,
+      meta: savedMeta,
+    });
+  }
 });
 
 btnResetMeta.addEventListener("click", async () => {
-  const metaPath = spnMetaPath.textContent.trim();
-
+  const metaPath = metaFields.metaPath.value.trim();
   if (!metaPath) {
     return;
   }
 
-  const { meta } = await api.post("/audio/api/load-meta", {
+  const meta = await api.post("/audio/api/load-meta", {
     metaPath,
   });
 
-  await setMetaFormValue(metaPath, meta);
+  await setFormMeta(metaPath, meta);
 });
 
 // -----------------------------------------------------------------------------
@@ -130,17 +139,14 @@ async function init() {
   });
 
   // new list-group for audio files
-  audioListGroup = new ItemList("#audioListEl", {
+  itemLstAudio = new ItemList("#audioListEl", {
     textField: "base",
     valueField: "filePath",
-    onSetItems: async (items) => {
-      chkSelectAll.checked = false;
-    },
     onChange: async (item, oldItem) => {
-      await setMetaFormValue(item.metaPath, item.meta);
+      await setFormMeta(item.metaPath, item.meta);
     },
     onCheckedChange: async (items) => {
-      chkSelectAll.checked = items.length === audioListGroup.getItems().length;
+      chkSelectAll.checked = items.length === itemLstAudio.getItems().length;
     },
   });
 
@@ -200,7 +206,7 @@ async function initAudioPosition() {
 
 async function renderAudioList() {
   const audios = await getAudioList();
-  await audioListGroup.setItems(audios);
+  await itemLstAudio.setItems(audios);
 }
 
 // -----------------------------------------------------------------------------
@@ -222,9 +228,8 @@ async function initMetaPosition() {
   await chipGrpMetaPosition.setItems(positions);
 }
 
-async function setMetaFormValue(metaPath, meta = {}) {
-  spnMetaPath.textContent = metaPath ?? "";
-
+async function setFormMeta(metaPath, meta = {}) {
+  metaFields.metaPath.value = metaPath ?? "";
   metaFields.title.value = meta.title ?? "";
   metaFields.category.value = Array.isArray(meta.category)
     ? meta.category.join(", ")
@@ -242,12 +247,12 @@ async function setMetaFormValue(metaPath, meta = {}) {
   metaFields.createdAt.value = meta.createdAt ?? "";
   metaFields.updatedAt.value = meta.updatedAt ?? "";
 
-  await chipGrpMetaType.select(meta.type ?? null);
-  await chipGrpMetaLanguage.select(meta.language ?? null);
-  await chipGrpMetaPosition.select(meta.position ?? null);
+  await chipGrpMetaType.setValue(meta.type ?? "");
+  await chipGrpMetaLanguage.setValue(meta.language ?? "");
+  await chipGrpMetaPosition.setValue(meta.position ?? "");
 }
 
-function getMetaFormValue() {
+function getFormMeta() {
   return {
     title: metaFields.title.value.trim(),
 

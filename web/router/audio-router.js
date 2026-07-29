@@ -3,6 +3,7 @@ import express from "express";
 import { withOptions } from "welm-cdp/web";
 import { getAudioDir, listAudio, selectAudioDir } from "../service/audio-service.js";
 import { listAudioType, listAudioLanguage, listAudioPosition } from "../service/meta-service.js";
+import { loadMeta, saveMeta } from "../service/meta-service.js";
 
 export const router = express.Router();
 
@@ -58,5 +59,39 @@ router.get(
   "/list-audio-position",
   withOptions(async (req, res, options) => {
     res.json(listAudioPosition());
+  }),
+);
+
+// POST /audio/api/load-meta
+router.post(
+  "/load-meta",
+  withOptions(async (req, res, options) => {
+    const { metaPath } = req.body ?? {};
+
+    if (!metaPath) {
+      throw new Error("Missing 'metaPath' parameter");
+    }
+
+    const meta = loadMeta(metaPath);
+
+    res.json(meta);
+  }),
+);
+
+// POST /audio/api/save-meta
+router.post(
+  "/save-meta",
+  withOptions(async (req, res, options) => {
+    const { metaPath, meta } = req.body ?? {};
+
+    if (!metaPath || !meta) {
+      throw new Error("Missing 'metaPath' or 'meta' parameter");
+    }
+
+    saveMeta(metaPath, meta);
+
+    const savedMeta = loadMeta(metaPath);
+
+    res.json(savedMeta);
   }),
 );

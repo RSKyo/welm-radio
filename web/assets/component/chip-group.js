@@ -1,3 +1,11 @@
+import {
+  assertItems,
+  assertValue,
+  assertValues,
+  filterValues,
+  haveSameValues,
+} from "./item.js";
+
 export class ChipGroup {
   #container;
   #textField;
@@ -5,8 +13,11 @@ export class ChipGroup {
   #items;
   #mode;
   #values;
+  #onSetItems;
   #onChange;
   #onRenderItem;
+
+  #rootClass = "chip-group";
 
   constructor(containerSelector, options = {}) {
     this.#container = document.querySelector(containerSelector);
@@ -15,191 +26,159 @@ export class ChipGroup {
       throw new Error(`container not found: ${containerSelector}`);
     }
 
+    this.#container.classList.add(this.#rootClass);
+
     this.#textField = options.textField ?? "text";
     this.#valueField = options.valueField ?? "value";
 
-    this.#items = options.items ?? [];
-    this.#validateItems(this.#items);
+    this.#items = [
+      ...assertItems(options.items ?? [], this.#textField, this.#valueField),
+    ];
 
     this.#mode = options.mode ?? "multiple";
 
     if (!["single", "multiple"].includes(this.#mode)) {
-      throw new Error(`invalid chip group mode: ${this.#mode}`);
+      throw new Error("mode must be either 'single' or 'multiple'");
     }
 
-    this.#values = this.#filterValidValues(options.values);
+    this.#values = assertValues(
+      options.values ?? [],
+      this.#items,
+      this.#valueField,
+    );
 
+    if (this.#mode === "single" && this.#values.length > 1) {
+      throw new Error("single mode accepts at most one value");
+    }
+
+    this.#onSetItems = options.onSetItems ?? null;
     this.#onChange = options.onChange ?? null;
     this.#onRenderItem = options.onRenderItem ?? null;
-
-    this.#container.classList.add("chip-group");
 
     this.#bindEvents();
     this.#render();
   }
 
-  // #region Public Methods
-
-  async setItems(items = []) {
-    this.#validateItems(items);
-
-    if (this.#values.length > 0) {
-      await this.#changeValues([]);
-    }
-
-    this.#items = items;
-    this.#values = [];
-    this.#render();
-  }
+  // -----------------------------------------------------------------------------
+  // Public API
+  // -----------------------------------------------------------------------------
 
   getItems() {
-    return [...this.#items];
+    return this.#items.map((item) => ({ ...item }));
+  }
+
+  async setItems(items = []) {
+    assertItems(items, this.#textField, this.#valueField);
+
+    this.#items = [...items];
+    this.#values = filterValues(this.#values, items, this.#valueField);
+
+    this.#render();
+
+    await this.#onSetItems?.(this.getItems());
+  }
+
+  getValue() {
+    if (this.#mode === "multiple") {
+      throw new Error("getValue is only available in single mode");
+    }
+    return this.#values[0] ?? "";
   }
 
   getValues() {
+    if (this.#mode === "single") {
+      throw new Error("getValues is only available in multiple mode");
+    }
     return [...this.#values];
   }
 
-  async select(values) {
-    const filteredValues = this.#filterValidValues(values);
-    await this.#changeValues(filteredValues);
-  }
-
-  async clear() {
-    await this.select([]);
-  }
-
-  // #endregion Public Methods
-
-  // #region Private Methods
-
-  #validateItems(items) {
-    if (!Array.isArray(items)) {
-      throw new Error("items must be an array");
+  async setValue(value) {
+    if (this.#mode === "multiple") {
+      throw new Error("setValue is only available in single mode");
     }
 
-    const values = new Set();
-
-    for (const item of items) {
-      if (!item || typeof item !== "object") {
-        throw new Error("each item must be an object");
-      }
-
-      if (!Object.hasOwn(item, this.#textField)) {
-        throw new Error(`item must contain ${this.#textField}`);
-      }
-
-      if (!Object.hasOwn(item, this.#valueField)) {
-        throw new Error(`item must contain ${this.#valueField}`);
-      }
-
-      const value = item[this.#valueField];
-
-      if (value == null || typeof value !== "string" || value.trim() === "") {
-        throw new Error(`item ${this.#valueField} must be a non-empty string`);
-      }
-
-      const normalizedValue = value;
-
-      if (values.has(normalizedValue)) {
-        throw new Error(
-          `duplicate item ${this.#valueField}: ${normalizedValue}`,
-        );
-      }
-
-      values.add(normalizedValue);
-    }
+    const validatedValue = assertValue(value, this.#items, this.#valueField);
+    await this.#changeValues(validatedValue ? [validatedValue] : []);
   }
 
-  #filterValidValue(value) {
-    if (
-      typeof value === "string" &&
-      this.#items.some((item) => item[this.#valueField] === value)
-    ) {
-      return value;
+  async setValues(values) {
+    if (this.#mode === "single") {
+      throw new Error("setValues is only available in multiple mode");
     }
 
-    return null;
+    const validatedValues = assertValues(values, this.#items, this.#valueField);
+    await this.#changeValues(validatedValues);
   }
 
-  #filterValidValues(values) {
-    const normalizedValues = Array.isArray(values) ? values : [values];
-    const finalValues =
-      this.#mode === "single" ? normalizedValues.slice(0, 1) : normalizedValues;
-
-    return finalValues.filter((value) => this.#filterValidValue(value) != null);
+  async unselect() {
+    await this.setValues([]);
   }
+
+  // -----------------------------------------------------------------------------
+  // change handlers
+  // -----------------------------------------------------------------------------
 
   async #changeValues(values, options = {}) {
     const oldValues = this.#values;
 
-    if (this.#compareArrayValues(values, oldValues)) {
+    if (haveSameValues(values, oldValues)) {
       return;
     }
 
-    this.#values = values;
+    this.#values = [...values];
+    this.#updateSelectedState();
 
-    this.#updateActiveState();
-
-    const items = this.#items.filter((item) =>
-      values.includes(item[this.#valueField]),
-    );
-    const oldItems = this.#items.filter((item) =>
-      oldValues.includes(item[this.#valueField]),
-    );
-
-    if (this.#mode === "single") {
-      await this.#onChange?.(
-        items[0] ?? null,
-        oldItems[0] ?? null,
-        options.event,
+    if (this.#onChange) {
+      const items = this.#items.filter((item) =>
+        values.includes(item[this.#valueField]),
       );
-    } else {
-      await this.#onChange?.(items, oldItems, options.event);
-    }
-  }
 
-  #compareArrayValues(arr1, arr2) {
-    if (arr1.length !== arr2.length) {
-      return false;
-    }
+      const oldItems = this.#items.filter((item) =>
+        oldValues.includes(item[this.#valueField]),
+      );
 
-    const sortedArr1 = [...arr1].sort();
-    const sortedArr2 = [...arr2].sort();
-
-    for (let i = 0; i < sortedArr1.length; i++) {
-      if (sortedArr1[i] !== sortedArr2[i]) {
-        return false;
+      if (this.#mode === "single") {
+        await this.#onChange(
+          items[0] ?? null,
+          oldItems[0] ?? null,
+          options.event,
+        );
+      } else {
+        await this.#onChange(items, oldItems, options.event);
       }
     }
-
-    return true;
   }
+
+  // -----------------------------------------------------------------------------
+  // bind events
+  // -----------------------------------------------------------------------------
 
   #bindEvents() {
     this.#container.addEventListener("click", async (event) => {
-      const chip = event.target.closest(".chip-item");
-
-      if (!chip || !this.#container.contains(chip)) {
+      const itemElement = event.target.closest(`.${this.#rootClass}-item`);
+      if (!itemElement || !this.#container.contains(itemElement)) {
         return;
       }
 
-      const clickedValue = chip.dataset.value;
+      const value = itemElement.dataset.value;
       const oldValues = this.#values;
       let newValues = [];
 
       if (this.#mode === "single") {
-        newValues = oldValues.includes(clickedValue) ? [] : [clickedValue];
-      } else if (oldValues.includes(clickedValue)) {
-        newValues = oldValues.filter((value) => value !== clickedValue);
+        newValues = oldValues.includes(value) ? [] : [value];
+      } else if (oldValues.includes(value)) {
+        newValues = oldValues.filter((v) => v !== value);
       } else {
-        newValues = [...oldValues, clickedValue];
+        newValues = [...oldValues, value];
       }
 
-      this.#changeValues(newValues, { event });
-      return;
+      await this.#changeValues(newValues, { event });
     });
   }
+
+  // -----------------------------------------------------------------------------
+  // rendering and updating the DOM
+  // -----------------------------------------------------------------------------
 
   #render() {
     this.#container.innerHTML = "";
@@ -209,13 +188,13 @@ export class ChipGroup {
       this.#container.appendChild(itemElement);
     }
 
-    this.#updateActiveState();
+    this.#updateSelectedState();
   }
 
   #renderItem(item) {
     const itemElement = document.createElement("div");
 
-    itemElement.className = "chip-item";
+    itemElement.className = `${this.#rootClass}-item`;
 
     const contentElement = this.#onRenderItem
       ? this.#onRenderItem(item)
@@ -239,14 +218,14 @@ export class ChipGroup {
     return textElement;
   }
 
-  #updateActiveState() {
-    const itemElements = this.#container.querySelectorAll(".chip-item");
+  #updateSelectedState() {
+    const itemElements = this.#container.querySelectorAll(
+      `.${this.#rootClass}-item`,
+    );
 
     for (const itemElement of itemElements) {
       const selected = this.#values.includes(itemElement.dataset.value);
       itemElement.classList.toggle("is-selected", selected);
     }
   }
-
-  // #endregion Private Methods
 }

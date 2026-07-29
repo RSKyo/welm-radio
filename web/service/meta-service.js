@@ -1,4 +1,4 @@
-import nodePath from "node:path";
+import nodePath, { basename } from "node:path";
 import fs from "node:fs";
 import { readFileJson, writeFileJson } from "welm-cdp/fs";
 
@@ -23,22 +23,25 @@ const audio_positions = [
   { value: "before_break", label: "插播前" },
   { value: "after_break", label: "插播后" },
   { value: "resume", label: "恢复正文前" },
+  { value: "body", label: "正文" },
 ];
 
-function createDefaultMeta() {
+function createDefaultMeta(metaFilePath) {
+  const baseName = basename(metaFilePath, ".meta.json");
+
   return {
-    "title": "",
-    "duration": null, // HH:MM:SS.mmm
-    "start": "00:00:00.000", // HH:MM:SS.mmm
-    "end": null, // HH:MM:SS.mmm
-    "type": "",
-    "language": "",
-    "content": "",
-    "category": [], // 示例：["天气", "新闻", "故事", "段子", "心情", "闲聊", "歌词"]
-    "position": "",
-    "cutPoints": [], // HH:MM:SS.mmm[]
-    "createdAt": "",
-    "updatedAt": "",
+    title: baseName,
+    duration: null, // HH:MM:SS.mmm
+    start: "00:00:00.000", // HH:MM:SS.mmm
+    end: null, // HH:MM:SS.mmm
+    type: "",
+    language: "",
+    content: "",
+    category: [], // 示例：["天气", "新闻", "故事", "段子", "心情", "闲聊", "歌词"]
+    position: "",
+    cutPoints: [], // HH:MM:SS.mmm[]
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
@@ -56,16 +59,16 @@ export function listAudioPosition() {
 
 export function loadMeta(metaFilePath) {
   if (!metaFilePath || !fs.existsSync(metaFilePath)) {
-    return createDefaultMeta();
+    return createDefaultMeta(metaFilePath);
   }
 
   try {
     return {
-      ...createDefaultMeta(),
+      ...createDefaultMeta(metaFilePath),
       ...readFileJson(metaFilePath),
     };
   } catch {
-    return createDefaultMeta();
+    return createDefaultMeta(metaFilePath);
   }
 }
 
@@ -80,7 +83,7 @@ export function saveMeta(metaFilePath, data = {}) {
     updatedAt: now,
   };
 
-  writeFileJson(metaFilePath, meta);
+  writeFileJson(metaFilePath, meta, { overwrite: true, spaces: 2 });
 
   return meta;
 }
