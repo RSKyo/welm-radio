@@ -1,12 +1,16 @@
-export async function safeRun(fn) {
+import { Toast } from "/assets/component/toast.js";
+
+export const toast = new Toast();
+
+export async function safeRun(action) {
   try {
-    return await fn();
+    return await action();
   } catch (error) {
-    console.log("safeRun caught:", error);
+    console.error(error);
 
-    window.alert(error?.message ?? String(error));
+    toast.error(error?.message ?? String(error));
 
-    return null;
+    return undefined;
   }
 }
 
@@ -15,24 +19,24 @@ export const api = {
   post,
 };
 
-async function get(url) {
-  return await request(url, {
+function get(url) {
+  return request(url, {
     method: "GET",
   });
 }
 
-async function post(url, data) {
-  return await request(url, {
+function post(url, data) {
+  return request(url, {
     method: "POST",
     body: data === undefined ? undefined : JSON.stringify(data),
   });
 }
 
 async function request(url, options = {}) {
-  let res;
+  let response;
 
   try {
-    res = await fetch(url, {
+    response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -40,13 +44,19 @@ async function request(url, options = {}) {
       },
     });
   } catch (error) {
-    throw new Error(`Request failed: ${error.message}`);
+    const message = error?.message ?? String(error);
+
+    throw new Error(`Request failed: ${message}`, {
+      cause: error,
+    });
   }
 
-  const result = await res.json().catch(() => null);
+  const result = await response.json().catch(() => null);
 
-  if (!res.ok) {
-    throw new Error(result?.error ?? `Request failed: ${res.status}`);
+  if (!response.ok) {
+    throw new Error(
+      result?.error ?? `Request failed: ${response.status}`,
+    );
   }
 
   return result;

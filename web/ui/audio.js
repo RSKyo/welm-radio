@@ -1,10 +1,11 @@
-import { safeRun, api } from "/assets/js/global.js";
+import { safeRun, api, toast } from "/assets/js/global.js";
 import { ChipGroup } from "/assets/component/chip-group.js";
 import { ItemList } from "/assets/component/item-list.js";
 
 const chkSelectAll = document.querySelector("#chkSelectAll");
 const btnDeleteAudio = document.querySelector("#btnDeleteAudio");
 const btnSelectAudioDir = document.querySelector("#btnSelectAudioDir");
+const spnAudioCount = document.querySelector("#spnAudioCount");
 
 const btnResetMeta = document.querySelector("#btnResetMeta");
 const btnSaveMeta = document.querySelector("#btnSaveMeta");
@@ -47,61 +48,71 @@ async function getAudioList() {
 // -----------------------------------------------------------------------------
 
 btnSelectAudioDir.addEventListener("click", async () => {
-  const { dir, canceled } = await api.post("/audio/api/select-audio-dir");
+  await safeRun(async () => {
+    const { dir, canceled } = await api.get("/audio/api/select-audio-dir");
 
-  if (canceled) {
-    return null;
-  }
+    if (canceled) {
+      return null;
+    }
 
-  await renderAudioList();
+    await renderAudioList();
+  });
 });
 
 chkSelectAll.addEventListener("change", async (event) => {
-  const isChecked = event.target.checked;
+  await safeRun(async () => {
+    const isChecked = event.target.checked;
 
-  if (isChecked) {
-    itemLstAudio.checkAll();
-  } else {
-    itemLstAudio.uncheckAll();
-  }
+    if (isChecked) {
+      itemLstAudio.checkAll();
+    } else {
+      itemLstAudio.uncheckAll();
+    }
+  });
 });
 
 btnSaveMeta.addEventListener("click", async () => {
-  const metaPath = metaFields.metaPath.value.trim();
+  await safeRun(async () => {
+    const metaPath = metaFields.metaPath.value.trim();
 
-  if (!metaPath) {
-    return;
-  }
+    if (!metaPath) {
+      return;
+    }
 
-  const meta = getFormMeta();
+    const meta = getFormMeta();
 
-  const savedMeta = await api.post("/audio/api/save-meta", {
-    metaPath,
-    meta,
-  });
-
-  await setFormMeta(metaPath, savedMeta);
-
-  const selectedItem = itemLstAudio.getSelectedItem();
-  if (selectedItem) {
-    await itemLstAudio.updateItem({
-      ...selectedItem,
-      meta: savedMeta,
+    const savedMeta = await api.post("/audio/api/save-meta", {
+      metaPath,
+      meta,
     });
-  }
+
+    await setFormMeta(metaPath, savedMeta);
+
+    const selectedItem = itemLstAudio.getSelectedItem();
+    if (selectedItem) {
+      await itemLstAudio.updateItem({
+        ...selectedItem,
+        meta: savedMeta,
+      });
+    }
+
+    toast.show("保存成功");
+  });
 });
 
 btnResetMeta.addEventListener("click", async () => {
-  const metaPath = metaFields.metaPath.value.trim();
-  if (!metaPath) {
-    return;
-  }
+  await safeRun(async () => {
+    const metaPath = metaFields.metaPath.value.trim();
+    if (!metaPath) {
+      return;
+    }
 
-  const meta = await api.post("/audio/api/load-meta", {
-    metaPath,
+    const meta = await api.post("/audio/api/load-meta", {
+      metaPath,
+    });
+
+    await setFormMeta(metaPath, meta);
   });
-
-  await setFormMeta(metaPath, meta);
 });
 
 // -----------------------------------------------------------------------------
@@ -207,6 +218,15 @@ async function initAudioPosition() {
 async function renderAudioList() {
   const audios = await getAudioList();
   await itemLstAudio.setItems(audios);
+
+  spnAudioCount.textContent = audios.length == 0 ? "" : audios.length;
+
+  const item = itemLstAudio.getSelectedItem();
+  if (item) {
+    await setFormMeta(item.metaPath, item.meta);
+  } else {
+    await setFormMeta(null, {});
+  }
 }
 
 // -----------------------------------------------------------------------------

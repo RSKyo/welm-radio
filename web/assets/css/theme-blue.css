@@ -7,9 +7,7 @@
 :root {
   color-scheme: light;
 
-  /* ---------------------------------------------------------------------------
-   * Page and surfaces
-   * ------------------------------------------------------------------------ */
+  /* Page and surfaces */
 
   /* 页面最底层背景 */
   --color-page: var(--slate-1);
@@ -26,9 +24,7 @@
   /* 覆盖在页面上的浮层，如下拉菜单、弹窗 */
   --color-surface-overlay: white;
 
-  /* ---------------------------------------------------------------------------
-   * Text
-   * ------------------------------------------------------------------------ */
+  /* Text */
 
   /* 主要文字，如标题、正文、列表内容 */
   --color-text: var(--slate-12);
@@ -48,9 +44,7 @@
   /* 兼容旧变量名，后续可逐步改用 --color-text-muted */
   --color-muted: var(--color-text-muted);
 
-  /* ---------------------------------------------------------------------------
-   * Interaction
-   * ------------------------------------------------------------------------ */
+  /* Interaction */
 
   /* 鼠标悬停 */
   --color-hover: var(--slate-3);
@@ -80,35 +74,27 @@
   --color-selected-hover-text: var(--color-text);
   --color-selected-hover-indicator: var(--blue-9);
 
-  /* ---------------------------------------------------------------------------
-   * Borders and separators
-   * ------------------------------------------------------------------------ */
+  /* Borders and separators */
 
   --color-border: var(--slate-6);
   --color-border-hover: var(--slate-7);
   --color-border-strong: var(--slate-8);
   --color-divider: var(--slate-5);
 
-  /* ---------------------------------------------------------------------------
-   * Primary
-   * ------------------------------------------------------------------------ */
+  /* Primary */
 
   --color-primary: var(--blue-9);
   --color-primary-hover: var(--blue-10);
-  --color-primary-active: var(--blue-11);
+  --color-primary-active: var(--blue-10);
   --color-primary-text: var(--blue-11);
   --color-primary-inverse: white;
 
-  /* ---------------------------------------------------------------------------
-   * Focus
-   * ------------------------------------------------------------------------ */
+  /* Focus */
 
   --color-focus-border: var(--slate-8);
-  --color-focus-shadow: var(--slate-a5);
+  --color-focus-shadow: var(--slate-7);
 
-  /* ---------------------------------------------------------------------------
-   * Form controls
-   * ------------------------------------------------------------------------ */
+  /* Form controls */
 
   --color-input-background: var(--slate-1);
   --color-input-background-disabled: var(--slate-3);
@@ -120,9 +106,7 @@
   --color-input-border-hover: var(--slate-8);
   --color-input-border-focus: var(--slate-9);
 
-  /* ---------------------------------------------------------------------------
-   * Buttons
-   * ------------------------------------------------------------------------ */
+  /* Buttons */
 
   --color-button-background: var(--slate-3);
   --color-button-background-hover: var(--slate-4);
@@ -134,13 +118,11 @@
 
   --color-button-primary-background: var(--blue-9);
   --color-button-primary-background-hover: var(--blue-10);
-  --color-button-primary-background-active: var(--blue-11);
+  --color-button-primary-background-active: var(--blue-10);
   --color-button-primary-border: var(--blue-9);
   --color-button-primary-text: white;
 
-  /* ---------------------------------------------------------------------------
-   * Titles
-   * ------------------------------------------------------------------------ */
+  /* Titles */
 
   --color-page-title: var(--slate-12);
   --color-page-subtitle: var(--slate-11);
@@ -148,21 +130,9 @@
   --color-component-title: var(--blue-11);
   --color-section-title: var(--slate-12);
 
-  /* ---------------------------------------------------------------------------
-   * Status
-   * ------------------------------------------------------------------------ */
+  /* Error */
 
-  --color-info-background: var(--blue-3);
-  --color-info-text: var(--blue-11);
-
-  --color-success-background: var(--green-3);
-  --color-success-text: var(--green-11);
-
-  --color-warning-background: var(--amber-3);
-  --color-warning-text: var(--amber-11);
-
-  --color-danger-background: var(--red-3);
-  --color-danger-text: var(--red-11);
+  --color-error-background: #e5484d;
 }
 
 :root.dark,
@@ -172,23 +142,10 @@
   /* Page and surfaces */
 
   --color-page: var(--slate-1);
-
   --color-surface: var(--slate-2);
   --color-surface-raised: var(--slate-3);
   --color-surface-sunken: var(--slate-1);
   --color-surface-overlay: var(--slate-3);
-
-  /* Interaction */
-
-  --color-hover: var(--slate-3);
-  --color-active: var(--slate-4);
-
-  --color-selected: var(--blue-4);
-  --color-selected-hover: var(--blue-5);
-  --color-selected-text: var(--blue-11);
-
-  --color-checked: var(--blue-4);
-  --color-checked-text: var(--blue-11);
 
   /* Text */
 
@@ -197,8 +154,28 @@
   --color-text-muted: var(--slate-10);
   --color-text-disabled: var(--slate-8);
   --color-text-inverse: var(--slate-1);
-
   --color-muted: var(--color-text-muted);
+
+  /* Interaction */
+
+  --color-hover: var(--slate-3);
+  --color-active: var(--slate-4);
+
+  --color-checked: var(--slate-3);
+  --color-checked-text: var(--color-text);
+  --color-checked-indicator: var(--slate-3);
+
+  --color-checked-hover: var(--slate-3);
+  --color-checked-hover-text: var(--color-text);
+  --color-checked-hover-indicator: var(--slate-5);
+
+  --color-selected: var(--blue-4);
+  --color-selected-text: var(--blue-11);
+  --color-selected-indicator: var(--blue-8);
+
+  --color-selected-hover: var(--blue-5);
+  --color-selected-hover-text: var(--color-text);
+  --color-selected-hover-indicator: var(--blue-9);
 
   /* Borders and separators */
 
@@ -211,14 +188,14 @@
 
   --color-primary: var(--blue-9);
   --color-primary-hover: var(--blue-10);
-  --color-primary-active: var(--blue-11);
+  --color-primary-active: var(--blue-10);
   --color-primary-text: var(--blue-11);
   --color-primary-inverse: white;
 
   /* Focus */
 
   --color-focus-border: var(--slate-8);
-  --color-focus-shadow: var(--slate-a6);
+  --color-focus-shadow: var(--slate-7);
 
   /* Form controls */
 
@@ -244,7 +221,7 @@
 
   --color-button-primary-background: var(--blue-9);
   --color-button-primary-background-hover: var(--blue-10);
-  --color-button-primary-background-active: var(--blue-11);
+  --color-button-primary-background-active: var(--blue-10);
   --color-button-primary-border: var(--blue-9);
   --color-button-primary-text: white;
 
@@ -256,17 +233,7 @@
   --color-component-title: var(--blue-11);
   --color-section-title: var(--slate-12);
 
-  /* Status */
+  /* Error */
 
-  --color-info-background: var(--blue-3);
-  --color-info-text: var(--blue-11);
-
-  --color-success-background: var(--green-3);
-  --color-success-text: var(--green-11);
-
-  --color-warning-background: var(--amber-3);
-  --color-warning-text: var(--amber-11);
-
-  --color-danger-background: var(--red-3);
-  --color-danger-text: var(--red-11);
+  --color-error-background: #e5484d;
 }

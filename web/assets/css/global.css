@@ -1,3 +1,7 @@
+/* -----------------------------------------------------------------------------
+ * Reset
+ * -------------------------------------------------------------------------- */
+
 *,
 *::before,
 *::after {
@@ -10,6 +14,37 @@ body {
   height: 100%;
 }
 
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+/* -----------------------------------------------------------------------------
+ * Document
+ * -------------------------------------------------------------------------- */
+
 html {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -20,133 +55,8 @@ html {
 }
 
 body {
-  margin: 0;
-
   color: var(--color-text);
   background: var(--color-page);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p {
-  margin: 0;
-}
-
-ul,
-ol {
-  margin: 0;
-  padding: 0;
-}
-
-button,
-input,
-select,
-textarea {
-  margin: 0;
-
-  font: inherit;
-  color: inherit;
-}
-
-/* -----------------------------------------------------------------------------
- * Form controls
- * -------------------------------------------------------------------------- */
-
-input,
-select,
-textarea {
-  border: 1px solid var(--color-input-border);
-  border-radius: 4px;
-
-  color: var(--color-input-text);
-  background: var(--color-input-background);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--color-input-placeholder);
-}
-
-input:hover,
-select:hover,
-textarea:hover {
-  border-color: var(--color-input-border-hover);
-}
-
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: none;
-  border-color: var(--color-input-border-focus);
-  box-shadow: inset 0 0 0 1px var(--color-focus-border);
-}
-
-input:disabled,
-select:disabled,
-textarea:disabled {
-  color: var(--color-text-disabled);
-  background: var(--color-input-background-disabled);
-
-  cursor: default;
-}
-
-/* -----------------------------------------------------------------------------
- * Buttons
- * -------------------------------------------------------------------------- */
-
-button {
-  min-height: 28px;
-  padding: 4px 10px;
-
-  border: 1px solid var(--color-button-border);
-  border-radius: 4px;
-
-  color: var(--color-button-text);
-  background: var(--color-button-background);
-
-  cursor: pointer;
-
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease;
-}
-
-button:hover {
-  border-color: var(--color-button-border-hover);
-  background: var(--color-button-background-hover);
-}
-
-button:active {
-  background: var(--color-button-background-active);
-}
-
-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-button-focus);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-button.primary {
-  border-color: var(--color-button-primary-border);
-
-  color: var(--color-button-primary-text);
-  background: var(--color-button-primary-background);
-}
-
-button.primary:hover {
-  background: var(--color-button-primary-background-hover);
-}
-
-button.primary:active {
-  background: var(--color-button-primary-background-active);
 }
 
 /* -----------------------------------------------------------------------------
@@ -186,26 +96,105 @@ button.primary:active {
 }
 
 /* -----------------------------------------------------------------------------
- * Utility classes
+ * Form controls
  * -------------------------------------------------------------------------- */
 
-.scroll {
-  overflow: auto;
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border: 1px solid var(--color-input-border);
+  border-radius: 4px;
+
+  color: var(--color-input-text);
+  background: var(--color-input-background);
 }
 
-.hidden {
-  display: none;
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-input-placeholder);
 }
 
-.wrap {
-  flex-wrap: wrap;
+input:not([type="checkbox"]):not([type="radio"]):not(:disabled):hover,
+select:not(:disabled):hover,
+textarea:not(:disabled):hover {
+  border-color: var(--color-input-border-hover);
 }
 
-.nowrap {
-  flex-wrap: nowrap;
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-input-border-focus);
+  box-shadow: inset 0 0 0 1px var(--color-focus-border);
 }
 
-/* Flexbox layout classes */
+input:not([type="checkbox"]):not([type="radio"]):disabled,
+select:disabled,
+textarea:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-input-background-disabled);
+  cursor: default;
+}
+
+/* -----------------------------------------------------------------------------
+ * Buttons
+ * -------------------------------------------------------------------------- */
+
+button {
+  min-height: 28px;
+  padding: 4px 10px;
+
+  border: 1px solid var(--color-button-border);
+  border-radius: 4px;
+
+  color: var(--color-button-text);
+  background: var(--color-button-background);
+
+  cursor: pointer;
+
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+button:not(:disabled):hover {
+  border-color: var(--color-button-border-hover);
+  background: var(--color-button-background-hover);
+}
+
+button:not(:disabled):active {
+  background: var(--color-button-background-active);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus-shadow);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  border-color: var(--color-button-primary-border);
+
+  color: var(--color-button-primary-text);
+  background: var(--color-button-primary-background);
+}
+
+button.primary:not(:disabled):hover {
+  border-color: var(--color-button-primary-border);
+  background: var(--color-button-primary-background-hover);
+}
+
+button.primary:not(:disabled):active {
+  background: var(--color-button-primary-background-active);
+}
+
+/* -----------------------------------------------------------------------------
+ * Layout
+ * -------------------------------------------------------------------------- */
 
 .hbox,
 .vbox {
@@ -222,55 +211,13 @@ button.primary:active {
   flex: 1;
 }
 
-.flex-1 {
-  flex: 1 1 0;
+.wrap {
+  flex-wrap: wrap;
 }
 
-.flex-2 {
-  flex: 2 1 0;
+.nowrap {
+  flex-wrap: nowrap;
 }
-
-.flex-3 {
-  flex: 3 1 0;
-}
-
-.flex-4 {
-  flex: 4 1 0;
-}
-
-.flex-5 {
-  flex: 5 1 0;
-}
-
-.flex-6 {
-  flex: 6 1 0;
-}
-
-.flex-7 {
-  flex: 7 1 0;
-}
-
-.flex-8 {
-  flex: 8 1 0;
-}
-
-.flex-9 {
-  flex: 9 1 0;
-}
-
-.flex-10 {
-  flex: 10 1 0;
-}
-
-.flex-11 {
-  flex: 11 1 0;
-}
-
-.flex-12 {
-  flex: 12 1 0;
-}
-
-/* Alignment classes */
 
 .justify-start {
   justify-content: flex-start;
@@ -296,7 +243,17 @@ button.primary:active {
   align-items: flex-end;
 }
 
-/* Border line classes */
+/* -----------------------------------------------------------------------------
+ * Utilities
+ * -------------------------------------------------------------------------- */
+
+.scroll {
+  overflow: auto;
+}
+
+.hidden {
+  display: none;
+}
 
 .t-line {
   border-top: 1px solid var(--color-border);
@@ -315,7 +272,7 @@ button.primary:active {
 }
 
 /* -----------------------------------------------------------------------------
- * Panel styles
+ * Panel
  * -------------------------------------------------------------------------- */
 
 .panel {
@@ -328,23 +285,24 @@ button.primary:active {
   color: var(--color-text);
   background: var(--color-surface);
 
-  overflow: auto;
+  overflow: hidden;
 }
 
 .panel-header {
+  flex: none;
   padding: 12px 8px;
 
   border-bottom: 1px solid var(--color-border);
-
 }
 
 .panel-body {
   flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
 /* -----------------------------------------------------------------------------
- * Form styles
+ * Form layout
  * -------------------------------------------------------------------------- */
 
 .form {
@@ -365,7 +323,7 @@ button.primary:active {
   font-weight: 500;
 }
 
-.form-field input,
+.form-field input:not([type="checkbox"]):not([type="radio"]),
 .form-field select,
 .form-field textarea {
   width: 100%;
@@ -382,7 +340,7 @@ button.primary:active {
   gap: 8px;
 }
 
-.input-action input {
+.input-action input:not([type="checkbox"]):not([type="radio"]) {
   flex: 1;
   min-width: 0;
 }

@@ -22,6 +22,22 @@ export function getAudioDir(options = {}) {
   return audio_dir;
 }
 
+export async function selectAudioDir(options = {}) {
+  const dir = await selectFolder({
+    dialogTitle: "Choose Audio Library",
+  });
+
+  log.debug(`Selected Audio Dir: ${dir}`, options);
+
+  if (!dir) {
+    return null;
+  }
+
+  setAudioDir(dir);
+
+  return dir;
+}
+
 export function listAudio(filter = {}, options = {}) {
   if (!audio_dir || !fs.existsSync(audio_dir)) {
     return [];
@@ -54,24 +70,24 @@ export function listAudio(filter = {}, options = {}) {
     });
   }
 
+  // filter by audio language if specified
+  if(filter.languages && filter.languages.length > 0) {
+    files = files.filter((file) => {
+      return file.meta && filter.languages.includes(file.meta.language);
+    });
+  }
+
+  // filter by audio position if specified
+  if(filter.positions && filter.positions.length > 0) {
+    files = files.filter((file) => {
+      return file.meta && filter.positions.includes(file.meta.position);
+    });
+  }
+
   return files;
 }
 
-export async function selectAudioDir(options = {}) {
-  const dir = await selectFolder({
-    dialogTitle: "Choose Audio Library",
-  });
 
-  log.debug(`Selected Audio Dir: ${dir}`, options);
-
-  if (!dir) {
-    return null;
-  }
-
-  setAudioDir(dir);
-
-  return dir;
-}
 
 // -----------------------------------------------------------------------------
 // Private Helpers

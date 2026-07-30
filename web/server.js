@@ -52,6 +52,13 @@ app.use("/audio/api", audioRouter);
 // error handling
 // -----------------------------------------------------------------------------
 
+// Handle 404 Not Found for any unmatched routes.
+app.use((req, res) => {
+  res.status(404).json({
+    error: `${req.method} ${req.originalUrl} not found`,
+  });
+});
+
 // Handle errors forwarded through next(error).
 //
 // Express identifies error-handling middleware by its four parameters:
@@ -61,8 +68,10 @@ app.use("/audio/api", audioRouter);
 app.use((error, req, res, next) => {
   console.error(error);
 
+  const message = error?.message ?? "Internal server error";
+
   res.status(500).json({
-    error: error?.message ?? "Internal server error",
+    error: `${req.method} ${req.originalUrl} failed: ${message}`,
   });
 });
 

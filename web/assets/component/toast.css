@@ -1,0 +1,49 @@
+/* -----------------------------------------------------------------------------
+ * Toast
+ * -------------------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  z-index: 1000;
+
+  max-width: min(480px, calc(100vw - 32px));
+  padding: 10px 16px;
+
+  color: var(--color-text-inverse);
+  background: var(--color-text);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 12%),
+    0 8px 28px rgb(0 0 0 / 10%);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transform: translate(-50%, -8px);
+
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease,
+    visibility 300ms;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  visibility: visible;
+
+  transform: translate(-50%, 0);
+}
+
+.toast.is-error {
+  color: white;
+  background: var(--color-error-background);
+}
+
+.toast-message {
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
