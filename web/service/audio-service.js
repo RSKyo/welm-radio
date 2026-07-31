@@ -18,6 +18,8 @@ let audio_dir = config.get(audio_library_key_path);
 // Public API
 // -----------------------------------------------------------------------------
 
+
+
 export function getAudioDir(options = {}) {
   return audio_dir;
 }
@@ -38,16 +40,26 @@ export async function selectAudioDir(options = {}) {
   return dir;
 }
 
+export function listCategory(options = {}) {
+  const audios = listAudio({}, options);
+
+  const categories = Array.from(
+    new Set(audios.flatMap((audio) => audio.meta?.category || [])),
+  ).map((category) => ({ label: category, value: category }));
+
+  return categories;
+}
+
 export function listAudio(filter = {}, options = {}) {
   if (!audio_dir || !fs.existsSync(audio_dir)) {
     return [];
   }
 
-  let files = scanFiles(audio_dir, {
+  const files = scanFiles(audio_dir, {
     includeExts: audio_exts,
   });
 
-  files = files.map(({ root, dir, base, ext, name, filePath }) => {
+  let audios = files.map(({ root, dir, base, ext, name, filePath }) => {
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
     const meta = loadMeta(metaPath);
 
@@ -65,26 +77,36 @@ export function listAudio(filter = {}, options = {}) {
 
   // filter by audio type if specified
   if (filter.types && filter.types.length > 0) {
-    files = files.filter((file) => {
-      return file.meta && filter.types.includes(file.meta.type);
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.types.includes(audio.meta.type);
     });
   }
 
   // filter by audio language if specified
-  if(filter.languages && filter.languages.length > 0) {
-    files = files.filter((file) => {
-      return file.meta && filter.languages.includes(file.meta.language);
+  if (filter.languages && filter.languages.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.languages.includes(audio.meta.language);
     });
   }
 
   // filter by audio position if specified
-  if(filter.positions && filter.positions.length > 0) {
-    files = files.filter((file) => {
-      return file.meta && filter.positions.includes(file.meta.position);
+  if (filter.positions && filter.positions.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.positions.includes(audio.meta.position);
     });
   }
 
-  return files;
+  if (filter.categories && filter.categories.length > 0) {
+    audios = audios.filter((audio) => {
+      return (
+        audio.meta &&
+        Array.isArray(audio.meta.category) &&
+        audio.meta.category.some((cat) => filter.categories.includes(cat))
+      );
+    });
+  }
+
+  return audios;
 }
 
 

@@ -13,7 +13,10 @@ const btnSaveMeta = document.querySelector("#btnSaveMeta");
 const frmMeta = document.querySelector("#frmMeta");
 const metaFields = frmMeta.elements;
 
-let chipGrpAudioType, chipGrpAudioLanguage, chipGrpAudioPosition;
+let chipGrpAudioType,
+  chipGrpAudioLanguage,
+  chipGrpAudioPosition,
+  chipGrpAudioCategories;
 let itemLstAudio;
 let chipGrpMetaType, chipGrpMetaLanguage, chipGrpMetaPosition;
 
@@ -21,6 +24,7 @@ const filters = {
   types: [],
   languages: [],
   positions: [],
+  categories: [],
 };
 
 // -----------------------------------------------------------------------------
@@ -37,6 +41,10 @@ async function getAudioLanguages() {
 
 async function getAudioPositions() {
   return await api.get("/audio/api/list-audio-position");
+}
+
+async function getAudioCategories() {
+  return await api.get("/audio/api/list-audio-category");
 }
 
 async function getAudioList() {
@@ -74,13 +82,11 @@ chkSelectAll.addEventListener("change", async (event) => {
 btnSaveMeta.addEventListener("click", async () => {
   await safeRun(async () => {
     const metaPath = metaFields.metaPath.value.trim();
-
     if (!metaPath) {
       return;
     }
 
     const meta = getFormMeta();
-
     const savedMeta = await api.post("/audio/api/save-meta", {
       metaPath,
       meta,
@@ -90,10 +96,17 @@ btnSaveMeta.addEventListener("click", async () => {
 
     const selectedItem = itemLstAudio.getSelectedItem();
     if (selectedItem) {
-      await itemLstAudio.updateItem({
+      const updatedItem = {
         ...selectedItem,
         meta: savedMeta,
-      });
+      };
+
+      await itemLstAudio.updateItem(updatedItem);
+
+      const oldMeta = selectedItem.meta;
+      if (oldMeta.category !== savedMeta.category) {
+        await initAudioCategory();
+      }
     }
 
     toast.show("保存成功");
@@ -107,9 +120,7 @@ btnResetMeta.addEventListener("click", async () => {
       return;
     }
 
-    const meta = await api.post("/audio/api/load-meta", {
-      metaPath,
-    });
+    const meta = itemLstAudio.getSelectedItem()?.meta ?? {};
 
     await setFormMeta(metaPath, meta);
   });
@@ -149,6 +160,15 @@ async function init() {
     },
   });
 
+  chipGrpAudioCategories = new ChipGroup("#chipGrpAudioCategories", {
+    textField: "label",
+    valueField: "value",
+    onChange: async (items) => {
+      filters.categories = items.map((item) => item.value);
+      await renderAudioList();
+    },
+  });
+
   // new list-group for audio files
   itemLstAudio = new ItemList("#audioListEl", {
     textField: "base",
@@ -182,6 +202,7 @@ async function init() {
   await initAudioType();
   await initAudioLanguage();
   await initAudioPosition();
+  await initAudioCategory();
   await renderAudioList();
   await initMetaType();
   await initMetaLanguage();
@@ -209,6 +230,11 @@ async function initAudioLanguage() {
 async function initAudioPosition() {
   const positions = await getAudioPositions();
   await chipGrpAudioPosition.setItems(positions);
+}
+
+async function initAudioCategory() {
+  const categories = await getAudioCategories();
+  await chipGrpAudioCategories.setItems(categories);
 }
 
 // -----------------------------------------------------------------------------

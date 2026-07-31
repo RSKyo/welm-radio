@@ -139,8 +139,8 @@ export class ChipGroup {
 
       if (this.#mode === "single") {
         await this.#onChange(
-          items[0] ?? null,
-          oldItems[0] ?? null,
+          items[0] ?? "",
+          oldItems[0] ?? "",
           options.event,
         );
       } else {

@@ -1,9 +1,19 @@
 import express from "express";
 
 import { withOptions } from "welm-cdp/web";
-import { getAudioDir, listAudio, selectAudioDir } from "../service/audio-service.js";
-import { listAudioType, listAudioLanguage, listAudioPosition } from "../service/meta-service.js";
-import { loadMeta, saveMeta } from "../service/meta-service.js";
+import {
+  getAudioDir,
+  listAudio,
+  selectAudioDir,
+  listCategory,
+} from "../service/audio-service.js";
+import {
+  listAudioType,
+  listAudioLanguage,
+  listAudioPosition,
+  loadMeta,
+  saveMeta,
+} from "../service/meta-service.js";
 
 export const router = express.Router();
 
@@ -59,6 +69,14 @@ router.get(
   "/list-audio-position",
   withOptions(async (req, res, options) => {
     res.json(listAudioPosition());
+  }),
+);
+
+// GET /audio/api/list-audio-position
+router.get(
+  "/list-audio-category",
+  withOptions(async (req, res, options) => {
+    res.json(listCategory(options));
   }),
 );
 
