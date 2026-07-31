@@ -13,17 +13,24 @@ export class ChipGroup {
   #items;
   #mode;
   #values;
-  #onSetItems;
-  #onChange;
-  #onRenderItem;
+  onSetItems;
+  onChange;
+  onRenderItem;
 
   #rootClass = "chip-group";
 
-  constructor(containerSelector, options = {}) {
-    this.#container = document.querySelector(containerSelector);
-
-    if (!this.#container) {
-      throw new Error(`container not found: ${containerSelector}`);
+  constructor(container, options = {}) {
+    if (typeof container === "string") {
+      this.#container = document.querySelector(container);
+      if (!this.#container) {
+        throw new Error(`container not found: ${container}`);
+      }
+    } else if (container instanceof HTMLElement) {
+      this.#container = container;
+    } else {
+      throw new Error(
+        "Invalid container: must be a selector or an HTMLElement",
+      );
     }
 
     this.#container.classList.add(this.#rootClass);
@@ -51,9 +58,9 @@ export class ChipGroup {
       throw new Error("single mode accepts at most one value");
     }
 
-    this.#onSetItems = options.onSetItems ?? null;
-    this.#onChange = options.onChange ?? null;
-    this.#onRenderItem = options.onRenderItem ?? null;
+    this.onSetItems = options.onSetItems ?? null;
+    this.onChange = options.onChange ?? null;
+    this.onRenderItem = options.onRenderItem ?? null;
 
     this.#bindEvents();
     this.#render();
@@ -75,7 +82,7 @@ export class ChipGroup {
 
     this.#render();
 
-    await this.#onSetItems?.(this.getItems());
+    await this.onSetItems?.(this.getItems());
   }
 
   getValue() {
@@ -128,7 +135,7 @@ export class ChipGroup {
     this.#values = [...values];
     this.#updateSelectedState();
 
-    if (this.#onChange) {
+    if (this.onChange) {
       const items = this.#items.filter((item) =>
         values.includes(item[this.#valueField]),
       );
@@ -138,13 +145,9 @@ export class ChipGroup {
       );
 
       if (this.#mode === "single") {
-        await this.#onChange(
-          items[0] ?? "",
-          oldItems[0] ?? "",
-          options.event,
-        );
+        await this.onChange(items[0] ?? "", oldItems[0] ?? "", options.event);
       } else {
-        await this.#onChange(items, oldItems, options.event);
+        await this.onChange(items, oldItems, options.event);
       }
     }
   }
@@ -196,8 +199,8 @@ export class ChipGroup {
 
     itemElement.className = `${this.#rootClass}-item`;
 
-    const contentElement = this.#onRenderItem
-      ? this.#onRenderItem(item)
+    const contentElement = this.onRenderItem
+      ? this.onRenderItem(item)
       : this.#createDefaultContentElement(item);
 
     if (!(contentElement instanceof HTMLElement)) {

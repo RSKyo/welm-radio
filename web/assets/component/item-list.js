@@ -15,18 +15,25 @@ export class ItemList {
   #items;
   #value;
   #checkedValues;
-  #onSetItems;
-  #onChange;
-  #onCheckedChange;
-  #onRenderItem;
+  onSetItems;
+  onChange;
+  onCheckedChange;
+  onRenderItem;
 
   #rootClass = "item-list";
 
-  constructor(containerSelector, options = {}) {
-    this.#container = document.querySelector(containerSelector);
-
-    if (!this.#container) {
-      throw new Error(`container not found: ${containerSelector}`);
+  constructor(container, options = {}) {
+    if (typeof container === "string") {
+      this.#container = document.querySelector(container);
+      if (!this.#container) {
+        throw new Error(`container not found: ${container}`);
+      }
+    } else if (container instanceof HTMLElement) {
+      this.#container = container;
+    } else {
+      throw new Error(
+        "Invalid container: must be a selector or an HTMLElement",
+      );
     }
 
     this.#container.classList.add(this.#rootClass);
@@ -50,10 +57,10 @@ export class ItemList {
       this.#valueField,
     );
 
-    this.#onSetItems = options.onSetItems ?? null;
-    this.#onChange = options.onChange ?? null;
-    this.#onCheckedChange = options.onCheckedChange ?? null;
-    this.#onRenderItem = options.onRenderItem ?? null;
+    this.onSetItems = options.onSetItems ?? null;
+    this.onChange = options.onChange ?? null;
+    this.onCheckedChange = options.onCheckedChange ?? null;
+    this.onRenderItem = options.onRenderItem ?? null;
 
     this.#bindEvents();
     this.#render();
@@ -80,7 +87,7 @@ export class ItemList {
 
     this.#render();
 
-    await this.#onSetItems?.(this.getItems());
+    await this.onSetItems?.(this.getItems());
   }
 
   getSelectedItem() {
@@ -88,8 +95,22 @@ export class ItemList {
       return null;
     }
 
-    const item = this.#items.find((item) => item[this.#valueField] === this.#value);
-    return {...item};
+    const item = this.#items.find(
+      (item) => item[this.#valueField] === this.#value,
+    );
+    return { ...item };
+  }
+
+  getCheckedItems() {
+    if (this.#checkedValues.length === 0) {
+      return [];
+    }
+
+    const items = this.#items.filter((item) =>
+      this.#checkedValues.includes(item[this.#valueField]),
+    );
+
+    return items.map((item) => ({ ...item }));
   }
 
   async updateItem(item) {
@@ -156,14 +177,14 @@ export class ItemList {
     this.#value = value;
     this.#updateSelectedState();
 
-    if (this.#onChange) {
+    if (this.onChange) {
       const item = this.#items.find((item) => item[this.#valueField] === value);
 
       const oldItem = this.#items.find(
         (item) => item[this.#valueField] === oldValue,
       );
 
-      await this.#onChange(item, oldItem, options.event);
+      await this.onChange(item, oldItem, options.event);
     }
   }
 
@@ -177,7 +198,7 @@ export class ItemList {
     this.#checkedValues = [...values];
     this.#updateCheckedState();
 
-    if (this.#onCheckedChange) {
+    if (this.onCheckedChange) {
       const items = this.#items.filter((item) =>
         values.includes(item[this.#valueField]),
       );
@@ -186,7 +207,7 @@ export class ItemList {
         oldValues.includes(item[this.#valueField]),
       );
 
-      await this.#onCheckedChange(items, oldItems, options.event);
+      await this.onCheckedChange(items, oldItems, options.event);
     }
   }
 
@@ -203,13 +224,17 @@ export class ItemList {
 
       const value = itemElement?.dataset.value;
 
-      const itemContentElement = event.target.closest(`.${this.#rootClass}-content`);
+      const itemContentElement = event.target.closest(
+        `.${this.#rootClass}-content`,
+      );
       if (itemContentElement && this.#container.contains(itemContentElement)) {
         await this.#changeValue(value, { event });
         return;
       }
 
-      const itemCheckboxElement = event.target.closest(`.${this.#rootClass}-checkbox`);
+      const itemCheckboxElement = event.target.closest(
+        `.${this.#rootClass}-checkbox`,
+      );
       if (
         itemCheckboxElement &&
         this.#container.contains(itemCheckboxElement)
@@ -262,8 +287,8 @@ export class ItemList {
 
     checkboxContainer.appendChild(checkbox);
 
-    const contentElement = this.#onRenderItem
-      ? this.#onRenderItem(item)
+    const contentElement = this.onRenderItem
+      ? this.onRenderItem(item)
       : this.#createDefaultContentElement(item);
 
     if (!(contentElement instanceof HTMLElement)) {
@@ -287,7 +312,9 @@ export class ItemList {
   }
 
   #updateSelectedState() {
-    const itemElements = this.#container.querySelectorAll(`.${this.#rootClass}-item`);
+    const itemElements = this.#container.querySelectorAll(
+      `.${this.#rootClass}-item`,
+    );
 
     for (const itemElement of itemElements) {
       itemElement.classList.toggle(
@@ -298,11 +325,15 @@ export class ItemList {
   }
 
   #updateCheckedState() {
-    const itemElements = this.#container.querySelectorAll(`.${this.#rootClass}-item`);
+    const itemElements = this.#container.querySelectorAll(
+      `.${this.#rootClass}-item`,
+    );
 
     for (const itemElement of itemElements) {
       const checked = this.#checkedValues.includes(itemElement.dataset.value);
-      const checkbox = itemElement.querySelector(`.${this.#rootClass}-checkbox`);
+      const checkbox = itemElement.querySelector(
+        `.${this.#rootClass}-checkbox`,
+      );
       checkbox.checked = checked;
       itemElement.classList.toggle("is-checked", checked);
     }

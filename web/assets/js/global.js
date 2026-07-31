@@ -51,6 +51,10 @@ async function request(url, options = {}) {
     });
   }
 
+  if (response.status === 204) {
+    return undefined;
+  }
+  
   const result = await response.json().catch(() => null);
 
   if (!response.ok) {

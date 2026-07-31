@@ -1,29 +1,30 @@
 import nodePath, { basename } from "node:path";
 import fs from "node:fs";
 import { readFileJson, writeFileJson } from "welm-cdp/fs";
+import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 
 const audio_types = [
-  { value: "voice", label: "人声" },
-  { value: "music", label: "音乐" },
-  { value: "bed", label: "背景垫乐" },
-  { value: "ambience", label: "环境声" },
-  { value: "effect", label: "音效" },
-  { value: "jingle", label: "标识音" },
-  { value: "mixed", label: "混合成品" },
+  { value: "voice", text: "人声" },
+  { value: "music", text: "音乐" },
+  { value: "bed", text: "背景垫乐" },
+  { value: "ambience", text: "环境声" },
+  { value: "effect", text: "音效" },
+  { value: "jingle", text: "标识音" },
+  { value: "mixed", text: "混合成品" },
 ];
 
 const audio_languages = [
-  { value: "zh", label: "中文" },
-  { value: "en", label: "英文" },
+  { value: "zh", text: "中文" },
+  { value: "en", text: "英文" },
 ];
 
 const audio_positions = [
-  { value: "opening", label: "节目开头" },
-  { value: "closing", label: "节目结束" },
-  { value: "before_break", label: "插播前" },
-  { value: "after_break", label: "插播后" },
-  { value: "resume", label: "恢复正文前" },
-  { value: "body", label: "正文" },
+  { value: "opening", text: "节目开头" },
+  { value: "closing", text: "节目结束" },
+  { value: "before_break", text: "插播前" },
+  { value: "after_break", text: "插播后" },
+  { value: "resume", text: "恢复正文前" },
+  { value: "body", text: "正文" },
 ];
 
 function createDefaultMeta(metaFilePath) {
@@ -57,7 +58,7 @@ export function listAudioPosition() {
   return audio_positions;
 }
 
-export function loadMeta(metaFilePath) {
+export function loadMeta(metaFilePath, options={}) {
   if (!metaFilePath || !fs.existsSync(metaFilePath)) {
     return createDefaultMeta(metaFilePath);
   }
@@ -72,8 +73,11 @@ export function loadMeta(metaFilePath) {
   }
 }
 
-export function saveMeta(metaFilePath, data = {}) {
-  const oldMeta = loadMeta(metaFilePath);
+export function saveMeta(metaFilePath, data = {}, options={}) {
+  assertAbsolutePath(metaFilePath);
+  assertPlainObject(data);
+
+  const oldMeta = loadMeta(metaFilePath, options);
   const now = new Date().toISOString();
 
   const meta = {
@@ -87,3 +91,4 @@ export function saveMeta(metaFilePath, data = {}) {
 
   return meta;
 }
+

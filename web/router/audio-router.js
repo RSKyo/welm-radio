@@ -2,28 +2,19 @@ import express from "express";
 
 import { withOptions } from "welm-cdp/web";
 import {
-  getAudioDir,
-  listAudio,
   selectAudioDir,
+  listAudio,
+  removeAudio,
   listCategory,
 } from "../service/audio-service.js";
 import {
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
-  loadMeta,
   saveMeta,
 } from "../service/meta-service.js";
 
 export const router = express.Router();
-
-// GET /audio/api/audio-dir
-router.get(
-  "/audio-dir",
-  withOptions(async (req, res, options) => {
-    res.json(getAudioDir(options));
-  }),
-);
 
 // GET /audio/api/select-audio-dir
 router.get(
@@ -45,6 +36,20 @@ router.post(
     const filter = req.body ?? {};
 
     res.json(listAudio(filter, options));
+  }),
+);
+
+// POST /audio/api/remove-audio
+router.post(
+  "/remove-audio",
+  withOptions(async (req, res, options) => {
+    const { files } = req.body ?? {};
+
+    await removeAudio(files, options);
+
+    res.json({
+      success: true,
+    });
   }),
 );
 
@@ -72,27 +77,11 @@ router.get(
   }),
 );
 
-// GET /audio/api/list-audio-position
+// GET /audio/api/list-audio-category
 router.get(
   "/list-audio-category",
   withOptions(async (req, res, options) => {
     res.json(listCategory(options));
-  }),
-);
-
-// POST /audio/api/load-meta
-router.post(
-  "/load-meta",
-  withOptions(async (req, res, options) => {
-    const { metaPath } = req.body ?? {};
-
-    if (!metaPath) {
-      throw new Error("Missing 'metaPath' parameter");
-    }
-
-    const meta = loadMeta(metaPath);
-
-    res.json(meta);
   }),
 );
 
@@ -102,13 +91,7 @@ router.post(
   withOptions(async (req, res, options) => {
     const { metaPath, meta } = req.body ?? {};
 
-    if (!metaPath || !meta) {
-      throw new Error("Missing 'metaPath' or 'meta' parameter");
-    }
-
-    saveMeta(metaPath, meta);
-
-    const savedMeta = loadMeta(metaPath);
+    const savedMeta = await saveMeta(metaPath, meta, options);
 
     res.json(savedMeta);
   }),

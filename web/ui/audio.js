@@ -2,276 +2,273 @@ import { safeRun, api, toast } from "/assets/js/global.js";
 import { ChipGroup } from "/assets/component/chip-group.js";
 import { ItemList } from "/assets/component/item-list.js";
 
-const chkSelectAll = document.querySelector("#chkSelectAll");
-const btnDeleteAudio = document.querySelector("#btnDeleteAudio");
-const btnSelectAudioDir = document.querySelector("#btnSelectAudioDir");
-const spnAudioCount = document.querySelector("#spnAudioCount");
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
 
-const btnResetMeta = document.querySelector("#btnResetMeta");
-const btnSaveMeta = document.querySelector("#btnSaveMeta");
+/* elements */
+const selectAudioDirBtn = document.querySelector("#select-audio-dir");
 
-const frmMeta = document.querySelector("#frmMeta");
-const metaFields = frmMeta.elements;
+const audioTypeFilterEl = document.querySelector("#audio-type-filter");
+const audioLanguageFilterEl = document.querySelector("#audio-language-filter");
+const audioPositionFilterEl = document.querySelector("#audio-position-filter");
+const audioCategoryFilterEl = document.querySelector("#audio-category-filter");
 
-let chipGrpAudioType,
-  chipGrpAudioLanguage,
-  chipGrpAudioPosition,
-  chipGrpAudioCategories;
-let itemLstAudio;
-let chipGrpMetaType, chipGrpMetaLanguage, chipGrpMetaPosition;
+const selectAllChk = document.querySelector("#select-all");
+const removeAudioBtn = document.querySelector("#remove-audio");
+const audioCountEl = document.querySelector("#audio-count");
+const audioListEl = document.querySelector("#audio-list");
 
-const filters = {
+const resetMetaBtn = document.querySelector("#reset-meta");
+const saveMetaBtn = document.querySelector("#save-meta");
+const metaFormFrm = document.querySelector("#meta-form");
+const metaFields = metaFormFrm.elements;
+const metaTypeEl = document.querySelector("#meta-type");
+const metaLanguageEl = document.querySelector("#meta-language");
+const metaPositionEl = document.querySelector("#meta-position");
+
+/* components */
+const audioTypeFilterCmp = new ChipGroup(audioTypeFilterEl);
+const audioLanguageFilterCmp = new ChipGroup(audioLanguageFilterEl);
+const audioPositionFilterCmp = new ChipGroup(audioPositionFilterEl);
+const audioCategoryFilterCmp = new ChipGroup(audioCategoryFilterEl);
+const audioListCmp = new ItemList(audioListEl, {
+  textField: "base",
+  valueField: "filePath",
+});
+const metaTypeCmp = new ChipGroup(metaTypeEl, { mode: "single" });
+const metaLanguageCmp = new ChipGroup(metaLanguageEl, { mode: "single" });
+const metaPositionCmp = new ChipGroup(metaPositionEl, { mode: "single" });
+
+/* state */
+const state = {};
+state.filters = {
   types: [],
   languages: [],
   positions: [],
   categories: [],
 };
 
-// -----------------------------------------------------------------------------
-// API Calls
-// -----------------------------------------------------------------------------
-
-async function getAudioTypes() {
-  return await api.get("/audio/api/list-audio-type");
-}
-
-async function getAudioLanguages() {
-  return await api.get("/audio/api/list-audio-language");
-}
-
-async function getAudioPositions() {
-  return await api.get("/audio/api/list-audio-position");
-}
-
-async function getAudioCategories() {
-  return await api.get("/audio/api/list-audio-category");
-}
-
-async function getAudioList() {
-  return await api.post("/audio/api/list-audio", filters);
-}
-
-// -----------------------------------------------------------------------------
-// event listeners
-// -----------------------------------------------------------------------------
-
-btnSelectAudioDir.addEventListener("click", async () => {
-  await safeRun(async () => {
-    const { dir, canceled } = await api.get("/audio/api/select-audio-dir");
-
-    if (canceled) {
-      return null;
-    }
-
-    await renderAudioList();
-  });
-});
-
-chkSelectAll.addEventListener("change", async (event) => {
-  await safeRun(async () => {
-    const isChecked = event.target.checked;
-
-    if (isChecked) {
-      itemLstAudio.checkAll();
-    } else {
-      itemLstAudio.uncheckAll();
-    }
-  });
-});
-
-btnSaveMeta.addEventListener("click", async () => {
-  await safeRun(async () => {
-    const metaPath = metaFields.metaPath.value.trim();
-    if (!metaPath) {
-      return;
-    }
-
-    const meta = getFormMeta();
-    const savedMeta = await api.post("/audio/api/save-meta", {
+/* api calls */
+const apiCalls = {
+  selectAudioDir: async () => {
+    return await api.get("/audio/api/select-audio-dir");
+  },
+  listAudioType: async () => {
+    return await api.get("/audio/api/list-audio-type");
+  },
+  listAudioLanguage: async () => {
+    return await api.get("/audio/api/list-audio-language");
+  },
+  listAudioPosition: async () => {
+    return await api.get("/audio/api/list-audio-position");
+  },
+  listAudioCategory: async () => {
+    return await api.get("/audio/api/list-audio-category");
+  },
+  listAudio: async () => {
+    return await api.post("/audio/api/list-audio", state.filters);
+  },
+  removeAudio: async (files) => {
+    return await api.post("/audio/api/remove-audio", { files });
+  },
+  saveMeta: async (metaPath, meta) => {
+    return await api.post("/audio/api/save-meta", {
       metaPath,
       meta,
     });
-
-    await setFormMeta(metaPath, savedMeta);
-
-    const selectedItem = itemLstAudio.getSelectedItem();
-    if (selectedItem) {
-      const updatedItem = {
-        ...selectedItem,
-        meta: savedMeta,
-      };
-
-      await itemLstAudio.updateItem(updatedItem);
-
-      const oldMeta = selectedItem.meta;
-      if (oldMeta.category !== savedMeta.category) {
-        await initAudioCategory();
-      }
-    }
-
-    toast.show("保存成功");
-  });
-});
-
-btnResetMeta.addEventListener("click", async () => {
-  await safeRun(async () => {
-    const metaPath = metaFields.metaPath.value.trim();
-    if (!metaPath) {
-      return;
-    }
-
-    const meta = itemLstAudio.getSelectedItem()?.meta ?? {};
-
-    await setFormMeta(metaPath, meta);
-  });
-});
+  },
+};
 
 // -----------------------------------------------------------------------------
 // init
 // -----------------------------------------------------------------------------
 
-await safeRun(init);
+// Bootstrap
+await safeRun(initializePage);
 
-async function init() {
-  chipGrpAudioType = new ChipGroup("#chipGrpAudioType", {
-    textField: "label",
-    valueField: "value",
-    onChange: async (items) => {
-      filters.types = items.map((item) => item.value);
-      await renderAudioList();
-    },
-  });
+async function initializePage() {
+  bindEvents();
+  await initData();
+}
 
-  chipGrpAudioLanguage = new ChipGroup("#chipGrpAudioLanguage", {
-    textField: "label",
-    valueField: "value",
-    onChange: async (items) => {
-      filters.languages = items.map((item) => item.value);
-      await renderAudioList();
-    },
-  });
+function bindEvents() {
+  selectAudioDirBtn.addEventListener("click", selectAudioDirBtn_clickHandler);
 
-  chipGrpAudioPosition = new ChipGroup("#chipGrpAudioPosition", {
-    textField: "label",
-    valueField: "value",
-    onChange: async (items) => {
-      filters.positions = items.map((item) => item.value);
-      await renderAudioList();
-    },
-  });
+  audioTypeFilterCmp.onChange = audioTypeFilterCmp_changeHandler;
+  audioLanguageFilterCmp.onChange = audioLanguageFilterCmp_changeHandler;
+  audioPositionFilterCmp.onChange = audioPositionFilterCmp_changeHandler;
+  audioCategoryFilterCmp.onChange = audioCategoryFilterCmp_changeHandler;
 
-  chipGrpAudioCategories = new ChipGroup("#chipGrpAudioCategories", {
-    textField: "label",
-    valueField: "value",
-    onChange: async (items) => {
-      filters.categories = items.map((item) => item.value);
-      await renderAudioList();
-    },
-  });
+  selectAllChk.addEventListener("change", selectAllChk_changeHandler);
+  removeAudioBtn.addEventListener("click", removeAudioBtn_clickHandler);
 
-  // new list-group for audio files
-  itemLstAudio = new ItemList("#audioListEl", {
-    textField: "base",
-    valueField: "filePath",
-    onChange: async (item, oldItem) => {
-      await setFormMeta(item.metaPath, item.meta);
-    },
-    onCheckedChange: async (items) => {
-      chkSelectAll.checked = items.length === itemLstAudio.getItems().length;
-    },
-  });
+  audioListCmp.onChange = audioListCmp_changeHandler;
+  audioListCmp.onCheckedChange = audioListCmp_checkedChangeHandler;
 
-  chipGrpMetaType = new ChipGroup("#chipGrpMetaType", {
-    textField: "label",
-    valueField: "value",
-    mode: "single",
-  });
+  resetMetaBtn.addEventListener("click", resetMetaBtn_clickHandler);
+  saveMetaBtn.addEventListener("click", saveMetaBtn_clickHandler);
+}
 
-  chipGrpMetaLanguage = new ChipGroup("#chipGrpMetaLanguage", {
-    textField: "label",
-    valueField: "value",
-    mode: "single",
-  });
+async function initData() {
+  const [types, languages, positions, categories] = await Promise.all([
+    apiCalls.listAudioType(),
+    apiCalls.listAudioLanguage(),
+    apiCalls.listAudioPosition(),
+    apiCalls.listAudioCategory(),
+  ]);
 
-  chipGrpMetaPosition = new ChipGroup("#chipGrpMetaPosition", {
-    textField: "label",
-    valueField: "value",
-    mode: "single",
-  });
+  await audioTypeFilterCmp.setItems(types);
+  await audioLanguageFilterCmp.setItems(languages);
+  await audioPositionFilterCmp.setItems(positions);
+  await audioCategoryFilterCmp.setItems(categories);
 
-  await initAudioType();
-  await initAudioLanguage();
-  await initAudioPosition();
-  await initAudioCategory();
-  await renderAudioList();
-  await initMetaType();
-  await initMetaLanguage();
-  await initMetaPosition();
+  await metaTypeCmp.setItems(types);
+  await metaLanguageCmp.setItems(languages);
+  await metaPositionCmp.setItems(positions);
+
+  refreshAudioList();
 }
 
 // -----------------------------------------------------------------------------
-// Select Audio Directory
+// event handlers
 // -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// Init Audio Types, Languages, Positions
-// -----------------------------------------------------------------------------
+async function selectAudioDirBtn_clickHandler() {
+  const { canceled } = await apiCalls.selectAudioDir();
 
-async function initAudioType() {
-  const types = await getAudioTypes();
-  await chipGrpAudioType.setItems(types);
+  if (canceled) {
+    return;
+  }
+
+  await refreshAudioList();
 }
 
-async function initAudioLanguage() {
-  const languages = await getAudioLanguages();
-  await chipGrpAudioLanguage.setItems(languages);
+async function audioTypeFilterCmp_changeHandler(items) {
+  state.filters.types = items.map((item) => item.value);
+  await refreshAudioList();
 }
 
-async function initAudioPosition() {
-  const positions = await getAudioPositions();
-  await chipGrpAudioPosition.setItems(positions);
+async function audioLanguageFilterCmp_changeHandler(items) {
+  state.filters.languages = items.map((item) => item.value);
+  await refreshAudioList();
 }
 
-async function initAudioCategory() {
-  const categories = await getAudioCategories();
-  await chipGrpAudioCategories.setItems(categories);
+async function audioPositionFilterCmp_changeHandler(items) {
+  state.filters.positions = items.map((item) => item.value);
+  await refreshAudioList();
 }
 
+async function audioCategoryFilterCmp_changeHandler(items) {
+  state.filters.categories = items.map((item) => item.value);
+  await refreshAudioList();
+}
+
+async function selectAllChk_changeHandler(event) {
+  const isChecked = event.target.checked;
+
+  if (isChecked) {
+    await audioListCmp.checkAll();
+  } else {
+    await audioListCmp.uncheckAll();
+  }
+}
+
+async function removeAudioBtn_clickHandler() {
+  const checkedItems = audioListCmp.getCheckedItems();
+
+  if (checkedItems.length === 0) {
+    toast.show("请先选择要删除的音频文件");
+    return;
+  }
+
+  const confirmDelete = confirm(
+    `确定要删除选中的 ${checkedItems.length} 个音频文件吗？`,
+  );
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  const files = checkedItems.map((item) => item.filePath);
+
+  await apiCalls.removeAudio(files).then((result) => {
+    if (result.success) {
+      toast.show("已删除选中的音频文件");
+    } else {
+      toast.show(`删除音频文件失败: ${result.error}`);
+    }
+  });
+
+  await refreshAudioList();
+}
+
+async function audioListCmp_changeHandler(item, oldItem) {
+  await setFormMeta(item.metaPath, item.meta);
+}
+
+async function audioListCmp_checkedChangeHandler(items) {
+  selectAllChk.checked = items.length === audioListCmp.getItems().length;
+}
+
+async function resetMetaBtn_clickHandler() {
+  const selectedItem = audioListCmp.getSelectedItem();
+
+  if (!selectedItem) {
+    toast.show("请先选择一个音频文件");
+    return;
+  }
+
+  await setFormMeta(selectedItem.metaPath, selectedItem.meta);
+}
+
+async function saveMetaBtn_clickHandler() {
+  const selectedItem = audioListCmp.getSelectedItem();
+
+  if (!selectedItem) {
+    toast.show("请先选择一个音频文件");
+    return;
+  }
+
+  const metaPath = selectedItem.metaPath;
+  const meta = getFormMeta();
+
+  const savedMeta = await apiCalls.saveMeta(metaPath, meta);
+
+  await setFormMeta(metaPath, savedMeta);
+
+  // update the item in the list
+  const updatedItem = {
+    ...selectedItem,
+    meta: savedMeta,
+  };
+
+  await audioListCmp.updateItem(updatedItem);
+
+  // if the category has changed, refresh the category filter
+  if (selectedItem.meta.category !== savedMeta.category) {
+    const categories = await apiCalls.listAudioCategory();
+    await audioCategoryFilterCmp.setItems(categories);
+  }
+
+  toast.show("已保存音频元数据");
+}
 // -----------------------------------------------------------------------------
-// Render Audio List
+// helper functions
 // -----------------------------------------------------------------------------
 
-async function renderAudioList() {
-  const audios = await getAudioList();
-  await itemLstAudio.setItems(audios);
+async function refreshAudioList() {
+  const audios = await apiCalls.listAudio();
+  await audioListCmp.setItems(audios);
 
-  spnAudioCount.textContent = audios.length == 0 ? "" : audios.length;
+  audioCountEl.textContent = audios.length == 0 ? "" : audios.length;
 
-  const item = itemLstAudio.getSelectedItem();
+  const item = audioListCmp.getSelectedItem();
   if (item) {
     await setFormMeta(item.metaPath, item.meta);
   } else {
     await setFormMeta(null, {});
   }
-}
-
-// -----------------------------------------------------------------------------
-// Init Meta Types, Languages, Positions
-// -----------------------------------------------------------------------------
-
-async function initMetaType() {
-  const types = await getAudioTypes();
-  await chipGrpMetaType.setItems(types);
-}
-
-async function initMetaLanguage() {
-  const languages = await getAudioLanguages();
-  await chipGrpMetaLanguage.setItems(languages);
-}
-
-async function initMetaPosition() {
-  const positions = await getAudioPositions();
-  await chipGrpMetaPosition.setItems(positions);
 }
 
 async function setFormMeta(metaPath, meta = {}) {
@@ -293,9 +290,9 @@ async function setFormMeta(metaPath, meta = {}) {
   metaFields.createdAt.value = meta.createdAt ?? "";
   metaFields.updatedAt.value = meta.updatedAt ?? "";
 
-  await chipGrpMetaType.setValue(meta.type ?? "");
-  await chipGrpMetaLanguage.setValue(meta.language ?? "");
-  await chipGrpMetaPosition.setValue(meta.position ?? "");
+  await metaTypeCmp.setValue(meta.type ?? "");
+  await metaLanguageCmp.setValue(meta.language ?? "");
+  await metaPositionCmp.setValue(meta.position ?? "");
 }
 
 function getFormMeta() {
@@ -313,9 +310,9 @@ function getFormMeta() {
     start: metaFields.start.value.trim() || "00:00:00.000",
     end: metaFields.end.value.trim() || null,
 
-    type: chipGrpMetaType.getValue(),
-    language: chipGrpMetaLanguage.getValue(),
-    position: chipGrpMetaPosition.getValue(),
+    type: metaTypeCmp.getValue(),
+    language: metaLanguageCmp.getValue(),
+    position: metaPositionCmp.getValue(),
 
     cutPoints: metaFields.cutPoints.value
       .split(/\r?\n/)

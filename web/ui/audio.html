@@ -22,7 +22,18 @@
         class="hbox align-center b-line"
         style="padding: 12px 8px; gap: 8px; height: 40px"
       >
-        <h1 class="grow page-title">Audio Library</h1>
+        <div class="grow">
+          <h1 class="grow page-title">Audio Library</h1>
+        </div>
+
+        <button
+          id="select-audio-dir"
+          title="选择音频库根目录"
+          style="margin-left: 8px"
+          type="button"
+        >
+          选择音频库根目录
+        </button>
       </div>
 
       <!-- Main Content Area -->
@@ -34,22 +45,22 @@
         >
           <div class="form-field" style="margin-bottom: 8px">
             <label>音频类型</label>
-            <div id="chipGrpAudioType"></div>
+            <div id="audio-type-filter"></div>
           </div>
 
           <div class="form-field" style="margin-bottom: 8px">
             <label>音频位置</label>
-            <div id="chipGrpAudioPosition"></div>
+            <div id="audio-position-filter"></div>
           </div>
 
           <div class="form-field" style="margin-bottom: 8px">
             <label>音频语言</label>
-            <div id="chipGrpAudioLanguage"></div>
+            <div id="audio-language-filter"></div>
           </div>
 
           <div class="form-field" style="margin-bottom: 8px">
             <label>音频分类</label>
-            <div id="chipGrpAudioCategories"></div>
+            <div id="audio-category-filter"></div>
           </div>
         </div>
 
@@ -63,35 +74,27 @@
                   class="hbox justify-center align-center"
                   style="width: 36px"
                 >
-                  <input id="chkSelectAll" type="checkbox" />
+                  <input id="select-all" type="checkbox" />
                 </div>
 
                 <button
-                  id="btnDeleteAudio"
+                  id="remove-audio"
                   type="button"
                   title="删除"
                   aria-label="删除"
                 >
                   删除
                 </button>
-
-                <button
-                  id="btnSelectAudioDir"
-                  title="选择音频库根目录"
-                  style="margin-left: 8px"
-                >
-                  选择音频库根目录
-                </button>
               </div>
               <div
                 class="hbox align-center"
                 style="gap: 4px; padding-right: 8px"
               >
-                <span id="spnAudioCount">11</span>
+                <span id="audio-count">11</span>
               </div>
             </div>
             <div class="panel-body">
-              <div id="audioListEl"></div>
+              <div id="audio-list"></div>
             </div>
           </div>
         </div>
@@ -104,7 +107,7 @@
               style="padding: 2px 8px; gap: 8px"
             >
               <button
-                id="btnResetMeta"
+                id="reset-meta"
                 type="button"
                 title="Reset"
                 aria-label="Reset"
@@ -113,7 +116,7 @@
               </button>
 
               <button
-                id="btnSaveMeta"
+                id="save-meta"
                 type="button"
                 title="Save"
                 aria-label="Save"
@@ -122,7 +125,7 @@
               </button>
             </div>
             <div class="panel-body" style="padding: 8px">
-              <form id="frmMeta" class="form">
+              <form id="meta-form" class="form">
                 <input type="hidden" name="metaPath" />
 
                 <div class="form-field">
@@ -131,18 +134,18 @@
                 </div>
 
                 <div class="form-field">
-                  <label for="chipGrpMetaType">类型</label>
-                  <div id="chipGrpMetaType"></div>
+                  <label for="meta-type">类型</label>
+                  <div id="meta-type"></div>
                 </div>
 
                 <div class="form-field">
-                  <label for="chipGrpMetaPosition">位置</label>
-                  <div id="chipGrpMetaPosition"></div>
+                  <label for="meta-position">位置</label>
+                  <div id="meta-position"></div>
                 </div>
 
                 <div class="form-field">
-                  <label for="chipGrpMetaLanguage">语言</label>
-                  <div id="chipGrpMetaLanguage"></div>
+                  <label for="meta-language">语言</label>
+                  <div id="meta-language"></div>
                 </div>
 
                 <div class="form-field">
@@ -164,7 +167,7 @@
                     rows="8"
                   ></textarea>
                   <div>
-                    <button id="btnTranscribe" type="button">
+                    <button id="transcribe-content" type="button">
                       自动识别内容
                     </button>
                   </div>
@@ -179,9 +182,7 @@
                       type="text"
                       placeholder="HH:MM:SS.mmm"
                     />
-                    <button id="btnDetectDuration" type="button">
-                      自动获取
-                    </button>
+                    <button id="detect-duration" type="button">自动获取</button>
                   </div>
                 </div>
 
