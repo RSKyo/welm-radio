@@ -72,10 +72,9 @@ const apiCalls = {
   removeAudio: async (files) => {
     return await api.post("/audio/api/remove-audio", { files });
   },
-  saveMeta: async (metaPath, meta) => {
-    return await api.post("/audio/api/save-meta", {
-      metaPath,
-      meta,
+  saveAudioMeta: async (audioMeta) => {
+    return await api.post("/audio/api/save-audio-meta", {
+      audioMeta,
     });
   },
 };
@@ -232,21 +231,24 @@ async function saveMetaBtn_clickHandler() {
 
   const metaPath = selectedItem.metaPath;
   const meta = getFormMeta();
+  const audioMeta = {
+    ...selectedItem,
+    meta,
+  };
 
-  const savedMeta = await apiCalls.saveMeta(metaPath, meta);
+  const savedAudioMeta = await apiCalls.saveAudioMeta(audioMeta);
 
-  await setFormMeta(metaPath, savedMeta);
+  await setFormMeta(metaPath, savedAudioMeta.meta);
 
   // update the item in the list
   const updatedItem = {
-    ...selectedItem,
-    meta: savedMeta,
+    ...savedAudioMeta,
   };
 
   await audioListCmp.updateItem(updatedItem);
 
   // if the category has changed, refresh the category filter
-  if (selectedItem.meta.category !== savedMeta.category) {
+  if (selectedItem.meta.category !== updatedItem.meta.category) {
     const categories = await apiCalls.listAudioCategory();
     await audioCategoryFilterCmp.setItems(categories);
   }
@@ -261,7 +263,7 @@ async function refreshAudioList() {
   const audios = await apiCalls.listAudio();
   await audioListCmp.setItems(audios);
 
-  audioCountEl.textContent = audios.length == 0 ? "" : audios.length;
+  audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
   const item = audioListCmp.getSelectedItem();
   if (item) {

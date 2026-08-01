@@ -1,6 +1,10 @@
-import nodePath, { basename } from "node:path";
-import fs from "node:fs";
-import { readFileJson, writeFileJson } from "welm-cdp/fs";
+import nodePath from "node:path";
+import {
+  readFileJson,
+  writeFileJson,
+  renameFile,
+  fileExists,
+} from "welm-cdp/fs";
 import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 
 const audio_types = [
@@ -28,10 +32,11 @@ const audio_positions = [
 ];
 
 function createDefaultMeta(metaFilePath) {
-  const baseName = basename(metaFilePath, ".meta.json");
+  const name = nodePath.basename(metaFilePath, ".meta.json");
 
   return {
-    title: baseName,
+    title: name,
+    description: "",
     duration: null, // HH:MM:SS.mmm
     start: "00:00:00.000", // HH:MM:SS.mmm
     end: null, // HH:MM:SS.mmm
@@ -58,8 +63,8 @@ export function listAudioPosition() {
   return audio_positions;
 }
 
-export function loadMeta(metaFilePath, options={}) {
-  if (!metaFilePath || !fs.existsSync(metaFilePath)) {
+export function loadMeta(metaFilePath, options = {}) {
+  if (!metaFilePath || !fileExists(metaFilePath)) {
     return createDefaultMeta(metaFilePath);
   }
 
@@ -73,22 +78,18 @@ export function loadMeta(metaFilePath, options={}) {
   }
 }
 
-export function saveMeta(metaFilePath, data = {}, options={}) {
-  assertAbsolutePath(metaFilePath);
-  assertPlainObject(data);
-
-  const oldMeta = loadMeta(metaFilePath, options);
+export function saveMeta(metaFilePath, meta = {}) {
+  const oldMeta = loadMeta(metaFilePath);
   const now = new Date().toISOString();
 
-  const meta = {
+  const newMeta = {
     ...oldMeta,
-    ...data,
+    ...meta,
     createdAt: oldMeta.createdAt === "" ? now : oldMeta.createdAt,
     updatedAt: now,
   };
 
-  writeFileJson(metaFilePath, meta, { overwrite: true, spaces: 2 });
+  writeFileJson(metaFilePath, newMeta, { overwrite: true, spaces: 2 });
 
-  return meta;
+  return newMeta;
 }
-

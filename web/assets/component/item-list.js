@@ -261,6 +261,14 @@ export class ItemList {
   #render() {
     this.#container.innerHTML = "";
 
+    if (this.#items.length === 0) {
+      const emptyElement = document.createElement("div");
+      emptyElement.className = `${this.#rootClass}-empty`;
+      emptyElement.textContent = "No items";
+      this.#container.appendChild(emptyElement);
+      return;
+    }
+
     for (const item of this.#items) {
       const itemElement = this.#renderItem(item);
       this.#container.appendChild(itemElement);

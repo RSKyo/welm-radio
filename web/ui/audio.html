@@ -17,227 +17,224 @@
   </head>
 
   <body>
-    <div id="app" class="vbox minh-0">
-      <div
-        class="hbox align-center b-line"
-        style="padding: 12px 8px; gap: 8px; height: 40px"
-      >
+    <div class="vbox h-100 w-100">
+      <!-- header -->
+      <div class="p-12-8 hbox a-center">
         <div class="grow">
-          <h1 class="grow page-title">Audio Library</h1>
+          <h1 class="ib" style="color: var(--color-primary)">Audio Library</h1>
         </div>
 
         <button
           id="select-audio-dir"
-          title="选择音频库根目录"
-          style="margin-left: 8px"
           type="button"
+          title="选择音频库根目录"
+          class="primary"
         >
           选择音频库根目录
         </button>
       </div>
 
-      <!-- Main Content Area -->
+      <!-- main -->
       <div class="grow hbox">
-        <!-- Filter Area -->
+        <!-- filter -->
         <div
-          class="vbox r-line"
-          style="width: 240px; min-width: 120px; padding: 8px; gap: 8px"
+          class="p-12-8 scroll vbox gap-20"
+          style="
+            width: 240px;
+            min-width: 120px;
+            background-color: var(--color-surface);
+          "
         >
-          <div class="form-field" style="margin-bottom: 8px">
-            <label>音频类型</label>
+          <div class="vbox gap-8">
+            <label class="label">音频类型</label>
             <div id="audio-type-filter"></div>
           </div>
 
-          <div class="form-field" style="margin-bottom: 8px">
-            <label>音频位置</label>
+          <div class="vbox gap-8">
+            <label class="label">音频位置</label>
             <div id="audio-position-filter"></div>
           </div>
 
-          <div class="form-field" style="margin-bottom: 8px">
-            <label>音频语言</label>
+          <div class="vbox gap-8">
+            <label class="label">音频语言</label>
             <div id="audio-language-filter"></div>
           </div>
 
-          <div class="form-field" style="margin-bottom: 8px">
-            <label>音频分类</label>
+          <div class="vbox gap-8">
+            <label class="label">音频分类</label>
             <div id="audio-category-filter"></div>
           </div>
         </div>
 
-        <!-- Files Area -->
-        <div class="grow vbox r-line" style="min-width: 360px">
-          <!-- Audio Files -->
-          <div class="panel grow">
-            <div class="panel-header hbox" style="padding: 2px 0">
-              <div class="grow hbox align-center">
-                <div
-                  class="hbox justify-center align-center"
-                  style="width: 36px"
-                >
-                  <input id="select-all" type="checkbox" />
-                </div>
-
-                <button
-                  id="remove-audio"
-                  type="button"
-                  title="删除"
-                  aria-label="删除"
-                >
-                  删除
-                </button>
-              </div>
-              <div
-                class="hbox align-center"
-                style="gap: 4px; padding-right: 8px"
-              >
-                <span id="audio-count">11</span>
-              </div>
+        <!-- audio -->
+        <div
+          class="p-12-8 grow vbox"
+          style="min-width: 360px; background-color: var(--color-surface)"
+        >
+          <div class="toolbar" style="padding-left: 0">
+            <div class="hbox a-center j-center" style="width: 36px">
+              <input id="select-all" type="checkbox" />
             </div>
-            <div class="panel-body">
-              <div id="audio-list"></div>
+            <div class="grow hbox a-center gap-8">
+              <button
+                id="remove-audio"
+                type="button"
+                title="删除"
+                aria-label="删除"
+              >
+                删除
+              </button>
+            </div>
+            <div class="hbox a-center j-center p-0-8">
+              共有音频：
+              <span id="audio-count">0</span>
             </div>
           </div>
+          <div id="audio-list" class="grow scroll"></div>
         </div>
 
-        <!-- Meta Editor Area -->
-        <div class="vbox" style="width: 640px; min-width: 480px">
-          <div class="panel grow">
-            <div
-              class="panel-header hbox justify-end"
-              style="padding: 2px 8px; gap: 8px"
+        <!-- meta -->
+        <div
+          class="p-12-8 vbox"
+          style="
+            width: 640px;
+            min-width: 480px;
+            background-color: var(--color-surface);
+          "
+        >
+          <div class="toolbar">
+            <button
+              id="reset-meta"
+              type="button"
+              title="重置"
+              aria-label="重置"
             >
-              <button
-                id="reset-meta"
-                type="button"
-                title="Reset"
-                aria-label="Reset"
-              >
-                重置
-              </button>
+              重置
+            </button>
 
-              <button
-                id="save-meta"
-                type="button"
-                title="Save"
-                aria-label="Save"
-              >
-                保存
-              </button>
-            </div>
-            <div class="panel-body" style="padding: 8px">
-              <form id="meta-form" class="form">
-                <input type="hidden" name="metaPath" />
+            <button
+              id="save-meta"
+              type="button"
+              title="保存"
+              aria-label="保存"
+              class="primary"
+            >
+              保存
+            </button>
+          </div>
+          <div class="p-12-8 grow scroll">
+            <form id="meta-form" class="form">
+              <input type="hidden" name="metaPath" />
 
-                <div class="form-field">
-                  <label for="txtMetaTitle">标题</label>
-                  <input id="txtMetaTitle" name="title" type="text" />
+              <div class="form-field">
+                <label>标题</label>
+                <input id="txtMetaTitle" name="title" type="text" />
+              </div>
+
+              <div class="form-field">
+                <label>类型</label>
+                <div id="meta-type"></div>
+              </div>
+
+              <div class="form-field">
+                <label>位置</label>
+                <div id="meta-position"></div>
+              </div>
+
+              <div class="form-field">
+                <label>语言</label>
+                <div id="meta-language"></div>
+              </div>
+
+              <div class="form-field">
+                <label>分类</label>
+
+                <textarea
+                  id="txtMetaCategory"
+                  name="category"
+                  rows="3"
+                  placeholder="天气, 新闻, 故事"
+                ></textarea>
+              </div>
+
+              <div class="form-field">
+                <label>内容</label>
+                <textarea
+                  id="txtMetaContent"
+                  name="content"
+                  rows="8"
+                ></textarea>
+                <div>
+                  <button id="transcribe-content" type="button">
+                    自动识别内容
+                  </button>
                 </div>
+              </div>
 
-                <div class="form-field">
-                  <label for="meta-type">类型</label>
-                  <div id="meta-type"></div>
-                </div>
-
-                <div class="form-field">
-                  <label for="meta-position">位置</label>
-                  <div id="meta-position"></div>
-                </div>
-
-                <div class="form-field">
-                  <label for="meta-language">语言</label>
-                  <div id="meta-language"></div>
-                </div>
-
-                <div class="form-field">
-                  <label for="txtMetaCategory">分类</label>
-
-                  <textarea
-                    id="txtMetaCategory"
-                    name="category"
-                    rows="3"
-                    placeholder="天气, 新闻, 故事"
-                  ></textarea>
-                </div>
-
-                <div class="form-field">
-                  <label for="txtMetaContent">内容</label>
-                  <textarea
-                    id="txtMetaContent"
-                    name="content"
-                    rows="8"
-                  ></textarea>
-                  <div>
-                    <button id="transcribe-content" type="button">
-                      自动识别内容
-                    </button>
-                  </div>
-                </div>
-
-                <div class="form-field">
-                  <label for="txtMetaDuration">总时长</label>
-                  <div class="input-action">
-                    <input
-                      id="txtMetaDuration"
-                      name="duration"
-                      type="text"
-                      placeholder="HH:MM:SS.mmm"
-                    />
-                    <button id="detect-duration" type="button">自动获取</button>
-                  </div>
-                </div>
-
-                <div class="form-field">
-                  <label for="txtMetaStart">开始时间</label>
+              <div class="form-field">
+                <label>总时长</label>
+                <div class="input-action">
                   <input
-                    id="txtMetaStart"
-                    name="start"
+                    id="txtMetaDuration"
+                    name="duration"
                     type="text"
                     placeholder="HH:MM:SS.mmm"
                   />
+                  <button id="detect-duration" type="button">自动获取</button>
                 </div>
+              </div>
 
-                <div class="form-field">
-                  <label for="txtMetaEnd">结束时间</label>
-                  <input
-                    id="txtMetaEnd"
-                    name="end"
-                    type="text"
-                    placeholder="HH:MM:SS.mmm"
-                  />
-                </div>
+              <div class="form-field">
+                <label>开始时间</label>
+                <input
+                  id="txtMetaStart"
+                  name="start"
+                  type="text"
+                  placeholder="HH:MM:SS.mmm"
+                />
+              </div>
 
-                <div class="form-field">
-                  <label for="txtMetaCutPoints">剪切点</label>
+              <div class="form-field">
+                <label>结束时间</label>
+                <input
+                  id="txtMetaEnd"
+                  name="end"
+                  type="text"
+                  placeholder="HH:MM:SS.mmm"
+                />
+              </div>
 
-                  <textarea
-                    id="txtMetaCutPoints"
-                    name="cutPoints"
-                    rows="5"
-                    placeholder="每行填写一个时间 HH:MM:SS.mmm"
-                  ></textarea>
-                </div>
+              <div class="form-field">
+                <label>剪切点</label>
 
-                <div class="form-field">
-                  <label for="txtMetaCreatedAt">创建时间</label>
-                  <input
-                    id="txtMetaCreatedAt"
-                    name="createdAt"
-                    type="text"
-                    readonly
-                  />
-                </div>
+                <textarea
+                  id="txtMetaCutPoints"
+                  name="cutPoints"
+                  rows="5"
+                  placeholder="每行填写一个时间 HH:MM:SS.mmm"
+                ></textarea>
+              </div>
 
-                <div class="form-field">
-                  <label for="txtMetaUpdatedAt">更新时间</label>
-                  <input
-                    id="txtMetaUpdatedAt"
-                    name="updatedAt"
-                    type="text"
-                    readonly
-                  />
-                </div>
-              </form>
-            </div>
+              <div class="form-field">
+                <label>创建时间</label>
+                <input
+                  id="txtMetaCreatedAt"
+                  name="createdAt"
+                  type="text"
+                  readonly
+                />
+              </div>
+
+              <div class="form-field">
+                <label>更新时间</label>
+                <input
+                  id="txtMetaUpdatedAt"
+                  name="updatedAt"
+                  type="text"
+                  readonly
+                />
+              </div>
+            </form>
           </div>
         </div>
       </div>

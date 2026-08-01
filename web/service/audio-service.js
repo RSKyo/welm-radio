@@ -5,9 +5,13 @@ import { scanFiles, removeFile, fileExists } from "welm-cdp/fs";
 import { selectFolder } from "welm-cdp/dialog";
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
-import { assertAbsolutePath, assertExistingFile } from "welm-cdp/common/assert";
+import {
+  assertAbsolutePath,
+  assertExistingFile,
+  assertPlainObject,
+} from "welm-cdp/common/assert";
 
-import { loadMeta } from "./meta-service.js";
+import { loadMeta, saveMeta } from "./meta-service.js";
 
 const audio_library_key_path = "radio.audio_library";
 const audio_exts = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
@@ -117,6 +121,55 @@ export async function removeAudio(files, options = {}) {
       removeFile(metaPath);
     }
   }
+}
+
+export function saveAudioMeta(audioData = {}, options = {}) {
+  assertPlainObject(audioData, "audioData");
+  assertPlainObject(audioData.meta, "audioData.meta");
+
+  // title is file name without extension, so it cannot be empty
+  const title = audioData.meta.title.trim();
+  if (!title) {
+    throw new Error("Audio title cannot be empty");
+  }
+
+  let filePath = audioData.filePath;
+  let metaPath = audioData.metaPath;
+
+  // audio file must exist, otherwise we cannot save its meta data
+  assertExistingFile(filePath, "audioData.filePath");
+  // meta file may not exist yet, so we don't assert its existence here
+  assertAbsolutePath(metaPath, "audioData.metaPath");
+
+  const ext = nodePath.extname(filePath);
+  const name = nodePath.basename(filePath, ext);
+
+  // if the title has changed, rename the audio file and its meta file accordingly
+  if (name !== title) {
+    const newFileName = `${title}${ext}`;
+    filePath = renameFile(filePath, newFileName);
+
+    if(fileExists(metaPath)) {
+      const newMetaName = `${title}.meta.json`;
+      metaPath = renameFile(metaPath, newMetaName);
+    }
+  }
+
+  // save the updated meta data to the meta file
+  const newMeta = saveMeta(metaPath, audioData.meta, options);
+
+  const { root, dir, base, ext, name } = nodePath.parse(filePath);
+
+  return {
+    root,
+    dir,
+    base,
+    ext,
+    name,
+    filePath,
+    metaPath,
+    meta: newMeta,
+  };
 }
 
 // -----------------------------------------------------------------------------

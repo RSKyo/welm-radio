@@ -6,12 +6,12 @@ import {
   listAudio,
   removeAudio,
   listCategory,
+  saveAudioMeta,
 } from "../service/audio-service.js";
 import {
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
-  saveMeta,
 } from "../service/meta-service.js";
 
 export const router = express.Router();
@@ -85,14 +85,14 @@ router.get(
   }),
 );
 
-// POST /audio/api/save-meta
+// POST /audio/api/save-audio-meta
 router.post(
-  "/save-meta",
+  "/save-audio-meta",
   withOptions(async (req, res, options) => {
-    const { metaPath, meta } = req.body ?? {};
+    const { audioMeta } = req.body ?? {};
 
-    const savedMeta = await saveMeta(metaPath, meta, options);
+    const savedAudioMeta = await saveAudioMeta(audioMeta, options);
 
-    res.json(savedMeta);
+    res.json(savedAudioMeta);
   }),
 );

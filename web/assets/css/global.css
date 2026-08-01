@@ -1,7 +1,4 @@
-/* -----------------------------------------------------------------------------
- * Reset
- * -------------------------------------------------------------------------- */
-
+/* Reset */
 *,
 *::before,
 *::after {
@@ -41,10 +38,7 @@ textarea {
   color: inherit;
 }
 
-/* -----------------------------------------------------------------------------
- * Document
- * -------------------------------------------------------------------------- */
-
+/* Global */
 html {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -56,48 +50,10 @@ html {
 
 body {
   color: var(--color-text);
-  background: var(--color-page);
+  background-color: var(--color-page);
 }
 
-/* -----------------------------------------------------------------------------
- * Titles
- * -------------------------------------------------------------------------- */
-
-.page-title {
-  color: var(--color-page-title);
-
-  font-size: 24px;
-  font-weight: 650;
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  color: var(--color-page-subtitle);
-
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.component-title {
-  color: var(--color-component-title);
-
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.section-title {
-  color: var(--color-section-title);
-
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-/* -----------------------------------------------------------------------------
- * Form controls
- * -------------------------------------------------------------------------- */
+/* Form controls */
 
 input:not([type="checkbox"]):not([type="radio"]),
 select,
@@ -136,9 +92,7 @@ textarea:disabled {
   cursor: default;
 }
 
-/* -----------------------------------------------------------------------------
- * Buttons
- * -------------------------------------------------------------------------- */
+/* button */
 
 button {
   min-height: 28px;
@@ -159,11 +113,11 @@ button {
 
 button:not(:disabled):hover {
   border-color: var(--color-button-border-hover);
-  background: var(--color-button-background-hover);
+  background-color: var(--color-button-background-hover);
 }
 
 button:not(:disabled):active {
-  background: var(--color-button-background-active);
+  background-color: var(--color-button-background-active);
 }
 
 button:focus-visible {
@@ -180,30 +134,43 @@ button.primary {
   border-color: var(--color-button-primary-border);
 
   color: var(--color-button-primary-text);
-  background: var(--color-button-primary-background);
+  background-color: var(--color-button-primary-background);
 }
 
 button.primary:not(:disabled):hover {
-  border-color: var(--color-button-primary-border);
-  background: var(--color-button-primary-background-hover);
+  background-color: var(--color-button-primary-background-hover);
 }
 
 button.primary:not(:disabled):active {
-  background: var(--color-button-primary-background-active);
+  background-color: var(--color-button-primary-background-active);
 }
 
-/* -----------------------------------------------------------------------------
- * Layout
- * -------------------------------------------------------------------------- */
+/* layout */
+
+.ib {
+  display: inline-block;
+}
 
 .hbox,
 .vbox {
   display: flex;
+}
+
+.ihbox,
+.ivbox {
+  display: inline-flex;
+}
+
+.hbox,
+.vbox,
+.ihbox,
+.ivbox {
   min-width: 0;
   min-height: 0;
 }
 
-.vbox {
+.vbox,
+.ivbox {
   flex-direction: column;
 }
 
@@ -219,91 +186,116 @@ button.primary:not(:disabled):active {
   flex-wrap: nowrap;
 }
 
-.justify-start {
+.j-start {
   justify-content: flex-start;
 }
 
-.justify-center {
+.j-center {
   justify-content: center;
 }
 
-.justify-end {
+.j-end {
   justify-content: flex-end;
 }
 
-.align-start {
+.a-start {
   align-items: flex-start;
 }
 
-.align-center {
+.a-center {
   align-items: center;
 }
 
-.align-end {
+.a-end {
   align-items: flex-end;
 }
 
-/* -----------------------------------------------------------------------------
- * Utilities
- * -------------------------------------------------------------------------- */
+.gap-4 {
+  gap: 4px;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-12 {
+  gap: 12px;
+}
+.gap-16 {
+  gap: 16px;
+}
+.gap-20 {
+  gap: 20px;
+}
+
+/* utilities */
+
+.h-100 {
+  height: 100%;
+}
+.w-100 {
+  width: 100%;
+}
 
 .scroll {
   overflow: auto;
+}
+
+.noscroll {
+  overflow: hidden;
 }
 
 .hidden {
   display: none;
 }
 
-.t-line {
+.m-0 {
+  margin: 0;
+}
+
+.p-0 {
+  padding: 0;
+}
+.p-12-8 {
+  padding: 12px 8px;
+}
+.p-0-8 {
+  padding: 0 8px;
+}
+.p-12-0 {
+  padding: 12px 0;
+}
+
+.b-t {
   border-top: 1px solid var(--color-border);
 }
 
-.r-line {
+.b-r {
   border-right: 1px solid var(--color-border);
 }
 
-.b-line {
+.b-b {
   border-bottom: 1px solid var(--color-border);
 }
 
-.l-line {
+.b-l {
   border-left: 1px solid var(--color-border);
 }
 
-/* -----------------------------------------------------------------------------
- * Panel
- * -------------------------------------------------------------------------- */
-
-.panel {
+.toolbar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 
-  min-width: 0;
-  min-height: 0;
-
-  color: var(--color-text);
-  background: var(--color-surface);
-
-  overflow: hidden;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: var(--color-surface-toolbar);
+}
+.toolbar button {
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.panel-header {
-  flex: none;
-  padding: 12px 8px;
-
-  border-bottom: 1px solid var(--color-border);
-}
-
-.panel-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-/* -----------------------------------------------------------------------------
- * Form layout
- * -------------------------------------------------------------------------- */
+/* form */
 
 .form {
   display: flex;
@@ -319,7 +311,6 @@ button.primary:not(:disabled):active {
 
 .form-field > label {
   color: var(--color-text-secondary);
-  font-size: 14px;
   font-weight: 500;
 }
 
@@ -347,4 +338,9 @@ button.primary:not(:disabled):active {
 
 .input-action button {
   flex: none;
+}
+
+.label {
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }

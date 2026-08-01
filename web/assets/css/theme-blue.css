@@ -24,6 +24,8 @@
   /* 覆盖在页面上的浮层，如下拉菜单、弹窗 */
   --color-surface-overlay: white;
 
+  --color-surface-toolbar: var(--slate-3);
+
   /* Text */
 
   /* 主要文字，如标题、正文、列表内容 */
@@ -146,6 +148,7 @@
   --color-surface-raised: var(--slate-3);
   --color-surface-sunken: var(--slate-1);
   --color-surface-overlay: var(--slate-3);
+  --color-surface-toolbar: var(--slate-3);
 
   /* Text */
 
