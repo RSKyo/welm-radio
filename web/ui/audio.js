@@ -1,4 +1,5 @@
-import { safeRun, api, toast } from "/assets/js/global.js";
+import http from "/assets/js/http.js";
+import { safeRun, safeHandler, toast } from "/assets/js/global.js";
 import { ChipGroup } from "/assets/component/chip-group.js";
 import { ItemList } from "/assets/component/item-list.js";
 
@@ -16,11 +17,15 @@ const audioCategoryFilterEl = document.querySelector("#audio-category-filter");
 
 const selectAllChk = document.querySelector("#select-all");
 const removeAudioBtn = document.querySelector("#remove-audio");
+const addAudioBtn = document.querySelector("#add-audio");
 const audioCountEl = document.querySelector("#audio-count");
 const audioListEl = document.querySelector("#audio-list");
 
 const resetMetaBtn = document.querySelector("#reset-meta");
 const saveMetaBtn = document.querySelector("#save-meta");
+const renameAudioBtn = document.querySelector("#rename-audio");
+const audioFormFrm = document.querySelector("#audio-form");
+const audioFields = audioFormFrm.elements;
 const metaFormFrm = document.querySelector("#meta-form");
 const metaFields = metaFormFrm.elements;
 const metaTypeEl = document.querySelector("#meta-type");
@@ -52,30 +57,37 @@ state.filters = {
 /* api calls */
 const apiCalls = {
   selectAudioDir: async () => {
-    return await api.get("/audio/api/select-audio-dir");
+    return await http.get("/audio/api/select-audio-dir");
   },
   listAudioType: async () => {
-    return await api.get("/audio/api/list-audio-type");
+    return await http.get("/audio/api/list-audio-type");
   },
   listAudioLanguage: async () => {
-    return await api.get("/audio/api/list-audio-language");
+    return await http.get("/audio/api/list-audio-language");
   },
   listAudioPosition: async () => {
-    return await api.get("/audio/api/list-audio-position");
+    return await http.get("/audio/api/list-audio-position");
   },
   listAudioCategory: async () => {
-    return await api.get("/audio/api/list-audio-category");
+    return await http.get("/audio/api/list-audio-category");
   },
   listAudio: async () => {
-    return await api.post("/audio/api/list-audio", state.filters);
+    return await http.post("/audio/api/list-audio", state.filters);
   },
   removeAudio: async (files) => {
-    return await api.post("/audio/api/remove-audio", { files });
+    return await http.post("/audio/api/remove-audio", { files });
   },
-  saveAudioMeta: async (audioMeta) => {
-    return await api.post("/audio/api/save-audio-meta", {
-      audioMeta,
+  addAudio: async () => {
+    return await http.get("/audio/api/add-audio");
+  },
+  saveMeta: async (metaPath, meta) => {
+    return await http.post("/audio/api/save-meta", {
+      metaPath,
+      meta,
     });
+  },
+  renameAudio: async (audioPath, name) => {
+    return await http.post("/audio/api/rename-audio", { audioPath, name });
   },
 };
 
@@ -92,21 +104,44 @@ async function initializePage() {
 }
 
 function bindEvents() {
-  selectAudioDirBtn.addEventListener("click", selectAudioDirBtn_clickHandler);
+  selectAudioDirBtn.addEventListener(
+    "click",
+    safeHandler(selectAudioDirBtn_clickHandler),
+  );
 
-  audioTypeFilterCmp.onChange = audioTypeFilterCmp_changeHandler;
-  audioLanguageFilterCmp.onChange = audioLanguageFilterCmp_changeHandler;
-  audioPositionFilterCmp.onChange = audioPositionFilterCmp_changeHandler;
-  audioCategoryFilterCmp.onChange = audioCategoryFilterCmp_changeHandler;
+  audioTypeFilterCmp.onChange = safeHandler(audioTypeFilterCmp_changeHandler);
+  audioLanguageFilterCmp.onChange = safeHandler(
+    audioLanguageFilterCmp_changeHandler,
+  );
+  audioPositionFilterCmp.onChange = safeHandler(
+    audioPositionFilterCmp_changeHandler,
+  );
+  audioCategoryFilterCmp.onChange = safeHandler(
+    audioCategoryFilterCmp_changeHandler,
+  );
 
-  selectAllChk.addEventListener("change", selectAllChk_changeHandler);
-  removeAudioBtn.addEventListener("click", removeAudioBtn_clickHandler);
+  selectAllChk.addEventListener(
+    "change",
+    safeHandler(selectAllChk_changeHandler),
+  );
+  removeAudioBtn.addEventListener(
+    "click",
+    safeHandler(removeAudioBtn_clickHandler),
+  );
+  addAudioBtn.addEventListener("click", safeHandler(addAudioBtn_clickHandler));
 
-  audioListCmp.onChange = audioListCmp_changeHandler;
-  audioListCmp.onCheckedChange = audioListCmp_checkedChangeHandler;
+  audioListCmp.onChange = safeHandler(audioListCmp_changeHandler);
+  audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
 
-  resetMetaBtn.addEventListener("click", resetMetaBtn_clickHandler);
-  saveMetaBtn.addEventListener("click", saveMetaBtn_clickHandler);
+  resetMetaBtn.addEventListener(
+    "click",
+    safeHandler(resetMetaBtn_clickHandler),
+  );
+  saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
+  renameAudioBtn.addEventListener(
+    "click",
+    safeHandler(renameAudioBtn_clickHandler),
+  );
 }
 
 async function initData() {
@@ -191,19 +226,31 @@ async function removeAudioBtn_clickHandler() {
 
   const files = checkedItems.map((item) => item.filePath);
 
-  await apiCalls.removeAudio(files).then((result) => {
-    if (result.success) {
-      toast.show("已删除选中的音频文件");
-    } else {
-      toast.show(`删除音频文件失败: ${result.error}`);
-    }
-  });
+  const result = await apiCalls.removeAudio(files);
+
+  if (result.success) {
+    toast.show("已删除选中的音频文件");
+    await refreshAudioList();
+  } else {
+    toast.show(`删除音频文件失败: ${result.error}`);
+  }
+}
+
+async function addAudioBtn_clickHandler() {
+  const { canceled, files } = await apiCalls.addAudio();
+
+  if (canceled) {
+    return;
+  }
 
   await refreshAudioList();
+
+  toast.show(`添加了 ${files.length} 个音频文件`);
 }
 
 async function audioListCmp_changeHandler(item, oldItem) {
-  await setFormMeta(item.metaPath, item.meta);
+  await setFormAudio(item);
+  await setFormMeta(item.meta);
 }
 
 async function audioListCmp_checkedChangeHandler(items) {
@@ -218,7 +265,8 @@ async function resetMetaBtn_clickHandler() {
     return;
   }
 
-  await setFormMeta(selectedItem.metaPath, selectedItem.meta);
+  await setFormAudio(selectedItem);
+  await setFormMeta(selectedItem.meta);
 }
 
 async function saveMetaBtn_clickHandler() {
@@ -231,30 +279,75 @@ async function saveMetaBtn_clickHandler() {
 
   const metaPath = selectedItem.metaPath;
   const meta = getFormMeta();
-  const audioMeta = {
-    ...selectedItem,
-    meta,
-  };
 
-  const savedAudioMeta = await apiCalls.saveAudioMeta(audioMeta);
+  const savedMeta = await apiCalls.saveMeta(metaPath, meta);
 
-  await setFormMeta(metaPath, savedAudioMeta.meta);
+  await setFormMeta(savedMeta);
 
   // update the item in the list
+  const value = selectedItem.filePath;
   const updatedItem = {
-    ...savedAudioMeta,
+    ...selectedItem,
+    meta: savedMeta,
   };
 
-  await audioListCmp.updateItem(updatedItem);
+  await audioListCmp.updateItem(value, updatedItem);
 
   // if the category has changed, refresh the category filter
-  if (selectedItem.meta.category !== updatedItem.meta.category) {
+  if (selectedItem.meta.category !== savedMeta.category) {
     const categories = await apiCalls.listAudioCategory();
     await audioCategoryFilterCmp.setItems(categories);
   }
 
+  // update the file name in the form if it has changed
+  audioFields.fileName.value = selectedItem.name;
+
   toast.show("已保存音频元数据");
 }
+
+async function renameAudioBtn_clickHandler() {
+  const selectedItem = audioListCmp.getSelectedItem();
+
+  if (!selectedItem) {
+    toast.show("请先选择一个音频文件");
+    return;
+  }
+
+  const name = audioFields.fileName.value.trim();
+  const audioPath = selectedItem.filePath;
+
+  if (!name || name.trim() === "") {
+    toast.show("音频文件名不能为空");
+    return;
+  }
+
+  if (name === selectedItem.name) {
+    toast.show("音频文件名未修改");
+    return;
+  }
+
+  const confirmRename = confirm(
+    `确定要将音频文件 "${selectedItem.name}" 重命名为 "${name}" 吗？`,
+  );
+
+  if (!confirmRename) {
+    return;
+  }
+
+  const audioInfo = await apiCalls.renameAudio(audioPath, name);
+
+  // update the item in the list
+  const value = selectedItem.filePath;
+  const updatedItem = {
+    ...selectedItem,
+    ...audioInfo,
+  };
+
+  await audioListCmp.updateItem(value, updatedItem);
+
+  toast.show("音频文件重命名成功");
+}
+
 // -----------------------------------------------------------------------------
 // helper functions
 // -----------------------------------------------------------------------------
@@ -267,15 +360,16 @@ async function refreshAudioList() {
 
   const item = audioListCmp.getSelectedItem();
   if (item) {
-    await setFormMeta(item.metaPath, item.meta);
+    await setFormAudio(item);
+    await setFormMeta(item.meta);
   } else {
-    await setFormMeta(null, {});
+    await setFormAudio({});
+    await setFormMeta({});
   }
 }
 
-async function setFormMeta(metaPath, meta = {}) {
-  metaFields.metaPath.value = metaPath ?? "";
-  metaFields.title.value = meta.title ?? "";
+async function setFormMeta(meta = {}) {
+  metaFields.description.value = meta.description ?? "";
   metaFields.category.value = Array.isArray(meta.category)
     ? meta.category.join(", ")
     : (meta.category ?? "");
@@ -299,7 +393,7 @@ async function setFormMeta(metaPath, meta = {}) {
 
 function getFormMeta() {
   return {
-    title: metaFields.title.value.trim(),
+    description: metaFields.description.value.trim(),
 
     category: metaFields.category.value
       .split(/[,，]/)
@@ -324,4 +418,9 @@ function getFormMeta() {
     createdAt: metaFields.createdAt.value.trim() || null,
     updatedAt: metaFields.updatedAt.value.trim() || null,
   };
+}
+async function setFormAudio(audio = {}) {
+  // base is filename with extension, name is filename without extension
+  audioFields.fileName.value = audio.name ?? "";
+  audioFields.filePath.value = audio.filePath ?? "";
 }

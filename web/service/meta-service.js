@@ -31,11 +31,9 @@ const audio_positions = [
   { value: "body", text: "正文" },
 ];
 
-function createDefaultMeta(metaFilePath) {
-  const name = nodePath.basename(metaFilePath, ".meta.json");
+function createDefaultMeta() {
 
   return {
-    title: name,
     description: "",
     duration: null, // HH:MM:SS.mmm
     start: "00:00:00.000", // HH:MM:SS.mmm
@@ -65,21 +63,21 @@ export function listAudioPosition() {
 
 export function loadMeta(metaFilePath, options = {}) {
   if (!metaFilePath || !fileExists(metaFilePath)) {
-    return createDefaultMeta(metaFilePath);
+    return createDefaultMeta();
   }
 
   try {
     return {
-      ...createDefaultMeta(metaFilePath),
+      ...createDefaultMeta(),
       ...readFileJson(metaFilePath),
     };
   } catch {
-    return createDefaultMeta(metaFilePath);
+    return createDefaultMeta();
   }
 }
 
-export function saveMeta(metaFilePath, meta = {}) {
-  const oldMeta = loadMeta(metaFilePath);
+export function saveMeta(filePath, meta = {}, options = {}) {
+  const oldMeta = loadMeta(filePath);
   const now = new Date().toISOString();
 
   const newMeta = {
@@ -89,7 +87,7 @@ export function saveMeta(metaFilePath, meta = {}) {
     updatedAt: now,
   };
 
-  writeFileJson(metaFilePath, newMeta, { overwrite: true, spaces: 2 });
+  writeFileJson(filePath, newMeta, { overwrite: true, spaces: 2 });
 
   return newMeta;
 }

@@ -1,8 +1,8 @@
-@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/slate.css";
-@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/slate-dark.css";
+@import "./radix-slate.css";
+@import "./radix-slate-dark.css";
 
-@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/blue.css";
-@import "https://cdn.jsdelivr.net/npm/@radix-ui/colors@3.0.0/blue-dark.css";
+@import "./radix-blue.css";
+@import "./radix-blue-dark.css";
 
 :root {
   color-scheme: light;

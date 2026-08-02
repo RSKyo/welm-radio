@@ -20,7 +20,7 @@
 
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
+  pointer-events: auto;
 
   transform: translate(-50%, -8px);
 
@@ -31,9 +31,11 @@
 }
 
 .toast.is-visible {
+  pointer-events: auto;
+  cursor: default;
+
   opacity: 1;
   visibility: visible;
-
   transform: translate(-50%, 0);
 }
 

@@ -1,11 +1,11 @@
 import nodePath from "node:path";
-import fs from "node:fs";
 
-import { scanFiles, removeFile, fileExists } from "welm-cdp/fs";
-import { selectFolder } from "welm-cdp/dialog";
+import { scanFiles, removeFile, copyFileTo, renameFile, fileExists } from "welm-cdp/fs";
+import { selectFolder,selectFiles } from "welm-cdp/dialog";
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
 import {
+  assertNonBlankString,
   assertAbsolutePath,
   assertExistingFile,
   assertPlainObject,
@@ -49,7 +49,7 @@ export function listCategory(options = {}) {
 }
 
 export function listAudio(filter = {}, options = {}) {
-  if (!audio_dir || !fs.existsSync(audio_dir)) {
+  if (!audio_dir || !fileExists(audio_dir)) {
     return [];
   }
 
@@ -117,58 +117,69 @@ export async function removeAudio(files, options = {}) {
     const name = nodePath.basename(filePath, nodePath.extname(filePath));
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
-    if (metaPath && fileExists(metaPath)) {
+    if (fileExists(metaPath)) {
       removeFile(metaPath);
     }
   }
 }
 
-export function saveAudioMeta(audioData = {}, options = {}) {
-  assertPlainObject(audioData, "audioData");
-  assertPlainObject(audioData.meta, "audioData.meta");
+export async function addAudio(options = {}) {
+  const files = await selectFiles({
+    includeExts: audio_exts,
+  });
 
-  // title is file name without extension, so it cannot be empty
-  const title = audioData.meta.title.trim();
-  if (!title) {
-    throw new Error("Audio title cannot be empty");
+  if (!files || files.length === 0) {
+    return null;
   }
 
-  let filePath = audioData.filePath;
-  let metaPath = audioData.metaPath;
+  for (const filePath of files) {
+    assertExistingFile(filePath, "filePath");
 
-  // audio file must exist, otherwise we cannot save its meta data
-  assertExistingFile(filePath, "audioData.filePath");
-  // meta file may not exist yet, so we don't assert its existence here
-  assertAbsolutePath(metaPath, "audioData.metaPath");
-
-  const ext = nodePath.extname(filePath);
-  const name = nodePath.basename(filePath, ext);
-
-  // if the title has changed, rename the audio file and its meta file accordingly
-  if (name !== title) {
-    const newFileName = `${title}${ext}`;
-    filePath = renameFile(filePath, newFileName);
-
-    if(fileExists(metaPath)) {
-      const newMetaName = `${title}.meta.json`;
-      metaPath = renameFile(metaPath, newMetaName);
+    const dir = nodePath.dirname(filePath);
+    if (dir === audio_dir) {
+      log.debug(`File ${filePath} is already in the audio library, skipping copy`, options);
+      continue;
     }
+    const fileName = nodePath.basename(filePath);
+    const destPath = nodePath.join(audio_dir, fileName);
+
+    copyFileTo(filePath, destPath);
   }
 
-  // save the updated meta data to the meta file
-  const newMeta = saveMeta(metaPath, audioData.meta, options);
+  return files;
+}
 
-  const { root, dir, base, ext, name } = nodePath.parse(filePath);
+export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
+  assertExistingFile(audioPath, "audioPath");
+  assertNonBlankString(newNameWithoutExt, "newNameWithoutExt");
+
+  const dir = nodePath.dirname(audioPath);
+  const ext = nodePath.extname(audioPath);
+  const audioName = nodePath.basename(audioPath, ext);
+
+  if (audioName === newNameWithoutExt) {
+    throw new Error("New name is the same as the current name");
+  }
+
+  const newAudioName = `${newNameWithoutExt}${ext}`;
+  const newAudioPath = nodePath.join(dir, newAudioName);
+  renameFile(audioPath, newAudioName);
+
+  let newMetaName, newMetaPath;
+  const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
+  if (fileExists(metaPath)) {
+    newMetaName = `${newNameWithoutExt}.meta.json`;
+    newMetaPath = nodePath.join(dir, newMetaName);
+    renameFile(metaPath, newMetaName);
+  }
+
+  const { base, name } = nodePath.parse(newAudioPath);
 
   return {
-    root,
-    dir,
     base,
-    ext,
     name,
-    filePath,
-    metaPath,
-    meta: newMeta,
+    filePath: newAudioPath,
+    metaPath: newMetaPath ?? metaPath,
   };
 }
 

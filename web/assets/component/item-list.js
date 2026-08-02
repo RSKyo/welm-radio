@@ -113,10 +113,9 @@ export class ItemList {
     return items.map((item) => ({ ...item }));
   }
 
-  async updateItem(item) {
+  async updateItem(value, item) {
+    assertValue(value, this.#items, this.#valueField);
     assertItem(item, this.#textField, this.#valueField);
-
-    const value = item[this.#valueField];
 
     const index = this.#items.findIndex(
       (item) => item[this.#valueField] === value,
@@ -128,6 +127,15 @@ export class ItemList {
 
     const items = [...this.#items];
     items[index] = { ...item };
+
+    if(value === this.#value) {
+      this.#value = item[this.#valueField];
+    }
+
+    if(this.#checkedValues.includes(value)) {
+      const checkedIndex = this.#checkedValues.indexOf(value);
+      this.#checkedValues[checkedIndex] = item[this.#valueField];
+    }
 
     await this.setItems(items);
   }
@@ -313,8 +321,10 @@ export class ItemList {
 
   #createDefaultContentElement(item) {
     const textElement = document.createElement("span");
+    textElement.className = `${this.#rootClass}-text`;
 
     textElement.textContent = item[this.#textField];
+    textElement.title = item[this.#textField];
 
     return textElement;
   }

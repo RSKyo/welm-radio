@@ -24,12 +24,7 @@
           <h1 class="ib" style="color: var(--color-primary)">Audio Library</h1>
         </div>
 
-        <button
-          id="select-audio-dir"
-          type="button"
-          title="选择音频库根目录"
-          class="primary"
-        >
+        <button id="select-audio-dir" type="button" title="选择音频库根目录">
           选择音频库根目录
         </button>
       </div>
@@ -71,7 +66,7 @@
           class="p-12-8 grow vbox"
           style="min-width: 360px; background-color: var(--color-surface)"
         >
-          <div class="toolbar" style="padding-left: 0">
+          <div class="toolbar" style="padding-left: 0; gap: 0">
             <div class="hbox a-center j-center" style="width: 36px">
               <input id="select-all" type="checkbox" />
             </div>
@@ -83,6 +78,15 @@
                 aria-label="删除"
               >
                 删除
+              </button>
+
+              <button
+                id="add-audio"
+                type="button"
+                title="添加"
+                aria-label="添加"
+              >
+                添加
               </button>
             </div>
             <div class="hbox a-center j-center p-0-8">
@@ -112,23 +116,30 @@
               重置
             </button>
 
-            <button
-              id="save-meta"
-              type="button"
-              title="保存"
-              aria-label="保存"
-              class="primary"
-            >
+            <button id="save-meta" type="button" title="保存" aria-label="保存">
               保存
             </button>
           </div>
-          <div class="p-12-8 grow scroll">
-            <form id="meta-form" class="form">
-              <input type="hidden" name="metaPath" />
-
+          <div class="p-12-8 grow scroll vbox gap-20">
+            <form id="audio-form" class="form">
               <div class="form-field">
-                <label>标题</label>
-                <input id="txtMetaTitle" name="title" type="text" />
+                <label>音频文件</label>
+                <div class="input-action">
+                  <input name="fileName" type="text" placeholder="音频文件名" />
+                  <input name="filePath" type="hidden" />
+                  <button id="rename-audio" type="button">重命名</button>
+                </div>
+              </div>
+            </form>
+
+            <form id="meta-form" class="form">
+              <div class="form-field">
+                <label>描述</label>
+                <textarea
+                  name="description"
+                  rows="3"
+                  placeholder="音频描述"
+                ></textarea>
               </div>
 
               <div class="form-field">
@@ -150,7 +161,6 @@
                 <label>分类</label>
 
                 <textarea
-                  id="txtMetaCategory"
                   name="category"
                   rows="3"
                   placeholder="天气, 新闻, 故事"
@@ -159,11 +169,7 @@
 
               <div class="form-field">
                 <label>内容</label>
-                <textarea
-                  id="txtMetaContent"
-                  name="content"
-                  rows="8"
-                ></textarea>
+                <textarea name="content" rows="8"></textarea>
                 <div>
                   <button id="transcribe-content" type="button">
                     自动识别内容
@@ -175,7 +181,6 @@
                 <label>总时长</label>
                 <div class="input-action">
                   <input
-                    id="txtMetaDuration"
                     name="duration"
                     type="text"
                     placeholder="HH:MM:SS.mmm"
@@ -186,29 +191,18 @@
 
               <div class="form-field">
                 <label>开始时间</label>
-                <input
-                  id="txtMetaStart"
-                  name="start"
-                  type="text"
-                  placeholder="HH:MM:SS.mmm"
-                />
+                <input name="start" type="text" placeholder="HH:MM:SS.mmm" />
               </div>
 
               <div class="form-field">
                 <label>结束时间</label>
-                <input
-                  id="txtMetaEnd"
-                  name="end"
-                  type="text"
-                  placeholder="HH:MM:SS.mmm"
-                />
+                <input name="end" type="text" placeholder="HH:MM:SS.mmm" />
               </div>
 
               <div class="form-field">
                 <label>剪切点</label>
 
                 <textarea
-                  id="txtMetaCutPoints"
                   name="cutPoints"
                   rows="5"
                   placeholder="每行填写一个时间 HH:MM:SS.mmm"
@@ -217,22 +211,12 @@
 
               <div class="form-field">
                 <label>创建时间</label>
-                <input
-                  id="txtMetaCreatedAt"
-                  name="createdAt"
-                  type="text"
-                  readonly
-                />
+                <input name="createdAt" type="text" readonly />
               </div>
 
               <div class="form-field">
                 <label>更新时间</label>
-                <input
-                  id="txtMetaUpdatedAt"
-                  name="updatedAt"
-                  type="text"
-                  readonly
-                />
+                <input name="updatedAt" type="text" readonly />
               </div>
             </form>
           </div>

@@ -67,6 +67,15 @@
   padding: 6px 10px 6px 36px;
 }
 
+.item-list .item-list-text {
+  flex: 1;
+  min-width: 0;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .item-list .item-list-item:hover {
   background-color: var(--color-hover);
   color: var(--color-hover-text);

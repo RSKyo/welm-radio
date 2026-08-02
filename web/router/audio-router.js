@@ -6,12 +6,14 @@ import {
   listAudio,
   removeAudio,
   listCategory,
-  saveAudioMeta,
+  renameAudio,
+  addAudio,
 } from "../service/audio-service.js";
 import {
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
+  saveMeta,
 } from "../service/meta-service.js";
 
 export const router = express.Router();
@@ -53,6 +55,19 @@ router.post(
   }),
 );
 
+// GET /audio/api/add-audio
+router.get(
+  "/add-audio",
+  withOptions(async (req, res, options) => {
+    const files = await addAudio(options);
+
+    res.json({
+      files,
+      canceled: !files,
+    });
+  }),
+);
+
 // GET /audio/api/list-audio-type
 router.get(
   "/list-audio-type",
@@ -85,14 +100,26 @@ router.get(
   }),
 );
 
-// POST /audio/api/save-audio-meta
+// POST /audio/api/save-meta
 router.post(
-  "/save-audio-meta",
+  "/save-meta",
   withOptions(async (req, res, options) => {
-    const { audioMeta } = req.body ?? {};
+    const { metaPath, meta } = req.body ?? {};
 
-    const savedAudioMeta = await saveAudioMeta(audioMeta, options);
+    const savedMeta = await saveMeta(metaPath, meta, options);
 
-    res.json(savedAudioMeta);
+    res.json(savedMeta);
+  }),
+);
+
+// POST /audio/api/rename-audio
+router.post(
+  "/rename-audio",
+  withOptions(async (req, res, options) => {
+    const { audioPath, name } = req.body ?? {};
+
+    const result = await renameAudio(audioPath, name, options);
+
+    res.json(result);
   }),
 );

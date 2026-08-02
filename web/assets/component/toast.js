@@ -17,6 +17,15 @@ export class Toast {
     this.#element.append(this.#messageElement);
     document.body.append(this.#element);
 
+    this.#element.addEventListener("mouseenter", () => {
+      clearTimeout(this.#timer);
+      this.#timer = null;
+    });
+
+    this.#element.addEventListener("mouseleave", () => {
+      this.hide();
+    });
+
     if (options.className) {
       this.#element.classList.add(options.className);
     }
