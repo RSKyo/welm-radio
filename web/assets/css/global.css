@@ -178,6 +178,10 @@ button.primary:not(:disabled):active {
   flex: 1;
 }
 
+.shrink {
+  flex: none;
+}
+
 .wrap {
   flex-wrap: wrap;
 }
@@ -282,6 +286,7 @@ button.primary:not(:disabled):active {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 

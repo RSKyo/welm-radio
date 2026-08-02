@@ -12,8 +12,6 @@
     <link rel="stylesheet" href="/assets/component/toast.css" />
     <link rel="stylesheet" href="/assets/component/chip-group.css" />
     <link rel="stylesheet" href="/assets/component/item-list.css" />
-
-    <link rel="stylesheet" href="audio.css" />
   </head>
 
   <body>
@@ -23,10 +21,6 @@
         <div class="grow">
           <h1 class="ib" style="color: var(--color-primary)">Audio Library</h1>
         </div>
-
-        <button id="select-audio-dir" type="button" title="选择音频库根目录">
-          选择音频库根目录
-        </button>
       </div>
 
       <!-- main -->
@@ -40,22 +34,22 @@
             background-color: var(--color-surface);
           "
         >
-          <div class="vbox gap-8">
+          <div class="shrink vbox gap-8">
             <label class="label">音频类型</label>
             <div id="audio-type-filter"></div>
           </div>
 
-          <div class="vbox gap-8">
+          <div class="shrink vbox gap-8">
             <label class="label">音频位置</label>
             <div id="audio-position-filter"></div>
           </div>
 
-          <div class="vbox gap-8">
+          <div class="shrink vbox gap-8">
             <label class="label">音频语言</label>
             <div id="audio-language-filter"></div>
           </div>
 
-          <div class="vbox gap-8">
+          <div class="shrink vbox gap-8">
             <label class="label">音频分类</label>
             <div id="audio-category-filter"></div>
           </div>
@@ -70,24 +64,24 @@
             <div class="hbox a-center j-center" style="width: 36px">
               <input id="select-all" type="checkbox" />
             </div>
-            <div class="grow hbox a-center gap-8">
+            <div class="grow toolbar" style="padding-left: 0">
+              <button id="remove-audio" type="button">删除</button>
+              <button id="add-audio" type="button">添加</button>
+              <button id="rename-audio" type="button">重命名</button>
               <button
-                id="remove-audio"
+                id="select-audio-dir"
                 type="button"
-                title="删除"
-                aria-label="删除"
+                style="white-space: nowrap"
               >
-                删除
+                选择音频库根目录
               </button>
-
-              <button
-                id="add-audio"
-                type="button"
-                title="添加"
-                aria-label="添加"
-              >
-                添加
-              </button>
+              <select id="select-order">
+                <option value="default">默认</option>
+                <option value="createdAt-desc">创建时间（新到旧）</option>
+                <option value="createdAt-asc">创建时间（旧到新）</option>
+                <option value="updatedAt-desc">更新时间（新到旧）</option>
+                <option value="updatedAt-asc">更新时间（旧到新）</option>
+              </select>
             </div>
             <div class="hbox a-center j-center p-0-8">
               共有音频：
@@ -95,6 +89,9 @@
             </div>
           </div>
           <div id="audio-list" class="grow scroll"></div>
+          <div class="hbox c-center j-center">
+            <audio id="audio-player" controls></audio>
+          </div>
         </div>
 
         <!-- meta -->
@@ -107,31 +104,9 @@
           "
         >
           <div class="toolbar">
-            <button
-              id="reset-meta"
-              type="button"
-              title="重置"
-              aria-label="重置"
-            >
-              重置
-            </button>
-
-            <button id="save-meta" type="button" title="保存" aria-label="保存">
-              保存
-            </button>
+            <button id="save-meta" type="button">保存</button>
           </div>
           <div class="p-12-8 grow scroll vbox gap-20">
-            <form id="audio-form" class="form">
-              <div class="form-field">
-                <label>音频文件</label>
-                <div class="input-action">
-                  <input name="fileName" type="text" placeholder="音频文件名" />
-                  <input name="filePath" type="hidden" />
-                  <button id="rename-audio" type="button">重命名</button>
-                </div>
-              </div>
-            </form>
-
             <form id="meta-form" class="form">
               <div class="form-field">
                 <label>描述</label>
@@ -140,6 +115,11 @@
                   rows="3"
                   placeholder="音频描述"
                 ></textarea>
+              </div>
+
+              <div class="form-field">
+                <label>同组音频</label>
+                <input name="alternateGroup" type="text" placeholder="同组音频唯一标识" />
               </div>
 
               <div class="form-field">

@@ -1,9 +1,16 @@
 import nodePath from "node:path";
 
-import { scanFiles, removeFile, copyFileTo, renameFile, fileExists } from "welm-cdp/fs";
-import { selectFolder,selectFiles } from "welm-cdp/dialog";
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
+import {
+  scanFiles,
+  removeFile,
+  copyFileTo,
+  renameFile,
+  readFileBuffer,
+  fileExists,
+} from "welm-cdp/fs";
+import { selectFolder, selectFiles } from "welm-cdp/dialog";
 import {
   assertNonBlankString,
   assertAbsolutePath,
@@ -14,9 +21,71 @@ import {
 import { loadMeta, saveMeta } from "./meta-service.js";
 
 const audio_library_key_path = "radio.audio_library";
+const audio_types_key_path = "radio.audio_types";
+const audio_languages_key_path = "radio.audio_languages";
+const audio_positions_key_path = "radio.audio_positions";
+
 const audio_exts = [".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg"];
+const audio_mime_types = {
+  ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
+  ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".ogg": "audio/ogg",
+};
+
+const default_audio_types = [
+  { value: "voice", text: "人声" },
+  { value: "music", text: "音乐" },
+  { value: "bed", text: "背景垫乐" },
+  { value: "ambience", text: "环境声" },
+  { value: "effect", text: "音效" },
+  { value: "jingle", text: "标识音" },
+  { value: "mixed", text: "混合成品" },
+];
+
+const default_audio_languages = [
+  { value: "zh", text: "中文" },
+  { value: "en", text: "英文" },
+];
+
+const default_audio_positions = [
+  { value: "opening", text: "节目开头" },
+  { value: "closing", text: "节目结束" },
+  { value: "before_break", text: "插播前" },
+  { value: "after_break", text: "插播后" },
+  { value: "resume", text: "恢复正文前" },
+  { value: "body", text: "正文" },
+];
 
 let audio_dir = config.get(audio_library_key_path);
+
+let audio_types = config.get(audio_types_key_path);
+if (!audio_types || !Array.isArray(audio_types) || audio_types.length === 0) {
+  audio_types = default_audio_types;
+  config.set(audio_types_key_path, audio_types);
+}
+
+let audio_languages = config.get(audio_languages_key_path);
+if (
+  !audio_languages ||
+  !Array.isArray(audio_languages) ||
+  audio_languages.length === 0
+) {
+  audio_languages = default_audio_languages;
+  config.set(audio_languages_key_path, audio_languages);
+}
+
+let audio_positions = config.get(audio_positions_key_path);
+if (
+  !audio_positions ||
+  !Array.isArray(audio_positions) ||
+  audio_positions.length === 0
+) {
+  audio_positions = default_audio_positions;
+  config.set(audio_positions_key_path, audio_positions);
+}
 
 // -----------------------------------------------------------------------------
 // Public API
@@ -27,8 +96,6 @@ export async function selectAudioDir(options = {}) {
     dialogTitle: "Choose Audio Library",
   });
 
-  log.debug(`Selected Audio Dir: ${dir}`, options);
-
   if (!dir) {
     return null;
   }
@@ -38,7 +105,19 @@ export async function selectAudioDir(options = {}) {
   return dir;
 }
 
-export function listCategory(options = {}) {
+export function listAudioType() {
+  return audio_types;
+}
+
+export function listAudioLanguage() {
+  return audio_languages;
+}
+
+export function listAudioPosition() {
+  return audio_positions;
+}
+
+export function listAudioCategory(options = {}) {
   const audios = listAudio({}, options);
 
   const categories = Array.from(
@@ -137,7 +216,10 @@ export async function addAudio(options = {}) {
 
     const dir = nodePath.dirname(filePath);
     if (dir === audio_dir) {
-      log.debug(`File ${filePath} is already in the audio library, skipping copy`, options);
+      log.debug(
+        `File ${filePath} is already in the audio library, skipping copy`,
+        options,
+      );
       continue;
     }
     const fileName = nodePath.basename(filePath);
@@ -163,6 +245,7 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
 
   const newAudioName = `${newNameWithoutExt}${ext}`;
   const newAudioPath = nodePath.join(dir, newAudioName);
+  // the second argument is the new name, not the full path
   renameFile(audioPath, newAudioName);
 
   let newMetaName, newMetaPath;
@@ -180,6 +263,19 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
     name,
     filePath: newAudioPath,
     metaPath: newMetaPath ?? metaPath,
+  };
+}
+
+export async function loadAudio(filePath, options = {}) {
+  assertExistingFile(filePath, "filePath");
+
+  const ext = nodePath.extname(filePath).toLowerCase();
+  const contentType = audio_mime_types[ext] || "application/octet-stream";
+  const buffer = readFileBuffer(filePath);
+
+  return {
+    contentType,
+    buffer,
   };
 }
 

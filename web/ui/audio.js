@@ -8,7 +8,6 @@ import { ItemList } from "/assets/component/item-list.js";
 // -----------------------------------------------------------------------------
 
 /* elements */
-const selectAudioDirBtn = document.querySelector("#select-audio-dir");
 
 const audioTypeFilterEl = document.querySelector("#audio-type-filter");
 const audioLanguageFilterEl = document.querySelector("#audio-language-filter");
@@ -18,19 +17,20 @@ const audioCategoryFilterEl = document.querySelector("#audio-category-filter");
 const selectAllChk = document.querySelector("#select-all");
 const removeAudioBtn = document.querySelector("#remove-audio");
 const addAudioBtn = document.querySelector("#add-audio");
+const selectAudioDirBtn = document.querySelector("#select-audio-dir");
+const selectOrderSel = document.querySelector("#select-order");
 const audioCountEl = document.querySelector("#audio-count");
 const audioListEl = document.querySelector("#audio-list");
 
-const resetMetaBtn = document.querySelector("#reset-meta");
 const saveMetaBtn = document.querySelector("#save-meta");
 const renameAudioBtn = document.querySelector("#rename-audio");
-const audioFormFrm = document.querySelector("#audio-form");
-const audioFields = audioFormFrm.elements;
 const metaFormFrm = document.querySelector("#meta-form");
 const metaFields = metaFormFrm.elements;
 const metaTypeEl = document.querySelector("#meta-type");
 const metaLanguageEl = document.querySelector("#meta-language");
 const metaPositionEl = document.querySelector("#meta-position");
+
+const audioPlayerEl = document.querySelector("#audio-player");
 
 /* components */
 const audioTypeFilterCmp = new ChipGroup(audioTypeFilterEl);
@@ -129,14 +129,15 @@ function bindEvents() {
     safeHandler(removeAudioBtn_clickHandler),
   );
   addAudioBtn.addEventListener("click", safeHandler(addAudioBtn_clickHandler));
+  selectOrderSel.addEventListener(
+    "change",
+    safeHandler(selectOrderSel_changeHandler),
+  );
 
   audioListCmp.onChange = safeHandler(audioListCmp_changeHandler);
+  audioListCmp.onDoubleClick = safeHandler(audioListCmp_doubleClickHandler);
   audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
 
-  resetMetaBtn.addEventListener(
-    "click",
-    safeHandler(resetMetaBtn_clickHandler),
-  );
   saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
   renameAudioBtn.addEventListener(
     "click",
@@ -248,25 +249,27 @@ async function addAudioBtn_clickHandler() {
   toast.show(`添加了 ${files.length} 个音频文件`);
 }
 
+async function selectOrderSel_changeHandler() {
+  const audios = audioListCmp.getItems();
+  orderAudios(audios);
+  await audioListCmp.setItems(audios);
+}
+
 async function audioListCmp_changeHandler(item, oldItem) {
-  await setFormAudio(item);
   await setFormMeta(item.meta);
+  setAudioPlayer(item);
+}
+
+async function audioListCmp_doubleClickHandler(item) {
+  await setFormMeta(item.meta);
+  setAudioPlayer(item);
+
+  // play the audio
+  audioPlayerEl.play();
 }
 
 async function audioListCmp_checkedChangeHandler(items) {
   selectAllChk.checked = items.length === audioListCmp.getItems().length;
-}
-
-async function resetMetaBtn_clickHandler() {
-  const selectedItem = audioListCmp.getSelectedItem();
-
-  if (!selectedItem) {
-    toast.show("请先选择一个音频文件");
-    return;
-  }
-
-  await setFormAudio(selectedItem);
-  await setFormMeta(selectedItem.meta);
 }
 
 async function saveMetaBtn_clickHandler() {
@@ -299,9 +302,6 @@ async function saveMetaBtn_clickHandler() {
     await audioCategoryFilterCmp.setItems(categories);
   }
 
-  // update the file name in the form if it has changed
-  audioFields.fileName.value = selectedItem.name;
-
   toast.show("已保存音频元数据");
 }
 
@@ -313,7 +313,15 @@ async function renameAudioBtn_clickHandler() {
     return;
   }
 
-  const name = audioFields.fileName.value.trim();
+  const name = window.prompt(
+    "请输入新的文件名：",
+    selectedItem.name, // 不带扩展名的旧名字
+  );
+
+  if (name === null) {
+    return;
+  }
+
   const audioPath = selectedItem.filePath;
 
   if (!name || name.trim() === "") {
@@ -354,22 +362,25 @@ async function renameAudioBtn_clickHandler() {
 
 async function refreshAudioList() {
   const audios = await apiCalls.listAudio();
+  orderAudios(audios);
   await audioListCmp.setItems(audios);
 
   audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
   const item = audioListCmp.getSelectedItem();
   if (item) {
-    await setFormAudio(item);
     await setFormMeta(item.meta);
+    setAudioPlayer(item);
   } else {
-    await setFormAudio({});
     await setFormMeta({});
+    setAudioPlayer({});
   }
 }
 
 async function setFormMeta(meta = {}) {
   metaFields.description.value = meta.description ?? "";
+  metaFields.alternateGroup.value = meta.alternateGroup ?? "";
+
   metaFields.category.value = Array.isArray(meta.category)
     ? meta.category.join(", ")
     : (meta.category ?? "");
@@ -394,6 +405,7 @@ async function setFormMeta(meta = {}) {
 function getFormMeta() {
   return {
     description: metaFields.description.value.trim(),
+    alternateGroup: metaFields.alternateGroup.value.trim(),
 
     category: metaFields.category.value
       .split(/[,，]/)
@@ -419,8 +431,57 @@ function getFormMeta() {
     updatedAt: metaFields.updatedAt.value.trim() || null,
   };
 }
-async function setFormAudio(audio = {}) {
-  // base is filename with extension, name is filename without extension
-  audioFields.fileName.value = audio.name ?? "";
-  audioFields.filePath.value = audio.filePath ?? "";
+
+function setAudioPlayer(audio) {
+  const url = `/audio/api/load-audio?filePath=${encodeURIComponent(audio.filePath)}`;
+  const src = audio.filePath ? url : "";
+
+  audioPlayerEl.src = src;
+  audioPlayerEl.load();
+}
+
+function orderAudios(audios) {
+  const order = selectOrderSel.value;
+
+  if (order === "default") {
+    audios.sort((a, b) => {
+      const aTime = Date.parse(a.meta?.updatedAt ?? "");
+      const bTime = Date.parse(b.meta?.updatedAt ?? "");
+
+      const aHasTime = Number.isFinite(aTime);
+      const bHasTime = Number.isFinite(bTime);
+
+      // 没有更新时间的音频始终放前面
+      if (!aHasTime && !bHasTime) {
+        return a.name.localeCompare(b.name);
+      }
+
+      if (!aHasTime) return -1;
+      if (!bHasTime) return 1;
+
+      return (aTime - bTime) * -1 || a.name.localeCompare(b.name);
+    });
+    return;
+  }
+
+  const [field, direction] = order.split("-");
+  const factor = direction === "asc" ? 1 : -1;
+
+  audios.sort((a, b) => {
+    const aTime = Date.parse(a.meta?.[field] ?? "");
+    const bTime = Date.parse(b.meta?.[field] ?? "");
+
+    const aHasTime = Number.isFinite(aTime);
+    const bHasTime = Number.isFinite(bTime);
+
+    // 没有创建/更新时间的音频始终放最后
+    if (!aHasTime && !bHasTime) {
+      return a.name.localeCompare(b.name);
+    }
+
+    if (!aHasTime) return 1;
+    if (!bHasTime) return -1;
+
+    return (aTime - bTime) * factor || a.name.localeCompare(b.name);
+  });
 }

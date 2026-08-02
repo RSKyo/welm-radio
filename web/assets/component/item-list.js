@@ -17,6 +17,7 @@ export class ItemList {
   #checkedValues;
   onSetItems;
   onChange;
+  onDoubleClick;
   onCheckedChange;
   onRenderItem;
 
@@ -59,6 +60,7 @@ export class ItemList {
 
     this.onSetItems = options.onSetItems ?? null;
     this.onChange = options.onChange ?? null;
+    this.onDoubleClick = options.onDoubleClick ?? null;
     this.onCheckedChange = options.onCheckedChange ?? null;
     this.onRenderItem = options.onRenderItem ?? null;
 
@@ -257,6 +259,28 @@ export class ItemList {
         }
 
         await this.#changeCheckedValues(newCheckedValues, { event });
+        return;
+      }
+    });
+
+    this.#container.addEventListener("dblclick", async (event) => {
+      const itemElement = event.target.closest(`.${this.#rootClass}-item`);
+      if (!itemElement || !this.#container.contains(itemElement)) {
+        return;
+      }
+
+      const value = itemElement?.dataset.value;
+
+      const itemContentElement = event.target.closest(
+        `.${this.#rootClass}-content`,
+      );
+      if (itemContentElement && this.#container.contains(itemContentElement)) {
+        if (this.onDoubleClick) {
+          const item = this.#items.find(
+            (item) => item[this.#valueField] === value,
+          );
+          await this.onDoubleClick(item, event);
+        }
         return;
       }
     });

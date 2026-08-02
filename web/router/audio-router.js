@@ -3,18 +3,17 @@ import express from "express";
 import { withOptions } from "welm-cdp/web";
 import {
   selectAudioDir,
-  listAudio,
-  removeAudio,
-  listCategory,
-  renameAudio,
-  addAudio,
-} from "../service/audio-service.js";
-import {
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
-  saveMeta,
-} from "../service/meta-service.js";
+  listAudioCategory,
+  listAudio,
+  removeAudio,
+  addAudio,
+  renameAudio,
+  loadAudio,
+} from "../service/audio-service.js";
+import { saveMeta } from "../service/meta-service.js";
 
 export const router = express.Router();
 
@@ -28,6 +27,38 @@ router.get(
       dir,
       canceled: !dir,
     });
+  }),
+);
+
+// GET /audio/api/list-audio-type
+router.get(
+  "/list-audio-type",
+  withOptions(async (req, res, options) => {
+    res.json(listAudioType());
+  }),
+);
+
+// GET /audio/api/list-audio-language
+router.get(
+  "/list-audio-language",
+  withOptions(async (req, res, options) => {
+    res.json(listAudioLanguage());
+  }),
+);
+
+// GET /audio/api/list-audio-position
+router.get(
+  "/list-audio-position",
+  withOptions(async (req, res, options) => {
+    res.json(listAudioPosition());
+  }),
+);
+
+// GET /audio/api/list-audio-category
+router.get(
+  "/list-audio-category",
+  withOptions(async (req, res, options) => {
+    res.json(listAudioCategory(options));
   }),
 );
 
@@ -68,35 +99,28 @@ router.get(
   }),
 );
 
-// GET /audio/api/list-audio-type
-router.get(
-  "/list-audio-type",
+// POST /audio/api/rename-audio
+router.post(
+  "/rename-audio",
   withOptions(async (req, res, options) => {
-    res.json(listAudioType());
+    const { audioPath, name } = req.body ?? {};
+
+    const result = await renameAudio(audioPath, name, options);
+
+    res.json(result);
   }),
 );
 
-// GET /audio/api/list-audio-language
+// GET /audio/api/load-audio
 router.get(
-  "/list-audio-language",
+  "/load-audio",
   withOptions(async (req, res, options) => {
-    res.json(listAudioLanguage());
-  }),
-);
+    const { filePath } = req.query ?? {};
 
-// GET /audio/api/list-audio-position
-router.get(
-  "/list-audio-position",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioPosition());
-  }),
-);
+    const { contentType, buffer } = await loadAudio(filePath, options);
 
-// GET /audio/api/list-audio-category
-router.get(
-  "/list-audio-category",
-  withOptions(async (req, res, options) => {
-    res.json(listCategory(options));
+    res.type(contentType);
+    res.send(buffer);
   }),
 );
 
@@ -112,14 +136,3 @@ router.post(
   }),
 );
 
-// POST /audio/api/rename-audio
-router.post(
-  "/rename-audio",
-  withOptions(async (req, res, options) => {
-    const { audioPath, name } = req.body ?? {};
-
-    const result = await renameAudio(audioPath, name, options);
-
-    res.json(result);
-  }),
-);
