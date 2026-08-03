@@ -6,7 +6,9 @@ import {
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
+  listAudioDayPart,
   listAudioCategory,
+  listAlternateGroup,
   listAudio,
   removeAudio,
   addAudio,
@@ -54,11 +56,27 @@ router.get(
   }),
 );
 
+// GET /audio/api/list-audio-day-part
+router.get(
+  "/list-audio-day-part",
+  withOptions(async (req, res, options) => {
+    res.json(listAudioDayPart());
+  }),
+);
+
 // GET /audio/api/list-audio-category
 router.get(
   "/list-audio-category",
   withOptions(async (req, res, options) => {
     res.json(listAudioCategory(options));
+  }),
+);
+
+// GET /audio/api/list-audio-alternate-group
+router.get(
+  "/list-audio-alternate-group",
+  withOptions(async (req, res, options) => {
+    res.json(listAlternateGroup(options));
   }),
 );
 

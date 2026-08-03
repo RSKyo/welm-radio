@@ -10,6 +10,8 @@ export class ChipGroup {
   #container;
   #textField;
   #valueField;
+  #titleField;
+  #showSelectActions;
   #items;
   #mode;
   #values;
@@ -37,6 +39,9 @@ export class ChipGroup {
 
     this.#textField = options.textField ?? "text";
     this.#valueField = options.valueField ?? "value";
+    this.#titleField = options.titleField ?? "title";
+
+    this.#showSelectActions = options.showSelectActions ?? false;
 
     this.#items = [
       ...assertItems(options.items ?? [], this.#textField, this.#valueField),
@@ -117,8 +122,21 @@ export class ChipGroup {
     await this.#changeValues(validatedValues);
   }
 
+  async selectAll() {
+    if (this.#mode === "single") {
+      throw new Error("selectAll is only available in multiple mode");
+    }
+
+    const allValues = this.#items.map((item) => item[this.#valueField]);
+    await this.#changeValues(allValues);
+  }
+
   async unselect() {
-    await this.setValues([]);
+    if (this.#mode === "single") {
+      throw new Error("unselect is only available in multiple mode");
+    }
+
+    await this.#changeValues([]);
   }
 
   // -----------------------------------------------------------------------------
@@ -158,24 +176,37 @@ export class ChipGroup {
 
   #bindEvents() {
     this.#container.addEventListener("click", async (event) => {
+      // click on an item
       const itemElement = event.target.closest(`.${this.#rootClass}-item`);
-      if (!itemElement || !this.#container.contains(itemElement)) {
+      if (itemElement && this.#container.contains(itemElement)) {
+        const value = itemElement.dataset.value;
+        const oldValues = this.#values;
+        let newValues = [];
+
+        if (this.#mode === "single") {
+          newValues = oldValues.includes(value) ? [] : [value];
+        } else if (oldValues.includes(value)) {
+          newValues = oldValues.filter((v) => v !== value);
+        } else {
+          newValues = [...oldValues, value];
+        }
+
+        await this.#changeValues(newValues, { event });
+
         return;
       }
 
-      const value = itemElement.dataset.value;
-      const oldValues = this.#values;
-      let newValues = [];
+      // click on an action button
+      const actionElement = event.target.closest(`.${this.#rootClass}-action`);
+      if (actionElement && this.#container.contains(actionElement)) {
+        if (actionElement.dataset.action === "select-all") {
+          await this.selectAll();
+        } else {
+          await this.unselect();
+        }
 
-      if (this.#mode === "single") {
-        newValues = oldValues.includes(value) ? [] : [value];
-      } else if (oldValues.includes(value)) {
-        newValues = oldValues.filter((v) => v !== value);
-      } else {
-        newValues = [...oldValues, value];
+        return;
       }
-
-      await this.#changeValues(newValues, { event });
     });
   }
 
@@ -189,6 +220,10 @@ export class ChipGroup {
     for (const item of this.#items) {
       const itemElement = this.#renderItem(item);
       this.#container.appendChild(itemElement);
+    }
+
+    if (this.#mode === "multiple" && this.#showSelectActions) {
+      this.#container.appendChild(this.#renderSelectActions());
     }
 
     this.#updateSelectedState();
@@ -213,10 +248,33 @@ export class ChipGroup {
     return itemElement;
   }
 
+  #renderSelectActions() {
+    const actionsElement = document.createElement("div");
+    actionsElement.className = `${this.#rootClass}-actions`;
+
+    const selectAllButton = document.createElement("button");
+    selectAllButton.type = "button";
+    selectAllButton.className = `${this.#rootClass}-action`;
+    selectAllButton.dataset.action = "select-all";
+    selectAllButton.textContent = "全选";
+
+    const unselectButton = document.createElement("button");
+    unselectButton.type = "button";
+    unselectButton.className = `${this.#rootClass}-action`;
+    unselectButton.dataset.action = "unselect";
+    unselectButton.textContent = "取消";
+
+    actionsElement.append(selectAllButton, unselectButton);
+
+    return actionsElement;
+  }
+
   #createDefaultContentElement(item) {
     const textElement = document.createElement("span");
 
     textElement.textContent = item[this.#textField];
+    textElement.className = `${this.#rootClass}-text`;
+    textElement.title = item[this.#titleField] || item[this.#textField];
 
     return textElement;
   }

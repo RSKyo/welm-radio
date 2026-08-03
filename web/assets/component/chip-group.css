@@ -9,6 +9,8 @@
   display: inline-flex;
   align-items: center;
 
+  min-width: 0;
+  max-width: 100%;
   height: 22px;
   padding: 0 8px;
 
@@ -52,4 +54,45 @@
   background-color: var(--color-selected-hover);
   color: var(--color-selected-hover-text);
   box-shadow: inset 0 -1px var(--color-selected-hover-indicator);
+}
+
+.chip-group .chip-group-text {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chip-group-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+}
+
+.chip-group-action {
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.chip-group-action:hover {
+  color: var(--color-hover-text);
+  text-decoration: underline;
+}
+
+.chip-group-action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
 }

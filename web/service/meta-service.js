@@ -10,7 +10,7 @@ import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 function createDefaultMeta() {
   return {
     description: "",
-    alternateGroup: "",
+    alternateGroup: "", // 同一组音频的不同版本，使用相同的 alternateGroup 值来关联
     duration: null, // HH:MM:SS.mmm
     start: "00:00:00.000", // HH:MM:SS.mmm
     end: null, // HH:MM:SS.mmm

@@ -36,27 +36,104 @@ const audio_mime_types = {
 };
 
 const default_audio_types = [
-  { value: "voice", text: "人声" },
-  { value: "music", text: "音乐" },
-  { value: "bed", text: "背景垫乐" },
-  { value: "ambience", text: "环境声" },
-  { value: "effect", text: "音效" },
-  { value: "jingle", text: "标识音" },
-  { value: "mixed", text: "混合成品" },
+  {
+    value: "voice",
+    text: "人声",
+    description: "以说话内容为主，例如问候、主持、故事、新闻或访谈。",
+  },
+  {
+    value: "music",
+    text: "音乐",
+    description: "完整或独立播放的音乐内容，例如歌曲、纯音乐或配乐。",
+  },
+  {
+    value: "bed",
+    text: "背景垫乐",
+    description: "用于人声下方持续铺垫的轻音乐，通常不会单独作为正文播放。",
+  },
+  {
+    value: "ambience",
+    text: "环境声",
+    description: "营造场景氛围的自然或空间声音，例如雨声、海浪、咖啡馆声。",
+  },
+  {
+    value: "effect",
+    text: "音效",
+    description: "较短的提示、转场或动作声音，例如铃声、按键声、掌声。",
+  },
+  {
+    value: "jingle",
+    text: "标识音",
+    description: "用于节目、栏目或品牌识别的短音频，例如台呼、片头标识。",
+  },
+  {
+    value: "mixed",
+    text: "混合成品",
+    description: "已经混合完成的音频，可能同时包含人声、音乐和音效。",
+  },
 ];
 
 const default_audio_languages = [
-  { value: "zh", text: "中文" },
-  { value: "en", text: "英文" },
+  { value: "zh", text: "中文", description: "中文广播" },
+  { value: "en", text: "英文", description: "英文广播" },
 ];
 
 const default_audio_positions = [
-  { value: "opening", text: "节目开头" },
-  { value: "closing", text: "节目结束" },
-  { value: "before_break", text: "插播前" },
-  { value: "after_break", text: "插播后" },
-  { value: "resume", text: "恢复正文前" },
-  { value: "body", text: "正文" },
+  {
+    value: "opening",
+    text: "节目开头",
+    description: "整期节目的开场内容，只播放一次。",
+  },
+  {
+    value: "closing",
+    text: "节目结束",
+    description: "整期节目的结尾内容，只播放一次。",
+  },
+  {
+    value: "before_break",
+    text: "插播前",
+    description: "进入广告、提示或其他插播内容前使用。",
+  },
+  {
+    value: "after_break",
+    text: "插播后",
+    description: "插播内容结束后，用于回到节目。",
+  },
+  {
+    value: "resume",
+    text: "恢复正文前",
+    description: "中断后重新回到原正文内容前使用。",
+  },
+  {
+    value: "body_intro",
+    text: "正文引入",
+    description: "某段正文开始前的介绍或引导，例如介绍接下来要听的歌曲。",
+  },
+  {
+    value: "body",
+    text: "正文",
+    description: "节目中的主要内容，例如音乐、故事、新闻或访谈。",
+  },
+  {
+    value: "body_outro",
+    text: "正文收尾",
+    description: "某段正文结束后的感想、总结或过渡语。",
+  },
+];
+
+const default_audio_day_parts = [
+  { value: "midnight", text: "午夜", description: "00:00-02:00" },
+  { value: "late_night", text: "深夜", description: "02:00-05:00" },
+  { value: "dawn", text: "黎明", description: "05:00-06:00" },
+  { value: "early_morning", text: "清晨", description: "06:00-08:00" },
+  { value: "morning", text: "上午", description: "08:00-10:00" },
+  { value: "late_morning", text: "上午晚些时候", description: "10:00-12:00" },
+  { value: "noon", text: "中午", description: "12:00-13:00" },
+  { value: "early_afternoon", text: "午后", description: "13:00-15:00" },
+  { value: "afternoon", text: "下午", description: "15:00-17:00" },
+  { value: "evening", text: "傍晚", description: "17:00-19:00" },
+  { value: "night", text: "晚间", description: "19:00-22:00" },
+  { value: "late_evening", text: "夜晚", description: "22:00-24:00" },
 ];
 
 let audio_dir = config.get(audio_library_key_path);
@@ -117,6 +194,10 @@ export function listAudioPosition() {
   return audio_positions;
 }
 
+export function listAudioDayPart() {
+  return default_audio_day_parts;
+}
+
 export function listAudioCategory(options = {}) {
   const audios = listAudio({}, options);
 
@@ -125,6 +206,16 @@ export function listAudioCategory(options = {}) {
   ).map((category) => ({ text: category, value: category }));
 
   return categories;
+}
+
+export function listAlternateGroup(options = {}) {
+  const audios = listAudio({}, options);
+
+  const groups = Array.from(
+    new Set(audios.flatMap((audio) => audio.meta?.alternateGroup || [])),
+  ).map((group) => ({ text: group, value: group }));
+
+  return groups;
 }
 
 export function listAudio(filter = {}, options = {}) {
@@ -152,38 +243,7 @@ export function listAudio(filter = {}, options = {}) {
     };
   });
 
-  // filter by audio type if specified
-  if (filter.types && filter.types.length > 0) {
-    audios = audios.filter((audio) => {
-      return audio.meta && filter.types.includes(audio.meta.type);
-    });
-  }
-
-  // filter by audio language if specified
-  if (filter.languages && filter.languages.length > 0) {
-    audios = audios.filter((audio) => {
-      return audio.meta && filter.languages.includes(audio.meta.language);
-    });
-  }
-
-  // filter by audio position if specified
-  if (filter.positions && filter.positions.length > 0) {
-    audios = audios.filter((audio) => {
-      return audio.meta && filter.positions.includes(audio.meta.position);
-    });
-  }
-
-  if (filter.categories && filter.categories.length > 0) {
-    audios = audios.filter((audio) => {
-      return (
-        audio.meta &&
-        Array.isArray(audio.meta.category) &&
-        audio.meta.category.some((cat) => filter.categories.includes(cat))
-      );
-    });
-  }
-
-  return audios;
+  return filterAudios(audios, filter);
 }
 
 export async function removeAudio(files, options = {}) {
@@ -290,4 +350,56 @@ function setAudioDir(dir) {
   audio_dir = dir;
 
   return dir;
+}
+
+function filterAudios(audios, filter) {
+  // filter by audio type if specified
+  if (filter.types && filter.types.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.types.includes(audio.meta.type);
+    });
+  }
+
+  // filter by audio language if specified
+  if (filter.languages && filter.languages.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.languages.includes(audio.meta.language);
+    });
+  }
+
+  // filter by audio position if specified
+  if (filter.positions && filter.positions.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.positions.includes(audio.meta.position);
+    });
+  }
+
+  // filter by audio day part if specified
+  if (filter.dayParts && filter.dayParts.length > 0) {
+    audios = audios.filter((audio) => {
+      return audio.meta && filter.dayParts.includes(audio.meta.dayPart);
+    });
+  }
+
+  // filter by audio category if specified
+  if (filter.categories && filter.categories.length > 0) {
+    audios = audios.filter((audio) => {
+      return (
+        audio.meta &&
+        Array.isArray(audio.meta.category) &&
+        audio.meta.category.some((cat) => filter.categories.includes(cat))
+      );
+    });
+  }
+
+  // filter by audio alternate group if specified
+  if (filter.alternateGroups && filter.alternateGroups.length > 0) {
+    audios = audios.filter((audio) => {
+      return (
+        audio.meta && filter.alternateGroups.includes(audio.meta.alternateGroup)
+      );
+    });
+  }
+
+  return audios;
 }

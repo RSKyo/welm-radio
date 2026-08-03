@@ -12,7 +12,11 @@ import { ItemList } from "/assets/component/item-list.js";
 const audioTypeFilterEl = document.querySelector("#audio-type-filter");
 const audioLanguageFilterEl = document.querySelector("#audio-language-filter");
 const audioPositionFilterEl = document.querySelector("#audio-position-filter");
+const audioDayPartFilterEl = document.querySelector("#audio-day-part-filter");
 const audioCategoryFilterEl = document.querySelector("#audio-category-filter");
+const audioAlternateGroupFilterEl = document.querySelector(
+  "#audio-alternate-group-filter",
+);
 
 const selectAllChk = document.querySelector("#select-all");
 const removeAudioBtn = document.querySelector("#remove-audio");
@@ -29,21 +33,54 @@ const metaFields = metaFormFrm.elements;
 const metaTypeEl = document.querySelector("#meta-type");
 const metaLanguageEl = document.querySelector("#meta-language");
 const metaPositionEl = document.querySelector("#meta-position");
+const metaDayPartEl = document.querySelector("#meta-day-part");
+const detectDurationBtn = document.querySelector("#detect-duration");
 
 const audioPlayerEl = document.querySelector("#audio-player");
 
 /* components */
-const audioTypeFilterCmp = new ChipGroup(audioTypeFilterEl);
-const audioLanguageFilterCmp = new ChipGroup(audioLanguageFilterEl);
-const audioPositionFilterCmp = new ChipGroup(audioPositionFilterEl);
-const audioCategoryFilterCmp = new ChipGroup(audioCategoryFilterEl);
+const audioTypeFilterCmp = new ChipGroup(audioTypeFilterEl, {
+  titleField: "description",
+});
+const audioLanguageFilterCmp = new ChipGroup(audioLanguageFilterEl, {
+  titleField: "description",
+});
+const audioPositionFilterCmp = new ChipGroup(audioPositionFilterEl, {
+  titleField: "description",
+});
+const audioDayPartFilterCmp = new ChipGroup(audioDayPartFilterEl, {
+  titleField: "description",
+});
+const audioCategoryFilterCmp = new ChipGroup(audioCategoryFilterEl, {
+  titleField: "description",
+});
+const audioAlternateGroupFilterCmp = new ChipGroup(
+  audioAlternateGroupFilterEl,
+  { titleField: "description" },
+);
+
 const audioListCmp = new ItemList(audioListEl, {
   textField: "base",
   valueField: "filePath",
 });
-const metaTypeCmp = new ChipGroup(metaTypeEl, { mode: "single" });
-const metaLanguageCmp = new ChipGroup(metaLanguageEl, { mode: "single" });
-const metaPositionCmp = new ChipGroup(metaPositionEl, { mode: "single" });
+
+const metaTypeCmp = new ChipGroup(metaTypeEl, {
+  mode: "single",
+  titleField: "description",
+});
+const metaLanguageCmp = new ChipGroup(metaLanguageEl, {
+  mode: "single",
+  titleField: "description",
+});
+const metaPositionCmp = new ChipGroup(metaPositionEl, {
+  mode: "single",
+  titleField: "description",
+});
+const metaDayPartCmp = new ChipGroup(metaDayPartEl, {
+  mode: "multiple",
+  titleField: "description",
+  showSelectActions: true,
+});
 
 /* state */
 const state = {};
@@ -52,6 +89,7 @@ state.filters = {
   languages: [],
   positions: [],
   categories: [],
+  alternateGroups: [],
 };
 
 /* api calls */
@@ -68,8 +106,14 @@ const apiCalls = {
   listAudioPosition: async () => {
     return await http.get("/audio/api/list-audio-position");
   },
+  listAudioDayPart: async () => {
+    return await http.get("/audio/api/list-audio-day-part");
+  },
   listAudioCategory: async () => {
     return await http.get("/audio/api/list-audio-category");
+  },
+  listAudioAlternateGroup: async () => {
+    return await http.get("/audio/api/list-audio-alternate-group");
   },
   listAudio: async () => {
     return await http.post("/audio/api/list-audio", state.filters);
@@ -116,8 +160,14 @@ function bindEvents() {
   audioPositionFilterCmp.onChange = safeHandler(
     audioPositionFilterCmp_changeHandler,
   );
+  audioDayPartFilterCmp.onChange = safeHandler(
+    audioDayPartFilterCmp_changeHandler,
+  );
   audioCategoryFilterCmp.onChange = safeHandler(
     audioCategoryFilterCmp_changeHandler,
+  );
+  audioAlternateGroupFilterCmp.onChange = safeHandler(
+    audioAlternateGroupFilterCmp_changeHandler,
   );
 
   selectAllChk.addEventListener(
@@ -133,34 +183,44 @@ function bindEvents() {
     "change",
     safeHandler(selectOrderSel_changeHandler),
   );
+  renameAudioBtn.addEventListener(
+    "click",
+    safeHandler(renameAudioBtn_clickHandler),
+  );
 
   audioListCmp.onChange = safeHandler(audioListCmp_changeHandler);
   audioListCmp.onDoubleClick = safeHandler(audioListCmp_doubleClickHandler);
   audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
 
   saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
-  renameAudioBtn.addEventListener(
+  detectDurationBtn.addEventListener(
     "click",
-    safeHandler(renameAudioBtn_clickHandler),
+    safeHandler(detectDurationBtn_clickHandler),
   );
 }
 
 async function initData() {
-  const [types, languages, positions, categories] = await Promise.all([
-    apiCalls.listAudioType(),
-    apiCalls.listAudioLanguage(),
-    apiCalls.listAudioPosition(),
-    apiCalls.listAudioCategory(),
-  ]);
+  const [types, languages, positions, dayParts, categories, alternateGroups] =
+    await Promise.all([
+      apiCalls.listAudioType(),
+      apiCalls.listAudioLanguage(),
+      apiCalls.listAudioPosition(),
+      apiCalls.listAudioDayPart(),
+      apiCalls.listAudioCategory(),
+      apiCalls.listAudioAlternateGroup(),
+    ]);
 
   await audioTypeFilterCmp.setItems(types);
   await audioLanguageFilterCmp.setItems(languages);
   await audioPositionFilterCmp.setItems(positions);
+  await audioDayPartFilterCmp.setItems(dayParts);
   await audioCategoryFilterCmp.setItems(categories);
+  await audioAlternateGroupFilterCmp.setItems(alternateGroups);
 
   await metaTypeCmp.setItems(types);
   await metaLanguageCmp.setItems(languages);
   await metaPositionCmp.setItems(positions);
+  await metaDayPartCmp.setItems(dayParts);
 
   refreshAudioList();
 }
@@ -194,8 +254,18 @@ async function audioPositionFilterCmp_changeHandler(items) {
   await refreshAudioList();
 }
 
+async function audioDayPartFilterCmp_changeHandler(items) {
+  state.filters.dayParts = items.map((item) => item.value);
+  await refreshAudioList();
+}
+
 async function audioCategoryFilterCmp_changeHandler(items) {
   state.filters.categories = items.map((item) => item.value);
+  await refreshAudioList();
+}
+
+async function audioAlternateGroupFilterCmp_changeHandler(items) {
+  state.filters.alternateGroups = items.map((item) => item.value);
   await refreshAudioList();
 }
 
@@ -247,6 +317,57 @@ async function addAudioBtn_clickHandler() {
   await refreshAudioList();
 
   toast.show(`添加了 ${files.length} 个音频文件`);
+}
+
+async function renameAudioBtn_clickHandler() {
+  const selectedItem = audioListCmp.getSelectedItem();
+
+  if (!selectedItem) {
+    toast.show("请先选择一个音频文件");
+    return;
+  }
+
+  const name = window.prompt(
+    "请输入新的文件名：",
+    selectedItem.name, // 不带扩展名的旧名字
+  );
+
+  if (name === null) {
+    return;
+  }
+
+  const audioPath = selectedItem.filePath;
+
+  if (!name || name.trim() === "") {
+    toast.show("音频文件名不能为空");
+    return;
+  }
+
+  if (name === selectedItem.name) {
+    toast.show("音频文件名未修改");
+    return;
+  }
+
+  const confirmRename = confirm(
+    `确定要将音频文件 "${selectedItem.name}" 重命名为 "${name}" 吗？`,
+  );
+
+  if (!confirmRename) {
+    return;
+  }
+
+  const audioInfo = await apiCalls.renameAudio(audioPath, name);
+
+  // update the item in the list
+  const value = selectedItem.filePath;
+  const updatedItem = {
+    ...selectedItem,
+    ...audioInfo,
+  };
+
+  await audioListCmp.updateItem(value, updatedItem);
+
+  toast.show("音频文件重命名成功");
 }
 
 async function selectOrderSel_changeHandler() {
@@ -302,10 +423,16 @@ async function saveMetaBtn_clickHandler() {
     await audioCategoryFilterCmp.setItems(categories);
   }
 
+  // if the alternateGroup has changed, refresh the alternateGroup filter
+  if (selectedItem.meta.alternateGroup !== savedMeta.alternateGroup) {
+    const alternateGroups = await apiCalls.listAudioAlternateGroup();
+    await audioAlternateGroupFilterCmp.setItems(alternateGroups);
+  }
+
   toast.show("已保存音频元数据");
 }
 
-async function renameAudioBtn_clickHandler() {
+async function detectDurationBtn_clickHandler() {
   const selectedItem = audioListCmp.getSelectedItem();
 
   if (!selectedItem) {
@@ -313,52 +440,45 @@ async function renameAudioBtn_clickHandler() {
     return;
   }
 
-  const name = window.prompt(
-    "请输入新的文件名：",
-    selectedItem.name, // 不带扩展名的旧名字
-  );
+  let duration = null;
+  const timeout = 3000;
+  const startTime = Date.now();
 
-  if (name === null) {
+  while (Date.now() - startTime < timeout) {
+    duration = audioPlayerEl.duration;
+
+    if (Number.isFinite(duration)) {
+      break;
+    }
+
+    if (audioPlayerEl.error) {
+      toast.show("音频加载失败，无法获取时长");
+      return;
+    }
+
+    await sleep(100);
+  }
+
+  if (!Number.isFinite(duration)) {
+    toast.show("音频信息尚未加载完成，请稍后再试");
     return;
   }
 
-  const audioPath = selectedItem.filePath;
+  const formattedDuration = formatTime(duration);
 
-  if (!name || name.trim() === "") {
-    toast.show("音频文件名不能为空");
-    return;
-  }
+  metaFields.duration.value = formattedDuration;
+  metaFields.end.value ||= formattedDuration;
 
-  if (name === selectedItem.name) {
-    toast.show("音频文件名未修改");
-    return;
-  }
-
-  const confirmRename = confirm(
-    `确定要将音频文件 "${selectedItem.name}" 重命名为 "${name}" 吗？`,
-  );
-
-  if (!confirmRename) {
-    return;
-  }
-
-  const audioInfo = await apiCalls.renameAudio(audioPath, name);
-
-  // update the item in the list
-  const value = selectedItem.filePath;
-  const updatedItem = {
-    ...selectedItem,
-    ...audioInfo,
-  };
-
-  await audioListCmp.updateItem(value, updatedItem);
-
-  toast.show("音频文件重命名成功");
+  toast.show(`已检测音频时长: ${formattedDuration}`);
 }
 
 // -----------------------------------------------------------------------------
 // helper functions
 // -----------------------------------------------------------------------------
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function refreshAudioList() {
   const audios = await apiCalls.listAudio();
@@ -375,61 +495,6 @@ async function refreshAudioList() {
     await setFormMeta({});
     setAudioPlayer({});
   }
-}
-
-async function setFormMeta(meta = {}) {
-  metaFields.description.value = meta.description ?? "";
-  metaFields.alternateGroup.value = meta.alternateGroup ?? "";
-
-  metaFields.category.value = Array.isArray(meta.category)
-    ? meta.category.join(", ")
-    : (meta.category ?? "");
-  metaFields.content.value = meta.content ?? "";
-
-  metaFields.duration.value = meta.duration ?? "";
-  metaFields.start.value = meta.start ?? "00:00:00.000";
-  metaFields.end.value = meta.end ?? "";
-
-  metaFields.cutPoints.value = Array.isArray(meta.cutPoints)
-    ? meta.cutPoints.join("\n")
-    : "";
-
-  metaFields.createdAt.value = meta.createdAt ?? "";
-  metaFields.updatedAt.value = meta.updatedAt ?? "";
-
-  await metaTypeCmp.setValue(meta.type ?? "");
-  await metaLanguageCmp.setValue(meta.language ?? "");
-  await metaPositionCmp.setValue(meta.position ?? "");
-}
-
-function getFormMeta() {
-  return {
-    description: metaFields.description.value.trim(),
-    alternateGroup: metaFields.alternateGroup.value.trim(),
-
-    category: metaFields.category.value
-      .split(/[,，]/)
-      .map((value) => value.trim())
-      .filter(Boolean),
-
-    content: metaFields.content.value.trim(),
-
-    duration: metaFields.duration.value.trim() || null,
-    start: metaFields.start.value.trim() || "00:00:00.000",
-    end: metaFields.end.value.trim() || null,
-
-    type: metaTypeCmp.getValue(),
-    language: metaLanguageCmp.getValue(),
-    position: metaPositionCmp.getValue(),
-
-    cutPoints: metaFields.cutPoints.value
-      .split(/\r?\n/)
-      .map((value) => value.trim())
-      .filter(Boolean),
-
-    createdAt: metaFields.createdAt.value.trim() || null,
-    updatedAt: metaFields.updatedAt.value.trim() || null,
-  };
 }
 
 function setAudioPlayer(audio) {
@@ -484,4 +549,87 @@ function orderAudios(audios) {
 
     return (aTime - bTime) * factor || a.name.localeCompare(b.name);
   });
+}
+
+async function setFormMeta(meta = {}) {
+  metaFields.description.value = meta.description ?? "";
+  metaFields.alternateGroup.value = meta.alternateGroup ?? "";
+
+  metaFields.category.value = Array.isArray(meta.category)
+    ? meta.category.join(", ")
+    : (meta.category ?? "");
+  metaFields.content.value = meta.content ?? "";
+
+  metaFields.duration.value = meta.duration ?? "";
+  metaFields.start.value = meta.start ?? "00:00:00.000";
+  metaFields.end.value = meta.end ?? "";
+
+  metaFields.cutPoints.value = Array.isArray(meta.cutPoints)
+    ? meta.cutPoints.join("\n")
+    : "";
+
+  metaFields.createdAt.value = meta.createdAt ?? "";
+  metaFields.updatedAt.value = meta.updatedAt ?? "";
+
+  await metaTypeCmp.setValue(meta.type ?? "");
+  await metaLanguageCmp.setValue(meta.language ?? "");
+  await metaPositionCmp.setValue(meta.position ?? "");
+  await metaDayPartCmp.setValues(meta.dayPart ?? []);
+}
+
+function getFormMeta() {
+  return {
+    description: metaFields.description.value.trim(),
+    alternateGroup: metaFields.alternateGroup.value.trim(),
+
+    category: metaFields.category.value
+      .split(/[,，]/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+
+    content: metaFields.content.value.trim(),
+
+    duration: metaFields.duration.value.trim() || null,
+    start: metaFields.start.value.trim() || "00:00:00.000",
+    end: metaFields.end.value.trim() || null,
+
+    type: metaTypeCmp.getValue(),
+    language: metaLanguageCmp.getValue(),
+    position: metaPositionCmp.getValue(),
+    dayPart: metaDayPartCmp.getValues(),
+
+    cutPoints: metaFields.cutPoints.value
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+
+    createdAt: metaFields.createdAt.value.trim() || null,
+    updatedAt: metaFields.updatedAt.value.trim() || null,
+  };
+}
+
+function formatTime(seconds) {
+  if (seconds == null) {
+    return null;
+  }
+
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
+    throw new Error(`invalid time value: ${seconds}`);
+  }
+
+  const totalMilliseconds = Math.round(seconds * 1000);
+
+  const milliseconds = totalMilliseconds % 1000;
+  const totalSeconds = Math.floor(totalMilliseconds / 1000);
+  const second = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minute = totalMinutes % 60;
+  const hour = Math.floor(totalMinutes / 60);
+
+  const hourText = String(hour).padStart(2, "0");
+  const minuteText = String(minute).padStart(2, "0");
+  const secondText = String(second).padStart(2, "0");
+  const millisecondText = String(milliseconds).padStart(3, "0");
+
+  return `${hourText}:${minuteText}:${secondText}.${millisecondText}`;
 }

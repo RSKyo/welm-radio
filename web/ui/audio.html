@@ -27,11 +27,11 @@
       <div class="grow hbox">
         <!-- filter -->
         <div
-          class="p-12-8 scroll vbox gap-20"
+          class="p-12-8 m-0-8 scroll vbox gap-20"
           style="
             width: 240px;
             min-width: 120px;
-            background-color: var(--color-surface);
+            background-color: var(--color-surface-raised);
           "
         >
           <div class="shrink vbox gap-8">
@@ -45,6 +45,11 @@
           </div>
 
           <div class="shrink vbox gap-8">
+            <label class="label">音频日段</label>
+            <div id="audio-day-part-filter"></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
             <label class="label">音频语言</label>
             <div id="audio-language-filter"></div>
           </div>
@@ -53,11 +58,16 @@
             <label class="label">音频分类</label>
             <div id="audio-category-filter"></div>
           </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频备选组</label>
+            <div id="audio-alternate-group-filter"></div>
+          </div>
         </div>
 
         <!-- audio -->
         <div
-          class="p-12-8 grow vbox"
+          class="p-12-8 grow vbox gap-4"
           style="min-width: 360px; background-color: var(--color-surface)"
         >
           <div class="toolbar" style="padding-left: 0; gap: 0">
@@ -89,14 +99,20 @@
             </div>
           </div>
           <div id="audio-list" class="grow scroll"></div>
-          <div class="hbox c-center j-center">
+          <div
+            class="hbox a-center"
+            style="
+              border-radius: 4px;
+              background-color: var(--color-surface-sunken);
+            "
+          >
             <audio id="audio-player" controls></audio>
           </div>
         </div>
 
         <!-- meta -->
         <div
-          class="p-12-8 vbox"
+          class="p-12-8 m-0-8 vbox"
           style="
             width: 640px;
             min-width: 480px;
@@ -118,8 +134,12 @@
               </div>
 
               <div class="form-field">
-                <label>同组音频</label>
-                <input name="alternateGroup" type="text" placeholder="同组音频唯一标识" />
+                <label>备选组</label>
+                <input
+                  name="alternateGroup"
+                  type="text"
+                  placeholder="同组音频唯一标识"
+                />
               </div>
 
               <div class="form-field">
@@ -130,6 +150,11 @@
               <div class="form-field">
                 <label>位置</label>
                 <div id="meta-position"></div>
+              </div>
+
+              <div class="form-field">
+                <label>日段</label>
+                <div id="meta-day-part"></div>
               </div>
 
               <div class="form-field">
