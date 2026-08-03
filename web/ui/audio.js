@@ -34,6 +34,8 @@ const metaTypeEl = document.querySelector("#meta-type");
 const metaLanguageEl = document.querySelector("#meta-language");
 const metaPositionEl = document.querySelector("#meta-position");
 const metaDayPartEl = document.querySelector("#meta-day-part");
+const selectWhisperModelBtn = document.querySelector("#select-whisper-model");
+const whisperModelEl = document.querySelector("#whisper-model");
 const detectDurationBtn = document.querySelector("#detect-duration");
 
 const audioPlayerEl = document.querySelector("#audio-player");
@@ -124,14 +126,20 @@ const apiCalls = {
   addAudio: async () => {
     return await http.get("/audio/api/add-audio");
   },
-  saveMeta: async (metaPath, meta) => {
+  renameAudio: async (audioPath, name) => {
+    return await http.post("/audio/api/rename-audio", { audioPath, name });
+  },
+  saveMeta: async (audioPath, meta) => {
     return await http.post("/audio/api/save-meta", {
-      metaPath,
+      audioPath,
       meta,
     });
   },
-  renameAudio: async (audioPath, name) => {
-    return await http.post("/audio/api/rename-audio", { audioPath, name });
+  selectWhisperModel: async () => {
+    return await http.get("/audio/api/select-whisper-model");
+  },
+  getWhisperModel: async () => {
+    return await http.get("/audio/api/get-whisper-model");
   },
 };
 
@@ -193,6 +201,7 @@ function bindEvents() {
   audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
 
   saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
+  selectWhisperModelBtn.addEventListener("click", safeHandler(selectWhisperModelBtn_clickHandler));
   detectDurationBtn.addEventListener(
     "click",
     safeHandler(detectDurationBtn_clickHandler),
@@ -221,6 +230,8 @@ async function initData() {
   await metaLanguageCmp.setItems(languages);
   await metaPositionCmp.setItems(positions);
   await metaDayPartCmp.setItems(dayParts);
+
+  await refreshWhisperModel();
 
   refreshAudioList();
 }
@@ -367,6 +378,9 @@ async function renameAudioBtn_clickHandler() {
 
   await audioListCmp.updateItem(value, updatedItem);
 
+  // set the meta form to the new meta
+  await setFormMeta(audioInfo.meta);
+
   toast.show("音频文件重命名成功");
 }
 
@@ -401,10 +415,10 @@ async function saveMetaBtn_clickHandler() {
     return;
   }
 
-  const metaPath = selectedItem.metaPath;
+  const audioPath = selectedItem.filePath;
   const meta = getFormMeta();
 
-  const savedMeta = await apiCalls.saveMeta(metaPath, meta);
+  const savedMeta = await apiCalls.saveMeta(audioPath, meta);
 
   await setFormMeta(savedMeta);
 
@@ -430,6 +444,18 @@ async function saveMetaBtn_clickHandler() {
   }
 
   toast.show("已保存音频元数据");
+}
+
+async function selectWhisperModelBtn_clickHandler() {
+  const { canceled, path } = await apiCalls.selectWhisperModel();
+
+  if (canceled) {
+    return;
+  }
+
+  await refreshWhisperModel();
+
+  toast.show(`已选择 Whisper 模型: ${path}`);
 }
 
 async function detectDurationBtn_clickHandler() {
@@ -552,6 +578,10 @@ function orderAudios(audios) {
 }
 
 async function setFormMeta(meta = {}) {
+  metaFields.id.value = meta.id ?? "";
+  metaFields.audioPath.value = meta.audioPath ?? "";
+  metaFields.metaPath.value = meta.metaPath ?? "";
+  
   metaFields.description.value = meta.description ?? "";
   metaFields.alternateGroup.value = meta.alternateGroup ?? "";
 
@@ -579,6 +609,10 @@ async function setFormMeta(meta = {}) {
 
 function getFormMeta() {
   return {
+    id: metaFields.id.value.trim(),
+    audioPath: metaFields.audioPath.value.trim(),
+    metaPath: metaFields.metaPath.value.trim(),
+
     description: metaFields.description.value.trim(),
     alternateGroup: metaFields.alternateGroup.value.trim(),
 
@@ -606,6 +640,11 @@ function getFormMeta() {
     createdAt: metaFields.createdAt.value.trim() || null,
     updatedAt: metaFields.updatedAt.value.trim() || null,
   };
+}
+
+async function refreshWhisperModel() {
+  const { whisperModel } = await apiCalls.getWhisperModel();
+  whisperModelEl.textContent = whisperModel ? `(当前模型: ${whisperModel})` : "未选择";
 }
 
 function formatTime(seconds) {

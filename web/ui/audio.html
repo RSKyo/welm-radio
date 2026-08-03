@@ -74,17 +74,12 @@
             <div class="hbox a-center j-center" style="width: 36px">
               <input id="select-all" type="checkbox" />
             </div>
-            <div class="grow toolbar" style="padding-left: 0">
+            <div class="grow toolbar" style="padding: 0;">
               <button id="remove-audio" type="button">删除</button>
               <button id="add-audio" type="button">添加</button>
               <button id="rename-audio" type="button">重命名</button>
-              <button
-                id="select-audio-dir"
-                type="button"
-                style="white-space: nowrap"
-              >
-                选择音频库根目录
-              </button>
+              <button id="select-audio-dir" type="button">选择音频目录</button>
+
               <select id="select-order">
                 <option value="default">默认</option>
                 <option value="createdAt-desc">创建时间（新到旧）</option>
@@ -124,6 +119,9 @@
           </div>
           <div class="p-12-8 grow scroll vbox gap-20">
             <form id="meta-form" class="form">
+              <input name="id" type="hidden" />
+              <input name="audioPath" type="hidden" />
+              <input name="metaPath" type="hidden" />
               <div class="form-field">
                 <label>描述</label>
                 <textarea
@@ -133,13 +131,11 @@
                 ></textarea>
               </div>
 
+              
+
               <div class="form-field">
-                <label>备选组</label>
-                <input
-                  name="alternateGroup"
-                  type="text"
-                  placeholder="同组音频唯一标识"
-                />
+                <label>语言</label>
+                <div id="meta-language"></div>
               </div>
 
               <div class="form-field">
@@ -157,10 +153,7 @@
                 <div id="meta-day-part"></div>
               </div>
 
-              <div class="form-field">
-                <label>语言</label>
-                <div id="meta-language"></div>
-              </div>
+              
 
               <div class="form-field">
                 <label>分类</label>
@@ -173,13 +166,36 @@
               </div>
 
               <div class="form-field">
+                <label>剪切点</label>
+
+                <textarea
+                  name="cutPoints"
+                  rows="5"
+                  placeholder="每行填写一个时间 HH:MM:SS.mmm"
+                ></textarea>
+              </div>
+              
+              <div class="form-field">
                 <label>内容</label>
                 <textarea name="content" rows="8"></textarea>
                 <div>
                   <button id="transcribe-content" type="button">
                     自动识别内容
                   </button>
+                  <button id="select-whisper-model" type="button">
+                    选择 Whisper 模型
+                  </button>
+                  <span id="whisper-model"></span>
                 </div>
+              </div>
+
+              <div class="form-field">
+                <label>备选组</label>
+                <input
+                  name="alternateGroup"
+                  type="text"
+                  placeholder="同组音频唯一标识"
+                />
               </div>
 
               <div class="form-field">
@@ -204,15 +220,7 @@
                 <input name="end" type="text" placeholder="HH:MM:SS.mmm" />
               </div>
 
-              <div class="form-field">
-                <label>剪切点</label>
-
-                <textarea
-                  name="cutPoints"
-                  rows="5"
-                  placeholder="每行填写一个时间 HH:MM:SS.mmm"
-                ></textarea>
-              </div>
+              
 
               <div class="form-field">
                 <label>创建时间</label>

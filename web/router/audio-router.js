@@ -3,6 +3,8 @@ import express from "express";
 import { withOptions } from "welm-cdp/web";
 import {
   selectAudioDir,
+  selectWhisperModel,
+  getWhisperModel,
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
@@ -23,11 +25,37 @@ export const router = express.Router();
 router.get(
   "/select-audio-dir",
   withOptions(async (req, res, options) => {
-    const dir = await selectAudioDir(options);
+    const path = await selectAudioDir(options);
 
     res.json({
-      dir,
-      canceled: !dir,
+      path,
+      canceled: !path,
+    });
+  }),
+);
+
+// GET /audio/api/select-whisper-model
+router.get(
+  "/select-whisper-model",
+  withOptions(async (req, res, options) => {
+    const path = await selectWhisperModel(options);
+    const whisperModel = getWhisperModel(options);
+
+    res.json({
+      path,
+      canceled: !path,
+    });
+  }),
+);
+
+// GET /audio/api/get-whisper-model
+router.get(
+  "/get-whisper-model",
+  withOptions(async (req, res, options) => {
+    const whisperModel = getWhisperModel(options);
+
+    res.json({
+      whisperModel,
     });
   }),
 );
@@ -146,11 +174,10 @@ router.get(
 router.post(
   "/save-meta",
   withOptions(async (req, res, options) => {
-    const { metaPath, meta } = req.body ?? {};
+    const { audioPath, meta } = req.body ?? {};
 
-    const savedMeta = await saveMeta(metaPath, meta, options);
+    const savedMeta = await saveMeta(audioPath, meta, options);
 
     res.json(savedMeta);
   }),
 );
-

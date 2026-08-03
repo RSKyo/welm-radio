@@ -1,4 +1,6 @@
 import nodePath from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
@@ -10,7 +12,7 @@ import {
   readFileBuffer,
   fileExists,
 } from "welm-cdp/fs";
-import { selectFolder, selectFiles } from "welm-cdp/dialog";
+import { dialog } from "welm-cdp/dialog";
 import {
   assertNonBlankString,
   assertAbsolutePath,
@@ -20,7 +22,11 @@ import {
 
 import { loadMeta, saveMeta } from "./meta-service.js";
 
-const audio_library_key_path = "radio.audio_library";
+const execFileAsync = promisify(execFile);
+
+const audio_dir_key_path = "radio.audio_dir";
+const whisper_model_key_path = "radio.whisper_model";
+
 const audio_types_key_path = "radio.audio_types";
 const audio_languages_key_path = "radio.audio_languages";
 const audio_positions_key_path = "radio.audio_positions";
@@ -136,7 +142,8 @@ const default_audio_day_parts = [
   { value: "late_evening", text: "夜晚", description: "22:00-24:00" },
 ];
 
-let audio_dir = config.get(audio_library_key_path);
+let audio_dir = config.get(audio_dir_key_path);
+let whisper_model = config.get(whisper_model_key_path);
 
 let audio_types = config.get(audio_types_key_path);
 if (!audio_types || !Array.isArray(audio_types) || audio_types.length === 0) {
@@ -169,17 +176,42 @@ if (
 // -----------------------------------------------------------------------------
 
 export async function selectAudioDir(options = {}) {
-  const dir = await selectFolder({
-    dialogTitle: "Choose Audio Library",
+  const dirPath = await dialog({
+    dialogTitle: "Choose Audio Directory",
+    mode: "folder",
   });
 
-  if (!dir) {
+  // cancel
+  if (!dirPath) {
     return null;
   }
 
-  setAudioDir(dir);
+  config.set(audio_dir_key_path, dirPath);
+  audio_dir = dirPath;
 
-  return dir;
+  return dirPath;
+}
+
+export async function selectWhisperModel(options = {}) {
+  const filePath = await dialog({
+    dialogTitle: "Choose Whisper Model",
+    mode: "file",
+    includeExts: [".bin"],
+  });
+
+  // cancel
+  if (!filePath) {
+    return null;
+  }
+
+  config.set(whisper_model_key_path, filePath);
+  whisper_model = filePath;
+
+  return filePath;
+}
+
+export function getWhisperModel(options = {}) {
+  return whisper_model ? nodePath.basename(whisper_model) : "";
 }
 
 export function listAudioType() {
@@ -229,7 +261,7 @@ export function listAudio(filter = {}, options = {}) {
 
   let audios = files.map(({ root, dir, base, ext, name, filePath }) => {
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
-    const meta = loadMeta(metaPath);
+    const meta = loadMeta(filePath, options);
 
     return {
       root,
@@ -263,7 +295,9 @@ export async function removeAudio(files, options = {}) {
 }
 
 export async function addAudio(options = {}) {
-  const files = await selectFiles({
+  const files = await dialog({
+    dialogTitle: "Add Audio Files",
+    mode: "files",
     includeExts: audio_exts,
   });
 
@@ -308,13 +342,16 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
   // the second argument is the new name, not the full path
   renameFile(audioPath, newAudioName);
 
-  let newMetaName, newMetaPath;
   const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
+  const newMetaName = `${newNameWithoutExt}.meta.json`;
+  const newMetaPath = nodePath.join(dir, newMetaName);
+  
   if (fileExists(metaPath)) {
-    newMetaName = `${newNameWithoutExt}.meta.json`;
-    newMetaPath = nodePath.join(dir, newMetaName);
     renameFile(metaPath, newMetaName);
   }
+
+  // update the audioPath and metaPath in the meta file
+  const meta = await saveMeta(newAudioPath, { audioPath: newAudioPath, metaPath: newMetaPath }, options);
 
   const { base, name } = nodePath.parse(newAudioPath);
 
@@ -322,7 +359,8 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
     base,
     name,
     filePath: newAudioPath,
-    metaPath: newMetaPath ?? metaPath,
+    metaPath: newMetaPath,
+    meta,
   };
 }
 
@@ -339,18 +377,27 @@ export async function loadAudio(filePath, options = {}) {
   };
 }
 
+export async function transcribeAudio(audioPath, options = {}) {
+  const { cliPath = "whisper-cli", modelPath, outputPrefix } = options;
+
+  await execFileAsync(cliPath, [
+    "-m",
+    modelPath,
+    "-f",
+    audioPath,
+    "-otxt",
+    "-nt",
+    "-np",
+    "-of",
+    outputPrefix,
+  ]);
+
+  return fs.readFile(`${outputPrefix}.txt`, "utf8");
+}
+
 // -----------------------------------------------------------------------------
 // Private Helpers
 // -----------------------------------------------------------------------------
-
-function setAudioDir(dir) {
-  assertAbsolutePath(dir, "dir");
-
-  config.set(audio_library_key_path, dir);
-  audio_dir = dir;
-
-  return dir;
-}
 
 function filterAudios(audios, filter) {
   // filter by audio type if specified
