@@ -17,6 +17,7 @@ import {
   renameAudio,
   loadAudio,
   transcribeAudioAndSaveMeta,
+  isTranscriptionInProgress,
 } from "../service/audio-service.js";
 import { saveMeta } from "../service/meta-service.js";
 
@@ -171,14 +172,27 @@ router.get(
   }),
 );
 
+// POST /audio/api/transcribe-audio-and-save-meta
 router.post(
   "/transcribe-audio-and-save-meta",
   withOptions(async (req, res, options) => {
-    const { audioPath } = req.body ?? {};
+    const { audioPath,language } = req.body ?? {};
 
-    const savedMeta = await transcribeAudioAndSaveMeta(audioPath, options);
+    const savedMeta = await transcribeAudioAndSaveMeta(audioPath, language, options);
 
     res.json(savedMeta);
+  }),
+);
+
+// GET /audio/api/is-transcription-in-progress
+router.get(
+  "/is-transcription-in-progress",
+  withOptions(async (req, res, options) => {
+    const inProgress = isTranscriptionInProgress();
+
+    res.json({
+      inProgress,
+    });
   }),
 );
 

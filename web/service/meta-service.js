@@ -17,7 +17,7 @@ function createDefaultMeta(options = {}) {
     audioPath: audioPath ?? "", // 音频文件的绝对路径
     metaPath: metaPath ?? "", // 元数据文件的绝对路径
     description: "",
-    language: "",
+    language: "zh",
     type: "",
     position: "",
     dayPart: [],

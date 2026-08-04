@@ -142,10 +142,14 @@ const apiCalls = {
   getWhisperModel: async () => {
     return await http.get("/audio/api/get-whisper-model");
   },
-  transcribeAudioAndSaveMeta: async (audioPath) => {
+  transcribeAudioAndSaveMeta: async (audioPath, language) => {
     return await http.post("/audio/api/transcribe-audio-and-save-meta", {
       audioPath,
+      language,
     });
+  },
+  isTranscriptionInProgress: async () => {
+    return await http.get("/audio/api/is-transcription-in-progress");
   },
 };
 
@@ -245,7 +249,8 @@ async function initData() {
   await metaPositionCmp.setItems(positions);
   await metaDayPartCmp.setItems(dayParts);
 
-  await refreshWhisperModel();
+  setWhisperModel();
+  checkTranscriptionInProgress();
 
   refreshAudioList();
 }
@@ -469,6 +474,7 @@ async function transcribeContentBtn_clickHandler() {
   }
 
   const audioPath = selectedItem.filePath;
+  const language = metaLanguageCmp.getValue() || "zh";
 
   const confirmTranscribe = confirm(
     `确定要对音频文件 "${selectedItem.name}" 进行转录吗？`,
@@ -478,17 +484,15 @@ async function transcribeContentBtn_clickHandler() {
     return;
   }
 
-  const oldButtonValue = transcribeContentBtn.value;
-  transcribeContentBtn.value = "转录中...";
-  transcribeContentBtn.disabled = true;
-  toast.show("音频转录任务即将开始，完成后会自动更新内容字段，无需等待...");
+  setTranscribeButtonState(true);
+  toast.show("音频转录中...");
 
+  let savedMeta = null;
   try {
-    const savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath);
+    savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath,language);
   } catch (error) {
     toast.show(`音频转录失败: ${error.message}`);
-    transcribeContentBtn.value = oldButtonValue;
-    transcribeContentBtn.disabled = false;
+    setTranscribeButtonState(false);
     return;
   }
 
@@ -501,13 +505,13 @@ async function transcribeContentBtn_clickHandler() {
 
   await audioListCmp.updateItem(value, updatedItem);
 
+  // if current selected item is the same as the one we just transcribed, update the form meta
   const currentSelectedItem = audioListCmp.getSelectedItem();
   if (currentSelectedItem && currentSelectedItem.filePath === value) {
     await setFormMeta(savedMeta);
   }
 
-  transcribeContentBtn.value = oldButtonValue;
-  transcribeContentBtn.disabled = false;
+  setTranscribeButtonState(false);
 }
 
 async function selectWhisperModelBtn_clickHandler() {
@@ -517,7 +521,7 @@ async function selectWhisperModelBtn_clickHandler() {
     return;
   }
 
-  await refreshWhisperModel();
+  setWhisperModel();
 
   toast.show(`已选择 Whisper 模型: ${path}`);
 }
@@ -706,11 +710,31 @@ function getFormMeta() {
   };
 }
 
-async function refreshWhisperModel() {
+async function setWhisperModel() {
   const { whisperModel } = await apiCalls.getWhisperModel();
   whisperModelEl.textContent = whisperModel
     ? `(当前模型: ${whisperModel})`
     : "未选择";
+}
+
+function setTranscribeButtonState(inProgress) {
+  if (inProgress) {
+    transcribeContentBtn.textContent = "转录中...";
+    transcribeContentBtn.disabled = true;
+  } else {
+    transcribeContentBtn.textContent = "转录内容";
+    transcribeContentBtn.disabled = false;
+  }
+}
+
+async function checkTranscriptionInProgress() {
+  const { inProgress } = await apiCalls.isTranscriptionInProgress();
+
+  if (inProgress) {
+    setTranscribeButtonState(true);
+  } else {
+    setTranscribeButtonState(false);
+  }
 }
 
 function formatTime(seconds) {

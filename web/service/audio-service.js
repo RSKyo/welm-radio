@@ -42,6 +42,21 @@ const audio_mime_types = {
   ".ogg": "audio/ogg",
 };
 
+const transcribe_types = {
+  srt: {
+    flag: "-osrt",
+    extension: ".srt",
+  },
+  txt: {
+    flag: "-otxt",
+    extension: ".txt",
+  },
+  vtt: {
+    flag: "-ovtt",
+    extension: ".vtt",
+  },
+};
+
 const default_audio_types = [
   {
     value: "voice",
@@ -81,8 +96,8 @@ const default_audio_types = [
 ];
 
 const default_audio_languages = [
-  { value: "zh", text: "中文", description: "中文广播" },
-  { value: "en", text: "英文", description: "英文广播" },
+  { value: "zh", text: "中文", description: "中文内容" },
+  { value: "en", text: "英文", description: "英文内容" },
 ];
 
 const default_audio_positions = [
@@ -145,7 +160,7 @@ const default_audio_day_parts = [
 
 let audio_dir = config.get(audio_dir_key_path);
 let whisper_model = config.get(whisper_model_key_path);
-let transcribe_audio = null;
+let isTranscribing = false;
 
 let audio_types = config.get(audio_types_key_path);
 if (!audio_types || !Array.isArray(audio_types) || audio_types.length === 0) {
@@ -347,13 +362,17 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
   const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
   const newMetaName = `${newNameWithoutExt}.meta.json`;
   const newMetaPath = nodePath.join(dir, newMetaName);
-  
+
   if (fs.existsSync(metaPath)) {
     renameFile(metaPath, newMetaName);
   }
 
   // update the audioPath and metaPath in the meta file
-  const meta = await saveMeta(newAudioPath, { audioPath: newAudioPath, metaPath: newMetaPath }, options);
+  const meta = await saveMeta(
+    newAudioPath,
+    { audioPath: newAudioPath, metaPath: newMetaPath },
+    options,
+  );
 
   const { base, name } = nodePath.parse(newAudioPath);
 
@@ -379,45 +398,39 @@ export async function loadAudio(filePath, options = {}) {
   };
 }
 
-export async function transcribeAudioAndSaveMeta(audioPath, options = {}) {
-  assertExistingFile(audioPath, "audioPath");
-
-  const cliPath = "whisper-cli";
-  if (! whisper_model || !fs.existsSync(whisper_model)) {
-    throw new Error("Whisper model is not set or does not exist. Please select a valid Whisper model.");
+export async function transcribeAudioAndSaveMeta(audioPath, language, options = {}) {
+  if (isTranscribing) {
+    throw new Error(
+      "Another transcription is in progress. Please wait until it finishes.",
+    );
   }
 
-  const { dir, name } = nodePath.parse(audioPath);
-  const outputPrefix = nodePath.join(dir, `${name}.whisper`);
-  const outputPath = `${outputPrefix}.srt`;
+  isTranscribing = true;
 
-  const { stdout, stderr } = await execFileAsync(cliPath, [
-    "-m", whisper_model,
-    "-f", audioPath,
-    "-osrt",
-    "-nt",
-    // "-np", 
-    "-of", outputPrefix,
-  ]);
+  assertExistingFile(audioPath, "audioPath");
 
-  console.log("whisper stdout:", stdout);
-console.log("whisper stderr:", stderr);
-console.log("whisper output prefix:", outputPrefix);
-console.log("expected SRT path:", outputPath);
+  if (!whisper_model || !fs.existsSync(whisper_model)) {
+    throw new Error(
+      "Whisper model is not set or does not exist. Please select a valid Whisper model.",
+    );
+  }
 
-if (!fs.existsSync(outputPath)) {
-  throw new Error(
-    `whisper-cli exited but did not create SRT: ${outputPath}`,
-  );
+  let wavPath, srtPath;
+  try {
+    wavPath = await convertAudioToWhisperWav(audioPath);
+    srtPath = await transcribeWav(wavPath, language, "srt");
+    const content = readFileText(srtPath);
+
+    return await saveMeta(audioPath, { content }, options);
+  } finally {
+    removeFile(wavPath);
+    removeFile(srtPath);
+    isTranscribing = false;
+  }
 }
 
-  const content = readFileText(outputPath);
-
-  removeFile(outputPath);
-
-  const savedMeta = await saveMeta(audioPath, { content }, options);
-
-  return savedMeta;
+export function isTranscriptionInProgress() {
+  return isTranscribing;
 }
 
 // -----------------------------------------------------------------------------
@@ -474,4 +487,108 @@ function filterAudios(audios, filter) {
   }
 
   return audios;
+}
+
+async function convertAudioToWhisperWav(audioPath) {
+  assertExistingFile(audioPath, "audioPath");
+
+  const { dir, name } = nodePath.parse(audioPath);
+  const tempDir = nodePath.join(dir, ".temp");
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  const wavPath = nodePath.join(tempDir, `${name}.wav`);
+
+  let stdout, stderr;
+  try {
+    ({ stdout, stderr } = await execFileAsync(
+      "ffmpeg",
+      [
+        "-nostdin",
+        "-y",
+        "-i",
+        audioPath,
+        "-vn",
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        "-c:a",
+        "pcm_s16le",
+        wavPath,
+      ],
+      {
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    ));
+  } catch (error) {
+    const details = [stderr, stdout].filter(Boolean).join("\n").trim();
+
+    throw new Error(
+      `Failed to convert audio to WAV: ${audioPath}${
+        details ? `\n${details}` : ""
+      }`,
+    );
+  }
+
+  if (!fs.existsSync(wavPath)) {
+    const details = [stderr, stdout].filter(Boolean).join("\n").trim();
+
+    throw new Error(
+      `ffmpeg did not create WAV:  ${wavPath}${details ? `\n${details}` : ""}`,
+    );
+  }
+
+  return wavPath;
+}
+
+async function transcribeWav(wavPath, language = "zh", outputType = "srt") {
+  assertExistingFile(wavPath, "wavPath");
+
+  const typeConfig = transcribe_types[outputType];
+
+  const { dir, name } = nodePath.parse(wavPath);
+  const outputPrefix = nodePath.join(dir, name);
+  const outputPath = `${outputPrefix}${typeConfig.extension}`;
+
+  // 防止 Whisper 本次失败时，误把上次遗留的 SRT 当作新结果读取。
+  removeFile(outputPath);
+
+  let stdout, stderr;
+  try {
+    ({ stdout, stderr } = await execFileAsync(
+      "whisper-cli",
+      [
+        "-m",
+        whisper_model,
+        "-f",
+        wavPath,
+        "-l",
+        language,
+        typeConfig.flag,
+        "-of",
+        outputPrefix,
+      ],
+      {
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    ));
+  } catch (error) {
+    const details = [stderr, stdout].filter(Boolean).join("\n").trim();
+
+    throw new Error(
+      `Failed to transcribe WAV: ${wavPath}${details ? `\n${details}` : ""}`,
+    );
+  }
+
+  if (!fs.existsSync(outputPath)) {
+    const details = [stderr, stdout].filter(Boolean).join("\n").trim();
+
+    throw new Error(
+      `whisper-cli did not create ${outputType.toUpperCase()}: ${outputPath}${
+        details ? `\n${details}` : ""
+      }`,
+    );
+  }
+
+  return outputPath;
 }

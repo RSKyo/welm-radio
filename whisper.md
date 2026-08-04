@@ -218,19 +218,26 @@ https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
 推荐下载命令：
 
 ```bash
+平时默认、批量转录
+curl -L -C - -o ggml-large-v3-turbo-q5_0.bin \
+  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+
+同一段音频用 q5 识别明显不理想，机器内存充足
+curl -L -C - -o ggml-large-v3-turbo-q8_0.bin \
+  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin
+
+特别重要的最终字幕；中文人声很轻、发音模糊、背景音乐很重
 curl -L -C - -o ggml-large-v3.bin \
   https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
-```
 
-```bash
+机器较慢、只是粗略判断音频内容
 curl -L -C - -o ggml-medium.bin \
   https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin
-  ```
 
-```bash
-curl -L -C - -o ggml-small.bin \
-  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
-  ```
+未量化，1.5 GiB；通常没必要特意选它。
+curl -L -C - -o ggml-large-v3-turbo.bin \
+  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin
+```
 
 参数说明：
 
