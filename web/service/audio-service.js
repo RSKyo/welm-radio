@@ -1,4 +1,5 @@
 import nodePath from "node:path";
+import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -9,8 +10,8 @@ import {
   removeFile,
   copyFileTo,
   renameFile,
+  readFileText,
   readFileBuffer,
-  fileExists,
 } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
 import {
@@ -144,6 +145,7 @@ const default_audio_day_parts = [
 
 let audio_dir = config.get(audio_dir_key_path);
 let whisper_model = config.get(whisper_model_key_path);
+let transcribe_audio = null;
 
 let audio_types = config.get(audio_types_key_path);
 if (!audio_types || !Array.isArray(audio_types) || audio_types.length === 0) {
@@ -251,7 +253,7 @@ export function listAlternateGroup(options = {}) {
 }
 
 export function listAudio(filter = {}, options = {}) {
-  if (!audio_dir || !fileExists(audio_dir)) {
+  if (!audio_dir || !fs.existsSync(audio_dir)) {
     return [];
   }
 
@@ -288,7 +290,7 @@ export async function removeAudio(files, options = {}) {
     const name = nodePath.basename(filePath, nodePath.extname(filePath));
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
-    if (fileExists(metaPath)) {
+    if (fs.existsSync(metaPath)) {
       removeFile(metaPath);
     }
   }
@@ -346,7 +348,7 @@ export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
   const newMetaName = `${newNameWithoutExt}.meta.json`;
   const newMetaPath = nodePath.join(dir, newMetaName);
   
-  if (fileExists(metaPath)) {
+  if (fs.existsSync(metaPath)) {
     renameFile(metaPath, newMetaName);
   }
 
@@ -377,22 +379,45 @@ export async function loadAudio(filePath, options = {}) {
   };
 }
 
-export async function transcribeAudio(audioPath, options = {}) {
-  const { cliPath = "whisper-cli", modelPath, outputPrefix } = options;
+export async function transcribeAudioAndSaveMeta(audioPath, options = {}) {
+  assertExistingFile(audioPath, "audioPath");
 
-  await execFileAsync(cliPath, [
-    "-m",
-    modelPath,
-    "-f",
-    audioPath,
-    "-otxt",
+  const cliPath = "whisper-cli";
+  if (! whisper_model || !fs.existsSync(whisper_model)) {
+    throw new Error("Whisper model is not set or does not exist. Please select a valid Whisper model.");
+  }
+
+  const { dir, name } = nodePath.parse(audioPath);
+  const outputPrefix = nodePath.join(dir, `${name}.whisper`);
+  const outputPath = `${outputPrefix}.srt`;
+
+  const { stdout, stderr } = await execFileAsync(cliPath, [
+    "-m", whisper_model,
+    "-f", audioPath,
+    "-osrt",
     "-nt",
-    "-np",
-    "-of",
-    outputPrefix,
+    // "-np", 
+    "-of", outputPrefix,
   ]);
 
-  return fs.readFile(`${outputPrefix}.txt`, "utf8");
+  console.log("whisper stdout:", stdout);
+console.log("whisper stderr:", stderr);
+console.log("whisper output prefix:", outputPrefix);
+console.log("expected SRT path:", outputPath);
+
+if (!fs.existsSync(outputPath)) {
+  throw new Error(
+    `whisper-cli exited but did not create SRT: ${outputPath}`,
+  );
+}
+
+  const content = readFileText(outputPath);
+
+  removeFile(outputPath);
+
+  const savedMeta = await saveMeta(audioPath, { content }, options);
+
+  return savedMeta;
 }
 
 // -----------------------------------------------------------------------------

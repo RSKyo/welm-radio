@@ -1,11 +1,11 @@
 import nodePath from "node:path";
+import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 
 import {
   readFileJson,
   writeFileJson,
   renameFile,
-  fileExists,
 } from "welm-cdp/fs";
 import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 
@@ -37,7 +37,7 @@ export function loadMeta(audioPath, options = {}) {
   const { dir, name } = nodePath.parse(audioPath);
   const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
-  if (!metaPath || !fileExists(metaPath)) {
+  if (!metaPath || !fs.existsSync(metaPath)) {
     return createDefaultMeta({ audioPath, metaPath });
   }
 

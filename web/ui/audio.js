@@ -34,6 +34,7 @@ const metaTypeEl = document.querySelector("#meta-type");
 const metaLanguageEl = document.querySelector("#meta-language");
 const metaPositionEl = document.querySelector("#meta-position");
 const metaDayPartEl = document.querySelector("#meta-day-part");
+const transcribeContentBtn = document.querySelector("#transcribe-content");
 const selectWhisperModelBtn = document.querySelector("#select-whisper-model");
 const whisperModelEl = document.querySelector("#whisper-model");
 const detectDurationBtn = document.querySelector("#detect-duration");
@@ -141,6 +142,11 @@ const apiCalls = {
   getWhisperModel: async () => {
     return await http.get("/audio/api/get-whisper-model");
   },
+  transcribeAudioAndSaveMeta: async (audioPath) => {
+    return await http.post("/audio/api/transcribe-audio-and-save-meta", {
+      audioPath,
+    });
+  },
 };
 
 // -----------------------------------------------------------------------------
@@ -201,7 +207,15 @@ function bindEvents() {
   audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
 
   saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
-  selectWhisperModelBtn.addEventListener("click", safeHandler(selectWhisperModelBtn_clickHandler));
+
+  transcribeContentBtn.addEventListener(
+    "click",
+    safeHandler(transcribeContentBtn_clickHandler),
+  );
+  selectWhisperModelBtn.addEventListener(
+    "click",
+    safeHandler(selectWhisperModelBtn_clickHandler),
+  );
   detectDurationBtn.addEventListener(
     "click",
     safeHandler(detectDurationBtn_clickHandler),
@@ -446,6 +460,56 @@ async function saveMetaBtn_clickHandler() {
   toast.show("已保存音频元数据");
 }
 
+async function transcribeContentBtn_clickHandler() {
+  const selectedItem = audioListCmp.getSelectedItem();
+
+  if (!selectedItem) {
+    toast.show("请先选择一个音频文件");
+    return;
+  }
+
+  const audioPath = selectedItem.filePath;
+
+  const confirmTranscribe = confirm(
+    `确定要对音频文件 "${selectedItem.name}" 进行转录吗？`,
+  );
+
+  if (!confirmTranscribe) {
+    return;
+  }
+
+  const oldButtonValue = transcribeContentBtn.value;
+  transcribeContentBtn.value = "转录中...";
+  transcribeContentBtn.disabled = true;
+  toast.show("音频转录任务即将开始，完成后会自动更新内容字段，无需等待...");
+
+  try {
+    const savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath);
+  } catch (error) {
+    toast.show(`音频转录失败: ${error.message}`);
+    transcribeContentBtn.value = oldButtonValue;
+    transcribeContentBtn.disabled = false;
+    return;
+  }
+
+  // update the item in the list
+  const value = selectedItem.filePath;
+  const updatedItem = {
+    ...selectedItem,
+    meta: savedMeta,
+  };
+
+  await audioListCmp.updateItem(value, updatedItem);
+
+  const currentSelectedItem = audioListCmp.getSelectedItem();
+  if (currentSelectedItem && currentSelectedItem.filePath === value) {
+    await setFormMeta(savedMeta);
+  }
+
+  transcribeContentBtn.value = oldButtonValue;
+  transcribeContentBtn.disabled = false;
+}
+
 async function selectWhisperModelBtn_clickHandler() {
   const { canceled, path } = await apiCalls.selectWhisperModel();
 
@@ -581,7 +645,7 @@ async function setFormMeta(meta = {}) {
   metaFields.id.value = meta.id ?? "";
   metaFields.audioPath.value = meta.audioPath ?? "";
   metaFields.metaPath.value = meta.metaPath ?? "";
-  
+
   metaFields.description.value = meta.description ?? "";
   metaFields.alternateGroup.value = meta.alternateGroup ?? "";
 
@@ -644,7 +708,9 @@ function getFormMeta() {
 
 async function refreshWhisperModel() {
   const { whisperModel } = await apiCalls.getWhisperModel();
-  whisperModelEl.textContent = whisperModel ? `(当前模型: ${whisperModel})` : "未选择";
+  whisperModelEl.textContent = whisperModel
+    ? `(当前模型: ${whisperModel})`
+    : "未选择";
 }
 
 function formatTime(seconds) {

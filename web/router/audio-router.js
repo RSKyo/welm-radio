@@ -16,6 +16,7 @@ import {
   addAudio,
   renameAudio,
   loadAudio,
+  transcribeAudioAndSaveMeta,
 } from "../service/audio-service.js";
 import { saveMeta } from "../service/meta-service.js";
 
@@ -167,6 +168,17 @@ router.get(
 
     res.type(contentType);
     res.send(buffer);
+  }),
+);
+
+router.post(
+  "/transcribe-audio-and-save-meta",
+  withOptions(async (req, res, options) => {
+    const { audioPath } = req.body ?? {};
+
+    const savedMeta = await transcribeAudioAndSaveMeta(audioPath, options);
+
+    res.json(savedMeta);
   }),
 );
 

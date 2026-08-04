@@ -164,6 +164,45 @@ pwd
 
 ## 6. 下载 large-v3 模型
 
+官方模型说明：
+
+```txt
+https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md
+```
+
+模型有很多：
+
+```txt
+tiny  tiny.en  tiny-q5_1  tiny-q8_0
+base  base.en  base-q5_1  base-q8_0
+small  small.en  small.en-tdrz  small-q5_1  small-q8_0
+medium  medium.en  medium-q5_0  medium-q8_0
+large-v1  large-v2  large-v2-q5_0  large-v3
+large-v3-q5_0  large-v3-turbo
+large-v3-turbo-q5_0  large-v3-turbo-q8_0
+```
+
+目前只关注这些就够了：
+
+```txt
+small
+medium
+large-v3
+large-v3-turbo
+```
+
+模型文件名有固定规律：
+
+```txt
+模型名 medium     → ggml-medium.bin
+模型名 large-v3   → ggml-large-v3.bin
+```
+
+.en 表示仅英语；你的音频可能有中文或其他语言，选不带 .en 的模型。
+
+Hugging Face 是一个专门服务于 AI 的网站和平台，可以把它理解成：
+AI 模型领域的 GitHub + 模型下载站 + 在线体验站。
+
 官方 Hugging Face 地址：
 
 ```txt
@@ -183,6 +222,16 @@ curl -L -C - -o ggml-large-v3.bin \
   https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
 ```
 
+```bash
+curl -L -C - -o ggml-medium.bin \
+  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin
+  ```
+
+```bash
+curl -L -C - -o ggml-small.bin \
+  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
+  ```
+
 参数说明：
 
 ```txt
@@ -192,6 +241,13 @@ curl -L -C - -o ggml-large-v3.bin \
 ```
 
 如果下载中断，重新执行同一条命令即可继续。
+
+如果镜像没有数据，改为官方下载：
+
+```bash
+curl -L -C - -o ggml-large-v3.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
+```
 
 下载完成后检查：
 
