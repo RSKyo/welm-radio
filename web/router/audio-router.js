@@ -1,6 +1,4 @@
-import express from "express";
-
-import { withOptions } from "welm-cdp/web";
+import { ApiRouter } from "welm-cdp/web";
 import {
   selectAudioDir,
   selectWhisperModel,
@@ -10,7 +8,7 @@ import {
   listAudioPosition,
   listAudioDayPart,
   listAudioCategory,
-  listAlternateGroup,
+  listAudioAlternateGroup,
   listAudio,
   removeAudio,
   addAudio,
@@ -21,189 +19,124 @@ import {
 } from "../service/audio-service.js";
 import { saveMeta } from "../service/meta-service.js";
 
-export const router = express.Router();
+const apiRouter = new ApiRouter();
+export default apiRouter.handle;
 
-// GET /audio/api/select-audio-dir
-router.get(
-  "/select-audio-dir",
-  withOptions(async (req, res, options) => {
-    const path = await selectAudioDir(options);
+// -----------------------------------------------------------------------------
+// Routes for audio management
+// -----------------------------------------------------------------------------
 
-    res.json({
-      path,
-      canceled: !path,
-    });
-  }),
-);
+apiRouter.get("/select-audio-dir", async (data, options) => {
+  return await selectAudioDir(options);
+});
 
-// GET /audio/api/select-whisper-model
-router.get(
-  "/select-whisper-model",
-  withOptions(async (req, res, options) => {
-    const path = await selectWhisperModel(options);
-    const whisperModel = getWhisperModel(options);
+apiRouter.get("/list-audio-type", async (data, options) => {
+  return listAudioType(options);
+});
 
-    res.json({
-      path,
-      canceled: !path,
-    });
-  }),
-);
+apiRouter.get("/list-audio-language", async (data, options) => {
+  return listAudioLanguage(options);
+});
 
-// GET /audio/api/get-whisper-model
-router.get(
-  "/get-whisper-model",
-  withOptions(async (req, res, options) => {
-    const whisperModel = getWhisperModel(options);
+apiRouter.get("/list-audio-position", async (data, options) => {
+  return listAudioPosition(options);
+});
 
-    res.json({
-      whisperModel,
-    });
-  }),
-);
+apiRouter.get("/list-audio-day-part", async (data, options) => {
+  return listAudioDayPart(options);
+});
 
-// GET /audio/api/list-audio-type
-router.get(
-  "/list-audio-type",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioType());
-  }),
-);
+apiRouter.get("/list-audio-category", async (data, options) => {
+  return listAudioCategory(options);
+});
 
-// GET /audio/api/list-audio-language
-router.get(
-  "/list-audio-language",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioLanguage());
-  }),
-);
+apiRouter.get("/list-audio-alternate-group", async (data, options) => {
+  return listAudioAlternateGroup(options);
+});
 
-// GET /audio/api/list-audio-position
-router.get(
-  "/list-audio-position",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioPosition());
-  }),
-);
+apiRouter.post("/list-audio", async (data, options) => {
+  return listAudio(data.filters, options);
+});
 
-// GET /audio/api/list-audio-day-part
-router.get(
-  "/list-audio-day-part",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioDayPart());
-  }),
-);
+apiRouter.post("/remove-audio", async (data, options) => {
+  removeAudio(data.files, options);
+});
 
-// GET /audio/api/list-audio-category
-router.get(
-  "/list-audio-category",
-  withOptions(async (req, res, options) => {
-    res.json(listAudioCategory(options));
-  }),
-);
+apiRouter.get("/add-audio", async (req, res, data, options) => {
+  const files = await addAudio(options);
 
-// GET /audio/api/list-audio-alternate-group
-router.get(
-  "/list-audio-alternate-group",
-  withOptions(async (req, res, options) => {
-    res.json(listAlternateGroup(options));
-  }),
-);
+  res.json({
+    files,
+    canceled: !files,
+  });
+});
 
-// POST /audio/api/list-audio
-router.post(
-  "/list-audio",
-  withOptions(async (req, res, options) => {
-    const filter = req.body ?? {};
+apiRouter.post("/rename-audio", async (req, res, data, options) => {
+  const { audioPath, name } = data;
 
-    res.json(listAudio(filter, options));
-  }),
-);
+  const result = await renameAudio(audioPath, name, options);
 
-// POST /audio/api/remove-audio
-router.post(
-  "/remove-audio",
-  withOptions(async (req, res, options) => {
-    const { files } = req.body ?? {};
+  res.json(result);
+});
 
-    await removeAudio(files, options);
+apiRouter.get("/load-audio", async (req, res, data, options) => {
+  const { filePath } = data;
 
-    res.json({
-      success: true,
-    });
-  }),
-);
+  const { contentType, buffer } = await loadAudio(filePath, options);
 
-// GET /audio/api/add-audio
-router.get(
-  "/add-audio",
-  withOptions(async (req, res, options) => {
-    const files = await addAudio(options);
+  res.type(contentType);
+  res.send(buffer);
+});
 
-    res.json({
-      files,
-      canceled: !files,
-    });
-  }),
-);
-
-// POST /audio/api/rename-audio
-router.post(
-  "/rename-audio",
-  withOptions(async (req, res, options) => {
-    const { audioPath, name } = req.body ?? {};
-
-    const result = await renameAudio(audioPath, name, options);
-
-    res.json(result);
-  }),
-);
-
-// GET /audio/api/load-audio
-router.get(
-  "/load-audio",
-  withOptions(async (req, res, options) => {
-    const { filePath } = req.query ?? {};
-
-    const { contentType, buffer } = await loadAudio(filePath, options);
-
-    res.type(contentType);
-    res.send(buffer);
-  }),
-);
-
-// POST /audio/api/transcribe-audio-and-save-meta
-router.post(
+apiRouter.post(
   "/transcribe-audio-and-save-meta",
-  withOptions(async (req, res, options) => {
-    const { audioPath,language } = req.body ?? {};
+  async (req, res, data, options) => {
+    const { audioPath, language } = data;
 
-    const savedMeta = await transcribeAudioAndSaveMeta(audioPath, language, options);
+    const savedMeta = await transcribeAudioAndSaveMeta(
+      audioPath,
+      language,
+      options,
+    );
 
     res.json(savedMeta);
-  }),
+  },
 );
 
-// GET /audio/api/is-transcription-in-progress
-router.get(
+apiRouter.get(
   "/is-transcription-in-progress",
-  withOptions(async (req, res, options) => {
+  async (req, res, data, options) => {
     const inProgress = isTranscriptionInProgress();
 
     res.json({
       inProgress,
     });
-  }),
+  },
 );
 
-// POST /audio/api/save-meta
-router.post(
-  "/save-meta",
-  withOptions(async (req, res, options) => {
-    const { audioPath, meta } = req.body ?? {};
+apiRouter.post("/save-meta", async (req, res, data, options) => {
+  const { audioPath, meta } = data;
 
-    const savedMeta = await saveMeta(audioPath, meta, options);
+  const savedMeta = await saveMeta(audioPath, meta, options);
 
-    res.json(savedMeta);
-  }),
-);
+  res.json(savedMeta);
+});
+
+// -----------------------------------------------------------------------------
+// Routes for Whisper
+// -----------------------------------------------------------------------------
+
+apiRouter.get("/whisper-model/select", async (req, res, data, options) => {
+  const path = await selectWhisperModel(options);
+
+  res.json({
+    path,
+    canceled: !path,
+  });
+});
+
+apiRouter.get("/whisper-model", async (req, res, data, options) => {
+  const model = getWhisperModel(options);
+
+  res.json(model);
+});

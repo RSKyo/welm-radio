@@ -9,7 +9,7 @@ import express from "express";
 import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { router as audioRouter } from "./router/audio-router.js";
+import audioRouter from "./router/audio-router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = nodePath.dirname(__filename);

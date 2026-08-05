@@ -119,7 +119,7 @@ const apiCalls = {
     return await http.get("/audio/api/list-audio-alternate-group");
   },
   listAudio: async () => {
-    return await http.post("/audio/api/list-audio", state.filters);
+    return await http.post("/audio/api/list-audio", {filters: state.filters});
   },
   removeAudio: async (files) => {
     return await http.post("/audio/api/remove-audio", { files });
@@ -137,10 +137,10 @@ const apiCalls = {
     });
   },
   selectWhisperModel: async () => {
-    return await http.get("/audio/api/select-whisper-model");
+    return await http.get("/audio/api/whisper-model/select");
   },
   getWhisperModel: async () => {
-    return await http.get("/audio/api/get-whisper-model");
+    return await http.get("/audio/api/whisper-model");
   },
   transcribeAudioAndSaveMeta: async (audioPath, language) => {
     return await http.post("/audio/api/transcribe-audio-and-save-meta", {
