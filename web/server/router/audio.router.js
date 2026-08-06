@@ -1,8 +1,6 @@
 import { ApiRouter } from "welm-cdp/web";
 import {
   selectAudioDir,
-  selectWhisperModel,
-  getWhisperModel,
   listAudioType,
   listAudioLanguage,
   listAudioPosition,
@@ -14,10 +12,8 @@ import {
   addAudio,
   renameAudio,
   loadAudio,
-  transcribeAudioAndSaveMeta,
-  isTranscriptionInProgress,
-} from "../service/audio-service.js";
-import { saveMeta } from "../service/meta-service.js";
+} from "../service/audio.service.js";
+import { saveMeta } from "../service/meta.service.js";
 
 const apiRouter = new ApiRouter();
 export default apiRouter.handle;
@@ -88,32 +84,6 @@ apiRouter.get("/load-audio", async (req, res, data, options) => {
   res.send(buffer);
 });
 
-apiRouter.post(
-  "/transcribe-audio-and-save-meta",
-  async (req, res, data, options) => {
-    const { audioPath, language } = data;
-
-    const savedMeta = await transcribeAudioAndSaveMeta(
-      audioPath,
-      language,
-      options,
-    );
-
-    res.json(savedMeta);
-  },
-);
-
-apiRouter.get(
-  "/is-transcription-in-progress",
-  async (req, res, data, options) => {
-    const inProgress = isTranscriptionInProgress();
-
-    res.json({
-      inProgress,
-    });
-  },
-);
-
 apiRouter.post("/save-meta", async (req, res, data, options) => {
   const { audioPath, meta } = data;
 
@@ -126,17 +96,3 @@ apiRouter.post("/save-meta", async (req, res, data, options) => {
 // Routes for Whisper
 // -----------------------------------------------------------------------------
 
-apiRouter.get("/whisper-model/select", async (req, res, data, options) => {
-  const path = await selectWhisperModel(options);
-
-  res.json({
-    path,
-    canceled: !path,
-  });
-});
-
-apiRouter.get("/whisper-model", async (req, res, data, options) => {
-  const model = getWhisperModel(options);
-
-  res.json(model);
-});

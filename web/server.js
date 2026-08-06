@@ -9,7 +9,9 @@ import express from "express";
 import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 
-import audioRouter from "./router/audio-router.js";
+import audioApiRouter from "./server/router/audio.router.js";
+import metaApiRouter from "./server/router/meta.router.js";
+import whisperApiRouter from "./server/router/whisper.router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = nodePath.dirname(__filename);
@@ -32,7 +34,7 @@ app.use(express.json());
 
 // Expose only browser-accessible static resources.
 // Server-side modules under infra, router, and service are not exposed.
-app.use("/", express.static(nodePath.join(__dirname, "ui")));
+app.use("/", express.static(nodePath.join(__dirname, "client")));
 app.use("/assets", express.static(nodePath.join(__dirname, "assets")));
 
 // Health-check endpoint used by the launcher to verify that the server
@@ -45,8 +47,9 @@ app.get("/__ready", (req, res) => {
 // business routes
 // -----------------------------------------------------------------------------
 
-// Mount audio-related API routes under /audio/api.
-app.use("/audio/api", audioRouter);
+app.use(audioApiRouter.route.path, audioApiRouter.route.router);
+app.use(metaApiRouter.route.path, metaApiRouter.route.router);
+app.use(whisperApiRouter.route.path, whisperApiRouter.route.router);
 
 // -----------------------------------------------------------------------------
 // error handling

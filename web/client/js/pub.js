@@ -1,4 +1,4 @@
-import { Toast } from "/assets/component/toast.js";
+import { Toast } from "../component/toast.js";
 
 export const toast = new Toast();
 

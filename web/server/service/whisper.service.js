@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 
 import { config } from "welm-cdp/common/config";
 import { assertExistingFile } from "welm-cdp/common/assert";
-import { readFileText, removeFile } from "welm-cdp/fs";
+import { readFileTextSync, removeFileSync } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
 
 import { saveMeta } from "./meta-service.js";
@@ -40,6 +40,14 @@ let isTranscribing = false;
 // Public API
 // -----------------------------------------------------------------------------
 
+export function getWhisperModel(options = {}) {
+  return {
+    modelPath: whisper_model ?? "",
+    modelName: whisper_model ? nodePath.basename(whisper_model) : "",
+  };
+}
+
+
 export async function selectWhisperModel(options = {}) {
   const filePath = await dialog({
     dialogTitle: "Choose Whisper Model",
@@ -55,17 +63,10 @@ export async function selectWhisperModel(options = {}) {
   config.set(config_key_whisper_model, filePath);
   whisper_model = filePath;
 
-  return filePath;
+  return getWhisperModel(options);
 }
 
-export function getWhisperModel(options = {}) {
-  return {
-    modelPath: whisper_model ?? "",
-    modelName: whisper_model ? nodePath.basename(whisper_model) : "",
-  };
-}
-
-export async function transcribeAudioAndSaveMeta(
+export async function transcriptions(
   audioPath,
   language,
   options = {},
@@ -90,18 +91,18 @@ export async function transcribeAudioAndSaveMeta(
   try {
     wavPath = await convertAudioToWhisperWav(audioPath);
     srtPath = await transcribeWav(wavPath, language, "srt");
-    const content = readFileText(srtPath);
+    const content = readFileTextSync(srtPath);
 
     return await saveMeta(audioPath, { content }, options);
   } finally {
-    removeFile(wavPath);
-    removeFile(srtPath);
+    removeFileSync(wavPath);
+    removeFileSync(srtPath);
     isTranscribing = false;
   }
 }
 
-export function isTranscriptionInProgress() {
-  return isTranscribing;
+export function isTranscribing() {
+  return { isTranscribing };
 }
 
 async function convertAudioToWhisperWav(audioPath) {
@@ -166,7 +167,7 @@ async function transcribeWav(wavPath, language = "zh", outputType = "srt") {
   const outputPath = `${outputPrefix}${typeConfig.extension}`;
 
   // 防止 Whisper 本次失败时，误把上次遗留的 SRT 当作新结果读取。
-  removeFile(outputPath);
+  removeFileSync(outputPath);
 
   let stdout, stderr;
   try {

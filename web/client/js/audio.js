@@ -1,7 +1,7 @@
-import http from "/assets/js/http.js";
-import { safeRun, safeHandler, toast } from "/assets/js/global.js";
-import { ChipGroup } from "/assets/component/chip-group.js";
-import { ItemList } from "/assets/component/item-list.js";
+import http from "./http.js";
+import { safeRun, safeHandler, toast } from "./pub.js";
+import { ChipGroup } from "../component/chip-group.js";
+import { ItemList } from "../component/item-list.js";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -119,7 +119,7 @@ const apiCalls = {
     return await http.get("/audio/api/list-audio-alternate-group");
   },
   listAudio: async () => {
-    return await http.post("/audio/api/list-audio", {filters: state.filters});
+    return await http.post("/audio/api/list-audio", { filters: state.filters });
   },
   removeAudio: async (files) => {
     return await http.post("/audio/api/remove-audio", { files });
@@ -136,6 +136,9 @@ const apiCalls = {
       meta,
     });
   },
+
+  /** whisper api */
+
   selectWhisperModel: async () => {
     return await http.get("/audio/api/whisper-model/select");
   },
@@ -143,13 +146,13 @@ const apiCalls = {
     return await http.get("/audio/api/whisper-model");
   },
   transcribeAudioAndSaveMeta: async (audioPath, language) => {
-    return await http.post("/audio/api/transcribe-audio-and-save-meta", {
+    return await http.post("/audio/api/transcriptions", {
       audioPath,
       language,
     });
   },
   isTranscriptionInProgress: async () => {
-    return await http.get("/audio/api/is-transcription-in-progress");
+    return await http.get("/audio/api/isTranscribing");
   },
 };
 
@@ -489,7 +492,7 @@ async function transcribeContentBtn_clickHandler() {
 
   let savedMeta = null;
   try {
-    savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath,language);
+    savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath, language);
   } catch (error) {
     toast.show(`音频转录失败: ${error.message}`);
     setTranscribeButtonState(false);
