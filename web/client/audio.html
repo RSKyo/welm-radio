@@ -74,7 +74,7 @@
             <div class="hbox a-center j-center" style="width: 36px">
               <input id="select-all" type="checkbox" />
             </div>
-            <div class="grow toolbar" style="padding: 0;">
+            <div class="grow toolbar" style="padding: 0">
               <button id="remove-audio" type="button">删除</button>
               <button id="add-audio" type="button">添加</button>
               <button id="rename-audio" type="button">重命名</button>
@@ -131,29 +131,25 @@
                 ></textarea>
               </div>
 
-              
-
               <div class="form-field">
                 <label>语言</label>
-                <div id="meta-language"></div>
+                <div id="audio-language"></div>
               </div>
 
               <div class="form-field">
                 <label>类型</label>
-                <div id="meta-type"></div>
+                <div id="audio-type"></div>
               </div>
 
               <div class="form-field">
                 <label>位置</label>
-                <div id="meta-position"></div>
+                <div id="audio-position"></div>
               </div>
 
               <div class="form-field">
                 <label>日段</label>
-                <div id="meta-day-part"></div>
+                <div id="audio-day-part"></div>
               </div>
-
-              
 
               <div class="form-field">
                 <label>分类</label>
@@ -174,15 +170,23 @@
                   placeholder="每行填写一个时间 HH:MM:SS.mmm"
                 ></textarea>
               </div>
-              
+
               <div class="form-field">
                 <label>内容</label>
                 <textarea name="content" rows="8"></textarea>
                 <div>
-                  <button id="transcribe-content" name="transcribeContent" type="button">
+                  <button
+                    id="transcribe-content"
+                    name="transcribeContent"
+                    type="button"
+                  >
                     识别音频内容
                   </button>
-                  <button id="select-whisper-model" name="selectWhisperModel" type="button">
+                  <button
+                    id="select-whisper-model"
+                    name="selectWhisperModel"
+                    type="button"
+                  >
                     选择 Whisper 模型
                   </button>
                   <span id="whisper-model"></span>
@@ -219,8 +223,6 @@
                 <label>结束时间</label>
                 <input name="end" type="text" placeholder="HH:MM:SS.mmm" />
               </div>
-
-              
 
               <div class="form-field">
                 <label>创建时间</label>

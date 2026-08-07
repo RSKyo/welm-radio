@@ -1,8 +1,8 @@
 import { ApiRouter } from "welm-cdp/web";
 import {
   getWhisperModel,
-  selectWhisperModel,
-  transcriptions,
+  setWhisperModel,
+  startTranscription,
   isTranscribing,
 } from "../service/whisper.service.js";
 
@@ -12,26 +12,24 @@ const apiRouter = new ApiRouter("/whisper/api");
 // Routers for Whisper Service
 // -----------------------------------------------------------------------------
 
-// GET /whisper/api/model/select
-apiRouter.get("/model/select", async (data, options) => {
-  return await selectWhisperModel(options);
+// GET /whisper/api/whisper-model
+apiRouter.get("/whisper-model", () => {
+  return getWhisperModel();
 });
 
-// GET /whisper/api/model
-apiRouter.get("/model", async (data, options) => {
-  return getWhisperModel(options);
+// GET /whisper/api/set-whisper-model
+apiRouter.get("/set-whisper-model", () => {
+  return setWhisperModel();
 });
 
-// POST /whisper/api/transcriptions
-apiRouter.post("/transcriptions", async (data, options) => {
-  const { audioPath, language } = data;
-
-  return await transcriptions(audioPath, language, options);
+// POST /whisper/api/start-transcription
+apiRouter.post("/start-transcription", (data) => {
+  return startTranscription(data.audioPath, data.language);
 });
 
-// GET /whisper/api/isTranscribing
-apiRouter.get("/isTranscribing", async (data, options) => {
-  return isTranscribing(options);
+// GET /whisper/api/is-transcribing
+apiRouter.get("/is-transcribing", () => {
+  return isTranscribing();
 });
 
 export default apiRouter;

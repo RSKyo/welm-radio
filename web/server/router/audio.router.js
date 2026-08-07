@@ -1,98 +1,80 @@
 import { ApiRouter } from "welm-cdp/web";
 import {
-  selectAudioDir,
-  listAudioType,
-  listAudioLanguage,
-  listAudioPosition,
-  listAudioDayPart,
-  listAudioCategory,
-  listAudioAlternateGroup,
-  listAudio,
-  removeAudio,
-  addAudio,
-  renameAudio,
+  setAudioRoot,
+  listAudioTypes,
+  listAudioLanguages,
+  listAudioPositions,
+  listAudioDayParts,
+  listAudioCategories,
+  listAudioAlternateGroups,
+  listAudios,
+  removeAudios,
+  importAudios,
   loadAudio,
 } from "../service/audio.service.js";
-import { saveMeta } from "../service/meta.service.js";
 
-const apiRouter = new ApiRouter();
-export default apiRouter.handle;
+const apiRouter = new ApiRouter("/audio/api");
 
 // -----------------------------------------------------------------------------
-// Routes for audio management
+// Routers for Audio Service
 // -----------------------------------------------------------------------------
 
-apiRouter.get("/select-audio-dir", async (data, options) => {
-  return await selectAudioDir(options);
+// GET /audio/api/types
+apiRouter.get("/types", () => {
+  return listAudioTypes();
 });
 
-apiRouter.get("/list-audio-type", async (data, options) => {
-  return listAudioType(options);
+// GET /audio/api/languages
+apiRouter.get("/languages", () => {
+  return listAudioLanguages();
 });
 
-apiRouter.get("/list-audio-language", async (data, options) => {
-  return listAudioLanguage(options);
+// GET /audio/api/positions
+apiRouter.get("/positions", () => {
+  return listAudioPositions();
 });
 
-apiRouter.get("/list-audio-position", async (data, options) => {
-  return listAudioPosition(options);
+// GET /audio/api/day-parts
+apiRouter.get("/day-parts", () => {
+  return listAudioDayParts();
 });
 
-apiRouter.get("/list-audio-day-part", async (data, options) => {
-  return listAudioDayPart(options);
+// GET /audio/api/categories
+apiRouter.get("/categories", () => {
+  return listAudioCategories();
 });
 
-apiRouter.get("/list-audio-category", async (data, options) => {
-  return listAudioCategory(options);
+// GET /audio/api/alternate-groups
+apiRouter.get("/alternate-groups", () => {
+  return listAudioAlternateGroups();
 });
 
-apiRouter.get("/list-audio-alternate-group", async (data, options) => {
-  return listAudioAlternateGroup(options);
+// POST /audio/api/audios
+apiRouter.post("/audios", (data) => {
+  return listAudios(data.filters);
 });
 
-apiRouter.post("/list-audio", async (data, options) => {
-  return listAudio(data.filters, options);
+// POST /audio/api/set-audio-root
+apiRouter.post("/set-audio-root", () => {
+  return setAudioRoot();
 });
 
-apiRouter.post("/remove-audio", async (data, options) => {
-  removeAudio(data.files, options);
+// POST /audio/api/remove-audios
+apiRouter.post("/remove-audios", (data) => {
+  return removeAudios(data.audioPaths);
 });
 
-apiRouter.get("/add-audio", async (req, res, data, options) => {
-  const files = await addAudio(options);
-
-  res.json({
-    files,
-    canceled: !files,
-  });
+// POST /audio/api/import-audios
+apiRouter.post("/import-audios", () => {
+  return importAudios();
 });
 
-apiRouter.post("/rename-audio", async (req, res, data, options) => {
-  const { audioPath, name } = data;
-
-  const result = await renameAudio(audioPath, name, options);
-
-  res.json(result);
-});
-
-apiRouter.get("/load-audio", async (req, res, data, options) => {
-  const { filePath } = data;
-
-  const { contentType, buffer } = await loadAudio(filePath, options);
+// GET /audio/api/load-audio
+apiRouter.get("/load-audio", async (data, { res }) => {
+  const { contentType, buffer } = await loadAudio(data.audioPath);
 
   res.type(contentType);
   res.send(buffer);
 });
 
-apiRouter.post("/save-meta", async (req, res, data, options) => {
-  const { audioPath, meta } = data;
-
-  const savedMeta = await saveMeta(audioPath, meta, options);
-
-  res.json(savedMeta);
-});
-
-// -----------------------------------------------------------------------------
-// Routes for Whisper
-// -----------------------------------------------------------------------------
-
+export default apiRouter;

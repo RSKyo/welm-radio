@@ -3,20 +3,19 @@ import { Http } from "../js/http.js";
 const http = new Http("/whisper/api");
 
 export const whisperApi = {
+  // GET /whisper/api/whisper-model
+  getWhisperModel: () => http.get("/whisper-model"),
 
-  // GET /whisper/api/model/select
-  selectWhisperModel: () => http.get(`/model/select`),
+  // GET /whisper/api/set-whisper-model
+  setWhisperModel: () => http.get("/set-whisper-model"),
 
-  // GET /whisper/api/model
-  getWhisperModel: () => http.get(`/model`),
-
-  // POST /whisper/api/transcriptions
-  transcriptions: (audioPath, language) =>
-    http.post(`/transcriptions`, {
+  // POST /whisper/api/start-transcription
+  startTranscription: (audioPath, language) =>
+    http.post("/start-transcription", {
       audioPath,
       language,
     }),
 
-  // GET /whisper/api/isTranscribing
-  isTranscribing: () => http.get(`/isTranscribing`),
+  // GET /whisper/api/is-transcribing
+  isTranscribing: () => http.get("/is-transcribing"),
 };

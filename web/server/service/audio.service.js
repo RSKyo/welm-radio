@@ -27,7 +27,6 @@ const execFileAsync = promisify(execFile);
 
 const audio_dir_key_path = "radio.audio_dir";
 
-
 const audio_types_key_path = "radio.audio_types";
 const audio_languages_key_path = "radio.audio_languages";
 const audio_positions_key_path = "radio.audio_positions";
@@ -41,8 +40,6 @@ const audio_mime_types = {
   ".aac": "audio/aac",
   ".ogg": "audio/ogg",
 };
-
-
 
 const default_audio_types = [
   {
@@ -147,7 +144,6 @@ const default_audio_day_parts = [
 
 let audio_dir = config.get(audio_dir_key_path);
 
-
 let audio_types = config.get(audio_types_key_path);
 if (!audio_types || !Array.isArray(audio_types) || audio_types.length === 0) {
   audio_types = default_audio_types;
@@ -178,46 +174,24 @@ if (
 // Public API
 // -----------------------------------------------------------------------------
 
-export async function selectAudioDir(options = {}) {
-  const dirPath = await dialog({
-    dialogTitle: "Choose Audio Directory",
-    mode: "folder",
-  });
-
-  // cancel
-  if (!dirPath) {
-    return null;
-  }
-
-  config.set(audio_dir_key_path, dirPath);
-  audio_dir = dirPath;
-
-  return {
-    path: dirPath,
-    canceled: !dirPath,
-  };
-}
-
-
-
-export function listAudioType() {
+export function listAudioTypes() {
   return audio_types;
 }
 
-export function listAudioLanguage() {
+export function listAudioLanguages() {
   return audio_languages;
 }
 
-export function listAudioPosition() {
+export function listAudioPositions() {
   return audio_positions;
 }
 
-export function listAudioDayPart() {
+export function listAudioDayParts() {
   return default_audio_day_parts;
 }
 
-export function listAudioCategory(options = {}) {
-  const audios = listAudio({}, options);
+export function listAudioCategories() {
+  const audios = listAudios();
 
   const categories = Array.from(
     new Set(audios.flatMap((audio) => audio.meta?.category || [])),
@@ -226,8 +200,8 @@ export function listAudioCategory(options = {}) {
   return categories;
 }
 
-export function listAudioAlternateGroup(options = {}) {
-  const audios = listAudio({}, options);
+export function listAudioAlternateGroups() {
+  const audios = listAudios({}, options);
 
   const groups = Array.from(
     new Set(audios.flatMap((audio) => audio.meta?.alternateGroup || [])),
@@ -236,7 +210,7 @@ export function listAudioAlternateGroup(options = {}) {
   return groups;
 }
 
-export function listAudio(filters = {}, options = {}) {
+export function listAudios(filters = {}) {
   if (!audio_dir || !fs.existsSync(audio_dir)) {
     return [];
   }
@@ -264,14 +238,34 @@ export function listAudio(filters = {}, options = {}) {
   return filterAudios(audios, filters);
 }
 
-export function removeAudio(files, options = {}) {
-  for (const filePath of files) {
-    assertExistingFile(filePath, "filePath");
+export async function setAudioRoot() {
+  const dir = await dialog({
+    dialogTitle: "Choose Audio Directory",
+    mode: "folder",
+  });
 
-    removeFile(filePath);
+  let canceled = false;
+  if (dir) {
+    config.set(audio_dir_key_path, dir);
+    audio_dir = dir;
+  } else {
+    canceled = true;
+  }
 
-    const dir = nodePath.dirname(filePath);
-    const name = nodePath.basename(filePath, nodePath.extname(filePath));
+  return {
+    path: dir,
+    canceled,
+  };
+}
+
+export function removeAudios(audioPaths) {
+  for (const audioPath of audioPaths) {
+    assertExistingFile(audioPath, "filePath");
+
+    removeFile(audioPath);
+
+    const dir = nodePath.dirname(audioPath);
+    const name = nodePath.basename(audioPath, nodePath.extname(audioPath));
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
     if (fs.existsSync(metaPath)) {
@@ -280,15 +274,23 @@ export function removeAudio(files, options = {}) {
   }
 }
 
-export async function addAudio(options = {}) {
+export async function importAudios() {
   const files = await dialog({
-    dialogTitle: "Add Audio Files",
+    dialogTitle: "Select Audio Files",
     mode: "files",
     includeExts: audio_exts,
   });
 
   if (!files || files.length === 0) {
-    return null;
+    return;
+  }
+
+  if (!audio_dir || !fs.existsSync(audio_dir)) {
+    throw new Error("Audio directory is not set or does not exist");
+  }
+
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    throw new Error("No files provided to add");
   }
 
   for (const filePath of files) {
@@ -296,10 +298,6 @@ export async function addAudio(options = {}) {
 
     const dir = nodePath.dirname(filePath);
     if (dir === audio_dir) {
-      log.debug(
-        `File ${filePath} is already in the audio library, skipping copy`,
-        options,
-      );
       continue;
     }
     const fileName = nodePath.basename(filePath);
@@ -311,63 +309,61 @@ export async function addAudio(options = {}) {
   return files;
 }
 
-export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
+// export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
+//   assertExistingFile(audioPath, "audioPath");
+//   assertNonBlankString(newNameWithoutExt, "newNameWithoutExt");
+
+//   const dir = nodePath.dirname(audioPath);
+//   const ext = nodePath.extname(audioPath);
+//   const audioName = nodePath.basename(audioPath, ext);
+
+//   if (audioName === newNameWithoutExt) {
+//     throw new Error("New name is the same as the current name");
+//   }
+
+//   const newAudioName = `${newNameWithoutExt}${ext}`;
+//   const newAudioPath = nodePath.join(dir, newAudioName);
+//   // the second argument is the new name, not the full path
+//   renameFile(audioPath, newAudioName);
+
+//   const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
+//   const newMetaName = `${newNameWithoutExt}.meta.json`;
+//   const newMetaPath = nodePath.join(dir, newMetaName);
+
+//   if (fs.existsSync(metaPath)) {
+//     renameFile(metaPath, newMetaName);
+//   }
+
+//   // update the audioPath and metaPath in the meta file
+//   const meta = await saveMeta(
+//     newAudioPath,
+//     { audioPath: newAudioPath, metaPath: newMetaPath },
+//     options,
+//   );
+
+//   const { base, name } = nodePath.parse(newAudioPath);
+
+//   return {
+//     base,
+//     name,
+//     filePath: newAudioPath,
+//     metaPath: newMetaPath,
+//     meta,
+//   };
+// }
+
+export async function loadAudio(audioPath) {
   assertExistingFile(audioPath, "audioPath");
-  assertNonBlankString(newNameWithoutExt, "newNameWithoutExt");
 
-  const dir = nodePath.dirname(audioPath);
-  const ext = nodePath.extname(audioPath);
-  const audioName = nodePath.basename(audioPath, ext);
-
-  if (audioName === newNameWithoutExt) {
-    throw new Error("New name is the same as the current name");
-  }
-
-  const newAudioName = `${newNameWithoutExt}${ext}`;
-  const newAudioPath = nodePath.join(dir, newAudioName);
-  // the second argument is the new name, not the full path
-  renameFile(audioPath, newAudioName);
-
-  const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
-  const newMetaName = `${newNameWithoutExt}.meta.json`;
-  const newMetaPath = nodePath.join(dir, newMetaName);
-
-  if (fs.existsSync(metaPath)) {
-    renameFile(metaPath, newMetaName);
-  }
-
-  // update the audioPath and metaPath in the meta file
-  const meta = await saveMeta(
-    newAudioPath,
-    { audioPath: newAudioPath, metaPath: newMetaPath },
-    options,
-  );
-
-  const { base, name } = nodePath.parse(newAudioPath);
-
-  return {
-    base,
-    name,
-    filePath: newAudioPath,
-    metaPath: newMetaPath,
-    meta,
-  };
-}
-
-export async function loadAudio(filePath, options = {}) {
-  assertExistingFile(filePath, "filePath");
-
-  const ext = nodePath.extname(filePath).toLowerCase();
+  const ext = nodePath.extname(audioPath).toLowerCase();
   const contentType = audio_mime_types[ext] || "application/octet-stream";
-  const buffer = readFileBuffer(filePath);
+  const buffer = readFileBuffer(audioPath);
 
   return {
     contentType,
     buffer,
   };
 }
-
-
 
 // -----------------------------------------------------------------------------
 // Private Helpers
@@ -424,5 +420,3 @@ function filterAudios(audios, filter) {
 
   return audios;
 }
-
-

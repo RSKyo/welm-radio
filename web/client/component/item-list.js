@@ -8,10 +8,21 @@ import {
   haveSameValues,
 } from "./item.js";
 
+const text_field_candidates = ["text", "label", "name"];
+const value_field_candidates = ["value", "id"];
+const title_field_candidates = [
+  "title",
+  "description",
+  "text",
+  "label",
+  "name",
+];
+
 export class ItemList {
   #container;
   #textField;
   #valueField;
+  #titleField;
   #items;
   #value;
   #checkedValues;
@@ -39,12 +50,15 @@ export class ItemList {
 
     this.#container.classList.add(this.#rootClass);
 
-    this.#textField = options.textField ?? "text";
-    this.#valueField = options.valueField ?? "value";
+    this.#textField = options.textField ?? null;
+    this.#valueField = options.valueField ?? null;
+    this.#titleField = options.titleField ?? null;
 
-    this.#items = [
-      ...assertItems(options.items ?? [], this.#textField, this.#valueField),
-    ];
+    const items = options.items ?? [];
+
+    this.#resolveFields(items);
+
+    this.#items = [...assertItems(items, this.#textField, this.#valueField)];
 
     this.#value = assertValue(
       options.value ?? "",
@@ -77,6 +91,8 @@ export class ItemList {
   }
 
   async setItems(items = []) {
+    this.#resolveFields(items);
+
     assertItems(items, this.#textField, this.#valueField);
 
     this.#items = [...items];
@@ -130,11 +146,11 @@ export class ItemList {
     const items = [...this.#items];
     items[index] = { ...item };
 
-    if(value === this.#value) {
+    if (value === this.#value) {
       this.#value = item[this.#valueField];
     }
 
-    if(this.#checkedValues.includes(value)) {
+    if (this.#checkedValues.includes(value)) {
       const checkedIndex = this.#checkedValues.indexOf(value);
       this.#checkedValues[checkedIndex] = item[this.#valueField];
     }
@@ -171,6 +187,34 @@ export class ItemList {
 
   async uncheckAll() {
     await this.#changeCheckedValues([]);
+  }
+
+  // -----------------------------------------------------------------------------
+  // field resolution
+  // -----------------------------------------------------------------------------
+
+  #resolveFields(items) {
+    const item = items[0];
+
+    if (!item) {
+      return;
+    }
+
+    if (!this.#textField) {
+      this.#textField = this.#findField(item, text_field_candidates);
+    }
+
+    if (!this.#valueField) {
+      this.#valueField = this.#findField(item, value_field_candidates);
+    }
+
+    if (!this.#titleField) {
+      this.#titleField = this.#findField(item, title_field_candidates);
+    }
+  }
+
+  #findField(item, fields) {
+    return fields.find((field) => Object.hasOwn(item, field));
   }
 
   // -----------------------------------------------------------------------------
@@ -348,7 +392,7 @@ export class ItemList {
     textElement.className = `${this.#rootClass}-text`;
 
     textElement.textContent = item[this.#textField];
-    textElement.title = item[this.#textField];
+    textElement.title = item[this.#titleField] || item[this.#textField];
 
     return textElement;
   }

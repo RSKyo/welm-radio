@@ -47,8 +47,7 @@ export function getWhisperModel(options = {}) {
   };
 }
 
-
-export async function selectWhisperModel(options = {}) {
+export async function setWhisperModel() {
   const filePath = await dialog({
     dialogTitle: "Choose Whisper Model",
     mode: "file",
@@ -63,14 +62,10 @@ export async function selectWhisperModel(options = {}) {
   config.set(config_key_whisper_model, filePath);
   whisper_model = filePath;
 
-  return getWhisperModel(options);
+  return getWhisperModel();
 }
 
-export async function transcriptions(
-  audioPath,
-  language,
-  options = {},
-) {
+export async function startTranscription(audioPath, language = "zh") {
   if (isTranscribing) {
     throw new Error(
       "Another transcription is in progress. Please wait until it finishes.",

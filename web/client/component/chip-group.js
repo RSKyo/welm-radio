@@ -6,6 +6,15 @@ import {
   haveSameValues,
 } from "./item.js";
 
+const text_field_candidates = ["text", "label", "name"];
+const value_field_candidates = ["value", "id"];
+const title_field_candidates = [
+  "title",
+  "description",
+  "text",
+  "label",
+  "name",
+];
 export class ChipGroup {
   #container;
   #textField;
@@ -37,15 +46,19 @@ export class ChipGroup {
 
     this.#container.classList.add(this.#rootClass);
 
-    this.#textField = options.textField ?? "text";
-    this.#valueField = options.valueField ?? "value";
-    this.#titleField = options.titleField ?? "title";
+    this.#textField = options.textField ?? null;
+    this.#valueField = options.valueField ?? null;
+    this.#titleField = options.titleField ?? null;
 
     this.#showSelectActions = options.showSelectActions ?? false;
 
-    this.#items = [
-      ...assertItems(options.items ?? [], this.#textField, this.#valueField),
-    ];
+    const items = options.items ?? [];
+
+    this.#resolveFields(items);
+
+    this.#items = [...assertItems(items, this.#textField, this.#valueField)];
+
+    this.#resolveFields(items);
 
     this.#mode = options.mode ?? "multiple";
 
@@ -80,6 +93,8 @@ export class ChipGroup {
   }
 
   async setItems(items = []) {
+    this.#resolveFields(items);
+
     assertItems(items, this.#textField, this.#valueField);
 
     this.#items = [...items];
@@ -137,6 +152,34 @@ export class ChipGroup {
     }
 
     await this.#changeValues([]);
+  }
+
+  // -----------------------------------------------------------------------------
+  // field resolution
+  // -----------------------------------------------------------------------------
+
+  #resolveFields(items) {
+    const item = items[0];
+
+    if (!item) {
+      return;
+    }
+
+    if (!this.#textField) {
+      this.#textField = this.#findField(item, text_field_candidates);
+    }
+
+    if (!this.#valueField) {
+      this.#valueField = this.#findField(item, value_field_candidates);
+    }
+
+    if (!this.#titleField) {
+      this.#titleField = this.#findField(item, title_field_candidates);
+    }
+  }
+
+  #findField(item, fields) {
+    return fields.find((field) => Object.hasOwn(item, field));
   }
 
   // -----------------------------------------------------------------------------
@@ -288,5 +331,24 @@ export class ChipGroup {
       const selected = this.#values.includes(itemElement.dataset.value);
       itemElement.classList.toggle("is-selected", selected);
     }
+  }
+}
+
+
+export class SoloChipGroup extends ChipGroup {
+  constructor(container, options = {}) {
+    super(container, {
+      ...options,
+      mode: "single",
+    });
+  }
+}
+
+export class MultiChipGroup extends ChipGroup {
+  constructor(container, options = {}) {
+    super(container, {
+      ...options,
+      mode: "multiple",
+    });
   }
 }

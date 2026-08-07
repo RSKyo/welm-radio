@@ -1,7 +1,9 @@
-import http from "./http.js";
 import { safeRun, safeHandler, toast } from "./pub.js";
-import { ChipGroup } from "../component/chip-group.js";
+import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
 import { ItemList } from "../component/item-list.js";
+import { audioApi } from "../api/audio.api.js";
+import { metaApi } from "../api/meta.api.js";
+import { whisperApi } from "../api/whisper.api.js";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -30,10 +32,11 @@ const saveMetaBtn = document.querySelector("#save-meta");
 const renameAudioBtn = document.querySelector("#rename-audio");
 const metaFormFrm = document.querySelector("#meta-form");
 const metaFields = metaFormFrm.elements;
-const metaTypeEl = document.querySelector("#meta-type");
-const metaLanguageEl = document.querySelector("#meta-language");
-const metaPositionEl = document.querySelector("#meta-position");
-const metaDayPartEl = document.querySelector("#meta-day-part");
+
+const audioTypeEl = document.querySelector("#audio-type");
+const audioLanguageEl = document.querySelector("#audio-language");
+const audioPositionEl = document.querySelector("#audio-position");
+const audioDayPartEl = document.querySelector("#audio-day-part");
 const transcribeContentBtn = document.querySelector("#transcribe-content");
 const selectWhisperModelBtn = document.querySelector("#select-whisper-model");
 const whisperModelEl = document.querySelector("#whisper-model");
@@ -42,117 +45,33 @@ const detectDurationBtn = document.querySelector("#detect-duration");
 const audioPlayerEl = document.querySelector("#audio-player");
 
 /* components */
-const audioTypeFilterCmp = new ChipGroup(audioTypeFilterEl, {
-  titleField: "description",
-});
-const audioLanguageFilterCmp = new ChipGroup(audioLanguageFilterEl, {
-  titleField: "description",
-});
-const audioPositionFilterCmp = new ChipGroup(audioPositionFilterEl, {
-  titleField: "description",
-});
-const audioDayPartFilterCmp = new ChipGroup(audioDayPartFilterEl, {
-  titleField: "description",
-});
-const audioCategoryFilterCmp = new ChipGroup(audioCategoryFilterEl, {
-  titleField: "description",
-});
-const audioAlternateGroupFilterCmp = new ChipGroup(
-  audioAlternateGroupFilterEl,
-  { titleField: "description" },
-);
+const audioTypeFilterCmp = new MultiChipGroup(audioTypeFilterEl);
+const audioLanguageFilterCmp = new MultiChipGroup(audioLanguageFilterEl);
+const audioPositionFilterCmp = new MultiChipGroup(audioPositionFilterEl);
+const audioDayPartFilterCmp = new MultiChipGroup(audioDayPartFilterEl);
+const audioCategoryFilterCmp = new MultiChipGroup(audioCategoryFilterEl);
+const audioAlternateGroupFilterCmp = new MultiChipGroup(audioAlternateGroupFilterEl);
 
 const audioListCmp = new ItemList(audioListEl, {
   textField: "base",
   valueField: "filePath",
 });
 
-const metaTypeCmp = new ChipGroup(metaTypeEl, {
-  mode: "single",
-  titleField: "description",
-});
-const metaLanguageCmp = new ChipGroup(metaLanguageEl, {
-  mode: "single",
-  titleField: "description",
-});
-const metaPositionCmp = new ChipGroup(metaPositionEl, {
-  mode: "single",
-  titleField: "description",
-});
-const metaDayPartCmp = new ChipGroup(metaDayPartEl, {
-  mode: "multiple",
-  titleField: "description",
+const audioTypeCmp = new SoloChipGroup(audioTypeEl);
+const audioLanguageCmp = new SoloChipGroup(audioLanguageEl);
+const audioPositionCmp = new SoloChipGroup(audioPositionEl);
+const audioDayPartCmp = new MultiChipGroup(audioDayPartEl, {
   showSelectActions: true,
 });
 
 /* state */
-const state = {};
-state.filters = {
-  types: [],
-  languages: [],
-  positions: [],
-  categories: [],
-  alternateGroups: [],
-};
-
-/* api calls */
-const apiCalls = {
-  selectAudioDir: async () => {
-    return await http.get("/audio/api/select-audio-dir");
-  },
-  listAudioType: async () => {
-    return await http.get("/audio/api/list-audio-type");
-  },
-  listAudioLanguage: async () => {
-    return await http.get("/audio/api/list-audio-language");
-  },
-  listAudioPosition: async () => {
-    return await http.get("/audio/api/list-audio-position");
-  },
-  listAudioDayPart: async () => {
-    return await http.get("/audio/api/list-audio-day-part");
-  },
-  listAudioCategory: async () => {
-    return await http.get("/audio/api/list-audio-category");
-  },
-  listAudioAlternateGroup: async () => {
-    return await http.get("/audio/api/list-audio-alternate-group");
-  },
-  listAudio: async () => {
-    return await http.post("/audio/api/list-audio", { filters: state.filters });
-  },
-  removeAudio: async (files) => {
-    return await http.post("/audio/api/remove-audio", { files });
-  },
-  addAudio: async () => {
-    return await http.get("/audio/api/add-audio");
-  },
-  renameAudio: async (audioPath, name) => {
-    return await http.post("/audio/api/rename-audio", { audioPath, name });
-  },
-  saveMeta: async (audioPath, meta) => {
-    return await http.post("/audio/api/save-meta", {
-      audioPath,
-      meta,
-    });
-  },
-
-  /** whisper api */
-
-  selectWhisperModel: async () => {
-    return await http.get("/audio/api/whisper-model/select");
-  },
-  getWhisperModel: async () => {
-    return await http.get("/audio/api/whisper-model");
-  },
-  transcribeAudioAndSaveMeta: async (audioPath, language) => {
-    return await http.post("/audio/api/transcriptions", {
-      audioPath,
-      language,
-    });
-  },
-  isTranscriptionInProgress: async () => {
-    return await http.get("/audio/api/isTranscribing");
+const state = {
+  filters: {
+    types: [],
+    languages: [],
+    positions: [],
+    categories: [],
+    alternateGroups: [],
   },
 };
 

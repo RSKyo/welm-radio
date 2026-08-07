@@ -33,7 +33,7 @@ function createDefaultMeta(options = {}) {
   };
 }
 
-export function loadMeta(audioPath, options = {}) {
+export function loadMeta(audioPath) {
   const { dir, name } = nodePath.parse(audioPath);
   const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
@@ -51,11 +51,11 @@ export function loadMeta(audioPath, options = {}) {
   }
 }
 
-export function saveMeta(audioPath, meta = {}, options = {}) {
+export function saveMeta(audioPath, meta = {}) {
   const { dir, name } = nodePath.parse(audioPath);
   const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
-  const oldMeta = loadMeta(audioPath, options);
+  const oldMeta = loadMeta(audioPath);
   const now = new Date().toISOString();
 
   const newMeta = {
