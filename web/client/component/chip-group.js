@@ -1,90 +1,47 @@
+import { CollectionElm } from "./elm.js";
 import {
   prepareRootElement,
-  assertItems,
   assertValues,
   filterValues,
   haveSameValues,
 } from "./helper.js";
-
-const text_field_candidates = ["text", "label", "name"];
-const value_field_candidates = ["value", "id"];
-const title_field_candidates = [
-  "title",
-  "description",
-  "text",
-  "label",
-  "name",
-];
-export class ChipGroup {
-  #container;
-  #textField;
-  #valueField;
-  #titleField;
-  #showSelectActions;
-  #items;
+export class ChipGroup extends CollectionElm {
   #mode;
   #values;
   onSetItems;
   onSelect;
   onRenderItem;
 
-  #rootClass = "chip-group";
+  
 
-  constructor(container, options = {}) {
-    this.#container = prepareRootElement(container, this.#rootClass);
-    this.#textField = options.textField ?? null;
-    this.#valueField = options.valueField ?? null;
-    this.#titleField = options.titleField ?? null;
+  constructor(root, options = {}) {
+    super(root, { rootClass: "chip-group" });
 
-    this.#showSelectActions = options.showSelectActions ?? false;
-
-    const items = options.items ?? [];
-
-    this.#resolveFields(items);
-
-    this.#items = [...assertItems(items, this.#textField, this.#valueField)];
-
-    this.#resolveFields(items);
-
+    this.textField = options.textField ?? null;
+    this.valueField = options.valueField ?? null;
+    this.titleField = options.titleField ?? null;
     this.#mode = options.mode ?? "multiple";
 
     if (!["single", "multiple"].includes(this.#mode)) {
       throw new Error("mode must be either 'single' or 'multiple'");
     }
 
-    this.#values = assertValues(options.values, this.#items, this.#valueField);
-
-    if (this.#mode === "single" && this.#values.length > 1) {
-      throw new Error("single mode accepts at most one value");
-    }
-
+    this.#values = [];
     this.onSetItems = options.onSetItems ?? null;
     this.onSelect = options.onSelect ?? null;
     this.onRenderItem = options.onRenderItem ?? null;
 
     this.#bindEvents();
-    this.#render();
   }
 
   // -----------------------------------------------------------------------------
   // Public API
   // -----------------------------------------------------------------------------
 
-  get dataset() {
-    return this.#container.dataset;
-  }
-
-  getItems() {
-    return this.#items.map((item) => ({ ...item }));
-  }
-
   setItems(items = []) {
-    this.#resolveFields(items);
+    this.items = [...items];
 
-    assertItems(items, this.#textField, this.#valueField);
-
-    this.#items = [...items];
-    this.#values = filterValues(this.#values, items, this.#valueField);
+    this.#values = filterValues(this.#values, items, this.valueField);
 
     this.#render();
 
@@ -100,7 +57,7 @@ export class ChipGroup {
       throw new Error("single mode accepts at most one value");
     }
 
-    const validatedValues = assertValues(values, this.#items, this.#valueField);
+    const validatedValues = assertValues(values, this.items, this.valueField);
     this.#changeValues(validatedValues);
   }
 
@@ -109,40 +66,12 @@ export class ChipGroup {
       throw new Error("selectAll is only available in multiple mode");
     }
 
-    const allValues = this.#items.map((item) => item[this.#valueField]);
+    const allValues = this.items.map((item) => item[this.valueField]);
     this.#changeValues(allValues);
   }
 
   unselect() {
     this.#changeValues([]);
-  }
-
-  // -----------------------------------------------------------------------------
-  // field resolution
-  // -----------------------------------------------------------------------------
-
-  #resolveFields(items) {
-    const item = items[0];
-
-    if (!item) {
-      return;
-    }
-
-    if (!this.#textField) {
-      this.#textField = this.#findField(item, text_field_candidates);
-    }
-
-    if (!this.#valueField) {
-      this.#valueField = this.#findField(item, value_field_candidates);
-    }
-
-    if (!this.#titleField) {
-      this.#titleField = this.#findField(item, title_field_candidates);
-    }
-  }
-
-  #findField(item, fields) {
-    return fields.find((field) => Object.hasOwn(item, field));
   }
 
   // -----------------------------------------------------------------------------
@@ -160,8 +89,8 @@ export class ChipGroup {
     this.#updateSelectedState();
 
     if (this.onSelect) {
-      const items = this.#items.filter((item) =>
-        values.includes(item[this.#valueField]),
+      const items = this.items.filter((item) =>
+        values.includes(item[this.valueField]),
       );
 
       this.onSelect({
@@ -179,10 +108,10 @@ export class ChipGroup {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.#container.addEventListener("click", (event) => {
+    this.root.addEventListener("click", (event) => {
       // click on an item
-      const itemElement = event.target.closest(`.${this.#rootClass}-item`);
-      if (itemElement && this.#container.contains(itemElement)) {
+      const itemElement = event.target.closest(`.${this.rootClass}-item`);
+      if (itemElement && this.root.contains(itemElement)) {
         const value = itemElement.dataset.value;
         const oldValues = this.#values;
         let newValues = [];
@@ -201,8 +130,8 @@ export class ChipGroup {
       }
 
       // click on an action button
-      const actionElement = event.target.closest(`.${this.#rootClass}-action`);
-      if (actionElement && this.#container.contains(actionElement)) {
+      const actionElement = event.target.closest(`.${this.rootClass}-action`);
+      if (actionElement && this.root.contains(actionElement)) {
         if (actionElement.dataset.action === "select-all") {
           this.selectAll();
         } else {
@@ -219,15 +148,15 @@ export class ChipGroup {
   // -----------------------------------------------------------------------------
 
   #render() {
-    this.#container.innerHTML = "";
+    this.root.innerHTML = "";
 
-    for (const item of this.#items) {
+    for (const item of this.items) {
       const itemElement = this.#renderItem(item);
-      this.#container.appendChild(itemElement);
+      this.root.appendChild(itemElement);
     }
 
-    if (this.#mode === "multiple" && this.#showSelectActions) {
-      this.#container.appendChild(this.#renderSelectActions());
+    if (this.#mode === "multiple") {
+      this.root.appendChild(this.#renderSelectActions());
     }
 
     this.#updateSelectedState();
@@ -236,7 +165,7 @@ export class ChipGroup {
   #renderItem(item) {
     const itemElement = document.createElement("div");
 
-    itemElement.className = `${this.#rootClass}-item`;
+    itemElement.className = `${this.rootClass}-item`;
 
     const contentElement = this.onRenderItem
       ? this.onRenderItem(item)
@@ -247,24 +176,24 @@ export class ChipGroup {
     }
 
     itemElement.appendChild(contentElement);
-    itemElement.dataset.value = item[this.#valueField];
+    itemElement.dataset.value = item[this.valueField];
 
     return itemElement;
   }
 
   #renderSelectActions() {
     const actionsElement = document.createElement("div");
-    actionsElement.className = `${this.#rootClass}-actions`;
+    actionsElement.className = `${this.rootClass}-actions`;
 
     const selectAllButton = document.createElement("button");
     selectAllButton.type = "button";
-    selectAllButton.className = `${this.#rootClass}-action`;
+    selectAllButton.className = `${this.rootClass}-action`;
     selectAllButton.dataset.action = "select-all";
     selectAllButton.textContent = "全选";
 
     const unselectButton = document.createElement("button");
     unselectButton.type = "button";
-    unselectButton.className = `${this.#rootClass}-action`;
+    unselectButton.className = `${this.rootClass}-action`;
     unselectButton.dataset.action = "unselect";
     unselectButton.textContent = "取消";
 
@@ -276,16 +205,16 @@ export class ChipGroup {
   #createDefaultContentElement(item) {
     const textElement = document.createElement("span");
 
-    textElement.textContent = item[this.#textField];
-    textElement.className = `${this.#rootClass}-text`;
-    textElement.title = item[this.#titleField] || item[this.#textField];
+    textElement.textContent = item[this.textField];
+    textElement.className = `${this.rootClass}-text`;
+    textElement.title = item[this.titleField] || item[this.textField];
 
     return textElement;
   }
 
   #updateSelectedState() {
-    const itemElements = this.#container.querySelectorAll(
-      `.${this.#rootClass}-item`,
+    const itemElements = this.root.querySelectorAll(
+      `.${this.rootClass}-item`,
     );
 
     for (const itemElement of itemElements) {
