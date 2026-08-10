@@ -2,6 +2,15 @@ import { Toast } from "../component/toast.js";
 
 export const toast = new Toast();
 
+/**
+ * Execute an async handler safely.
+ *
+ * Catches errors thrown by the handler, logs the error,
+ * and displays an error message through the toast service.
+ *
+ * Returns the handler result on success.
+ * Returns undefined when an error occurs.
+ */
 export async function safeRun(handler, ...args) {
   try {
     return await handler(...args);
@@ -14,6 +23,12 @@ export async function safeRun(handler, ...args) {
   }
 }
 
+/**
+ * Create a safe event handler wrapper.
+ *
+ * The returned handler executes the original handler through safeRun(),
+ * preventing unhandled errors from escaping event callbacks.
+ */
 export function safeHandler(handler) {
   return (...args) => safeRun(handler, ...args);
 }

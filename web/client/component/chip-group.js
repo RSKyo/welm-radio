@@ -1,10 +1,10 @@
 import {
+  prepareRootElement,
   assertItems,
-  assertValue,
   assertValues,
   filterValues,
   haveSameValues,
-} from "./item.js";
+} from "./helper.js";
 
 const text_field_candidates = ["text", "label", "name"];
 const value_field_candidates = ["value", "id"];
@@ -31,21 +31,7 @@ export class ChipGroup {
   #rootClass = "chip-group";
 
   constructor(container, options = {}) {
-    if (typeof container === "string") {
-      this.#container = document.querySelector(container);
-      if (!this.#container) {
-        throw new Error(`container not found: ${container}`);
-      }
-    } else if (container instanceof HTMLElement) {
-      this.#container = container;
-    } else {
-      throw new Error(
-        "Invalid container: must be a selector or an HTMLElement",
-      );
-    }
-
-    this.#container.classList.add(this.#rootClass);
-
+    this.#container = prepareRootElement(container, this.#rootClass);
     this.#textField = options.textField ?? null;
     this.#valueField = options.valueField ?? null;
     this.#titleField = options.titleField ?? null;
@@ -66,11 +52,7 @@ export class ChipGroup {
       throw new Error("mode must be either 'single' or 'multiple'");
     }
 
-    this.#values = assertValues(
-      options.values ?? [],
-      this.#items,
-      this.#valueField,
-    );
+    this.#values = assertValues(options.values, this.#items, this.#valueField);
 
     if (this.#mode === "single" && this.#values.length > 1) {
       throw new Error("single mode accepts at most one value");

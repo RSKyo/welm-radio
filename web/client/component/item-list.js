@@ -1,4 +1,5 @@
 import {
+  prepareRootElement,
   assertItem,
   assertItems,
   assertValue,
@@ -6,7 +7,7 @@ import {
   filterValue,
   filterValues,
   haveSameValues,
-} from "./item.js";
+} from "./helper.js";
 
 const text_field_candidates = ["text", "label", "name"];
 const value_field_candidates = ["value", "id"];
@@ -35,43 +36,13 @@ export class ItemList {
   #rootClass = "item-list";
 
   constructor(container, options = {}) {
-    if (typeof container === "string") {
-      this.#container = document.querySelector(container);
-      if (!this.#container) {
-        throw new Error(`container not found: ${container}`);
-      }
-    } else if (container instanceof HTMLElement) {
-      this.#container = container;
-    } else {
-      throw new Error(
-        "Invalid container: must be a selector or an HTMLElement",
-      );
-    }
-
-    this.#container.classList.add(this.#rootClass);
-
+    this.#container = prepareRootElement(container, this.#rootClass);
     this.#textField = options.textField ?? null;
     this.#valueField = options.valueField ?? null;
     this.#titleField = options.titleField ?? null;
-
-    const items = options.items ?? [];
-
-    this.#resolveFields(items);
-
-    this.#items = [...assertItems(items, this.#textField, this.#valueField)];
-
-    this.#value = assertValue(
-      options.value ?? "",
-      this.#items,
-      this.#valueField,
-    );
-
-    this.#checkedValues = assertValues(
-      options.checkedValues ?? [],
-      this.#items,
-      this.#valueField,
-    );
-
+    this.#items = [];
+    this.#value = options.value ?? null;
+    this.#checkedValues = options.checkedValues ?? [];
     this.onSetItems = options.onSetItems ?? null;
     this.onClick = options.onClick ?? null;
     this.onDoubleClick = options.onDoubleClick ?? null;
@@ -79,7 +50,6 @@ export class ItemList {
     this.onRenderItem = options.onRenderItem ?? null;
 
     this.#bindEvents();
-    this.#render();
   }
 
   // -----------------------------------------------------------------------------
@@ -122,7 +92,7 @@ export class ItemList {
   }
 
   getItem() {
-    if (this.#value === "") {
+    if (this.#value == null) {
       return null;
     }
 
