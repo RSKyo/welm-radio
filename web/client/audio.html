@@ -36,32 +36,32 @@
         >
           <div class="shrink vbox gap-8">
             <label class="label">音频类型</label>
-            <div id="audio-type-filter"></div>
+            <div id="audio-type-filter" data-name="audio-type-filter"></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频位置</label>
-            <div id="audio-position-filter"></div>
+            <div id="audio-position-filter" data-name="audio-position-filter"></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频日段</label>
-            <div id="audio-day-part-filter"></div>
+            <div id="audio-day-part-filter" data-name="audio-day-part-filter"></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频语言</label>
-            <div id="audio-language-filter"></div>
+            <div id="audio-language-filter" data-name="audio-language-filter"></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频分类</label>
-            <div id="audio-category-filter"></div>
+            <div id="audio-category-filter" data-name="audio-category-filter"></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频备选组</label>
-            <div id="audio-alternate-group-filter"></div>
+            <div id="audio-alternate-group-filter" data-name="audio-alternate-group-filter"></div>
           </div>
         </div>
 
@@ -75,12 +75,11 @@
               <input id="select-all" type="checkbox" />
             </div>
             <div class="grow toolbar" style="padding: 0">
-              <button id="remove-audio" type="button">删除</button>
-              <button id="add-audio" type="button">添加</button>
-              <button id="rename-audio" type="button">重命名</button>
-              <button id="select-audio-dir" type="button">选择音频目录</button>
+              <button id="remove-audios" type="button">删除</button>
+              <button id="import-audios" type="button">添加</button>
+              <button id="set-audio-root" type="button">选择音频目录</button>
 
-              <select id="select-order">
+              <select id="order">
                 <option value="default">默认</option>
                 <option value="createdAt-desc">创建时间（新到旧）</option>
                 <option value="createdAt-asc">创建时间（旧到新）</option>
@@ -93,7 +92,7 @@
               <span id="audio-count">0</span>
             </div>
           </div>
-          <div id="audio-list" class="grow scroll"></div>
+          <div id="audios" class="grow scroll"></div>
           <div
             class="hbox a-center"
             style="
@@ -176,15 +175,13 @@
                 <textarea name="content" rows="8"></textarea>
                 <div>
                   <button
-                    id="transcribe-content"
-                    name="transcribeContent"
+                    id="start-transcription"
                     type="button"
                   >
                     识别音频内容
                   </button>
                   <button
                     id="select-whisper-model"
-                    name="selectWhisperModel"
                     type="button"
                   >
                     选择 Whisper 模型

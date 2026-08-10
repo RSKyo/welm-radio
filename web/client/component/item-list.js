@@ -27,7 +27,7 @@ export class ItemList {
   #value;
   #checkedValues;
   onSetItems;
-  onChange;
+  onClick;
   onDoubleClick;
   onCheckedChange;
   onRenderItem;
@@ -73,7 +73,7 @@ export class ItemList {
     );
 
     this.onSetItems = options.onSetItems ?? null;
-    this.onChange = options.onChange ?? null;
+    this.onClick = options.onClick ?? null;
     this.onDoubleClick = options.onDoubleClick ?? null;
     this.onCheckedChange = options.onCheckedChange ?? null;
     this.onRenderItem = options.onRenderItem ?? null;
@@ -86,11 +86,15 @@ export class ItemList {
   // Public API
   // -----------------------------------------------------------------------------
 
+  get dataset() {
+    return this.#container.dataset;
+  }
+
   getItems() {
     return this.#items.map((item) => ({ ...item }));
   }
 
-  async setItems(items = []) {
+  setItems(items = []) {
     this.#resolveFields(items);
 
     assertItems(items, this.#textField, this.#valueField);
@@ -105,10 +109,19 @@ export class ItemList {
 
     this.#render();
 
-    await this.onSetItems?.(this.getItems());
+    this.onSetItems?.(this.getItems());
   }
 
-  getSelectedItem() {
+  getValue() {
+    return this.#value;
+  }
+
+  setValue(value) {
+    const validatedValue = assertValue(value, this.#items, this.#valueField);
+    this.#changeValue(validatedValue);
+  }
+
+  getItem() {
     if (this.#value === "") {
       return null;
     }
@@ -119,19 +132,7 @@ export class ItemList {
     return { ...item };
   }
 
-  getCheckedItems() {
-    if (this.#checkedValues.length === 0) {
-      return [];
-    }
-
-    const items = this.#items.filter((item) =>
-      this.#checkedValues.includes(item[this.#valueField]),
-    );
-
-    return items.map((item) => ({ ...item }));
-  }
-
-  async updateItem(value, item) {
+  updateItem(value, item) {
     assertValue(value, this.#items, this.#valueField);
     assertItem(item, this.#textField, this.#valueField);
 
@@ -155,38 +156,37 @@ export class ItemList {
       this.#checkedValues[checkedIndex] = item[this.#valueField];
     }
 
-    await this.setItems(items);
-  }
-
-  getValue() {
-    return this.#value;
-  }
-
-  async setValue(value) {
-    const validatedValue = assertValue(value, this.#items, this.#valueField);
-    await this.#changeValue(validatedValue);
-  }
-
-  async unselect() {
-    await this.setValue("");
+    this.setItems(items);
   }
 
   getCheckedValues() {
     return [...this.#checkedValues];
   }
 
-  async setCheckedValues(values) {
+  setCheckedValues(values) {
     const validatedValues = assertValues(values, this.#items, this.#valueField);
-    await this.#changeCheckedValues(validatedValues);
+    this.#changeCheckedValues(validatedValues);
   }
 
-  async checkAll() {
+  getCheckedItems() {
+    if (this.#checkedValues.length === 0) {
+      return [];
+    }
+
+    const items = this.#items.filter((item) =>
+      this.#checkedValues.includes(item[this.#valueField]),
+    );
+
+    return items.map((item) => ({ ...item }));
+  }
+
+  checkAll() {
     const allValues = this.#items.map((item) => item[this.#valueField]);
-    await this.#changeCheckedValues(allValues);
+    this.#changeCheckedValues(allValues);
   }
 
-  async uncheckAll() {
-    await this.#changeCheckedValues([]);
+  uncheckAll() {
+    this.#changeCheckedValues([]);
   }
 
   // -----------------------------------------------------------------------------
@@ -221,7 +221,7 @@ export class ItemList {
   // change handlers
   // -----------------------------------------------------------------------------
 
-  async #changeValue(value, options = {}) {
+  #changeValue(value, options = {}) {
     const oldValue = this.#value;
 
     if (value === oldValue) {
@@ -231,37 +231,45 @@ export class ItemList {
     this.#value = value;
     this.#updateSelectedState();
 
-    if (this.onChange) {
+    if (this.onClick) {
       const item = this.#items.find((item) => item[this.#valueField] === value);
 
-      const oldItem = this.#items.find(
-        (item) => item[this.#valueField] === oldValue,
-      );
-
-      await this.onChange(item, oldItem, options.event);
+      this.onClick({
+        target: this,
+        value,
+        item,
+        event: options.event ?? null,
+      });
     }
   }
 
-  async #changeCheckedValues(values, options = {}) {
-    const oldValues = this.#checkedValues;
+  #changeCheckedValues(checkedValues, options = {}) {
+    const oldCheckedValues = this.#checkedValues;
 
-    if (haveSameValues(values, oldValues)) {
+    if (haveSameValues(checkedValues, oldCheckedValues)) {
       return;
     }
 
-    this.#checkedValues = [...values];
+    this.#checkedValues = [...checkedValues];
     this.#updateCheckedState();
 
     if (this.onCheckedChange) {
-      const items = this.#items.filter((item) =>
-        values.includes(item[this.#valueField]),
+      const checkedItems = this.#items.filter((item) =>
+        checkedValues.includes(item[this.#valueField]),
       );
 
-      const oldItems = this.#items.filter((item) =>
-        oldValues.includes(item[this.#valueField]),
+      const oldCheckedItems = this.#items.filter((item) =>
+        oldCheckedValues.includes(item[this.#valueField]),
       );
 
-      await this.onCheckedChange(items, oldItems, options.event);
+      this.onCheckedChange({
+        target: this,
+        checkedValues,
+        checkedItems,
+        oldCheckedValues,
+        oldCheckedItems,
+        event: options.event ?? null,
+      });
     }
   }
 
@@ -270,7 +278,7 @@ export class ItemList {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.#container.addEventListener("click", async (event) => {
+    this.#container.addEventListener("click", (event) => {
       const itemElement = event.target.closest(`.${this.#rootClass}-item`);
       if (!itemElement || !this.#container.contains(itemElement)) {
         return;
@@ -282,7 +290,7 @@ export class ItemList {
         `.${this.#rootClass}-content`,
       );
       if (itemContentElement && this.#container.contains(itemContentElement)) {
-        await this.#changeValue(value, { event });
+        this.#changeValue(value, { event });
         return;
       }
 
@@ -302,12 +310,12 @@ export class ItemList {
           newCheckedValues = [...oldCheckedValues, value];
         }
 
-        await this.#changeCheckedValues(newCheckedValues, { event });
+        this.#changeCheckedValues(newCheckedValues, { event });
         return;
       }
     });
 
-    this.#container.addEventListener("dblclick", async (event) => {
+    this.#container.addEventListener("dblclick", (event) => {
       const itemElement = event.target.closest(`.${this.#rootClass}-item`);
       if (!itemElement || !this.#container.contains(itemElement)) {
         return;
@@ -323,7 +331,7 @@ export class ItemList {
           const item = this.#items.find(
             (item) => item[this.#valueField] === value,
           );
-          await this.onDoubleClick(item, event);
+          this.onDoubleClick(item, event);
         }
         return;
       }

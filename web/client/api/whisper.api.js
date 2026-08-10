@@ -6,8 +6,8 @@ export const whisperApi = {
   // GET /whisper/api/whisper-model
   getWhisperModel: () => http.get("/whisper-model"),
 
-  // GET /whisper/api/set-whisper-model
-  setWhisperModel: () => http.get("/set-whisper-model"),
+  // GET /whisper/api/select-whisper-model
+  selectWhisperModel: () => http.get("/select-whisper-model"),
 
   // POST /whisper/api/start-transcription
   startTranscription: (audioPath, language) =>

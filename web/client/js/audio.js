@@ -1,70 +1,55 @@
-import { safeRun, safeHandler, toast } from "./pub.js";
+import {
+  safeRun,
+  safeHandler,
+  toast,
+  domEvent,
+  haveSameValues,
+} from "./pub.js";
 import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
 import { ItemList } from "../component/item-list.js";
+
 import { audioApi } from "../api/audio.api.js";
 import { metaApi } from "../api/meta.api.js";
 import { whisperApi } from "../api/whisper.api.js";
 
 // -----------------------------------------------------------------------------
-// Constants
+// Elements
 // -----------------------------------------------------------------------------
 
-/* elements */
+const selectAllChk = document.querySelector("#select-all");
+const audioCountEl = document.querySelector("#audio-count");
+const audioPlayerEl = document.querySelector("#audio-player");
+const metaFormFrm = document.querySelector("#meta-form");
+const metaFields = metaFormFrm.elements;
+const whisperModelEl = document.querySelector("#whisper-model");
+const startTranscriptionBtn = document.querySelector("#start-transcription");
 
-const audioTypeFilterEl = document.querySelector("#audio-type-filter");
-const audioLanguageFilterEl = document.querySelector("#audio-language-filter");
-const audioPositionFilterEl = document.querySelector("#audio-position-filter");
-const audioDayPartFilterEl = document.querySelector("#audio-day-part-filter");
-const audioCategoryFilterEl = document.querySelector("#audio-category-filter");
-const audioAlternateGroupFilterEl = document.querySelector(
+// -----------------------------------------------------------------------------
+// Components
+// -----------------------------------------------------------------------------
+
+const audioTypeFilterCmp = new MultiChipGroup("#audio-type-filter");
+const audioLanguageFilterCmp = new MultiChipGroup("#audio-language-filter");
+const audioPositionFilterCmp = new MultiChipGroup("#audio-position-filter");
+const audioDayPartFilterCmp = new MultiChipGroup("#audio-day-part-filter");
+const audioCategoryFilterCmp = new MultiChipGroup("#audio-category-filter");
+const audioAlternateGroupFilterCmp = new MultiChipGroup(
   "#audio-alternate-group-filter",
 );
 
-const selectAllChk = document.querySelector("#select-all");
-const removeAudioBtn = document.querySelector("#remove-audio");
-const addAudioBtn = document.querySelector("#add-audio");
-const selectAudioDirBtn = document.querySelector("#select-audio-dir");
-const selectOrderSel = document.querySelector("#select-order");
-const audioCountEl = document.querySelector("#audio-count");
-const audioListEl = document.querySelector("#audio-list");
+const audiosCmp = new ItemList("#audios");
 
-const saveMetaBtn = document.querySelector("#save-meta");
-const renameAudioBtn = document.querySelector("#rename-audio");
-const metaFormFrm = document.querySelector("#meta-form");
-const metaFields = metaFormFrm.elements;
-
-const audioTypeEl = document.querySelector("#audio-type");
-const audioLanguageEl = document.querySelector("#audio-language");
-const audioPositionEl = document.querySelector("#audio-position");
-const audioDayPartEl = document.querySelector("#audio-day-part");
-const transcribeContentBtn = document.querySelector("#transcribe-content");
-const selectWhisperModelBtn = document.querySelector("#select-whisper-model");
-const whisperModelEl = document.querySelector("#whisper-model");
-const detectDurationBtn = document.querySelector("#detect-duration");
-
-const audioPlayerEl = document.querySelector("#audio-player");
-
-/* components */
-const audioTypeFilterCmp = new MultiChipGroup(audioTypeFilterEl);
-const audioLanguageFilterCmp = new MultiChipGroup(audioLanguageFilterEl);
-const audioPositionFilterCmp = new MultiChipGroup(audioPositionFilterEl);
-const audioDayPartFilterCmp = new MultiChipGroup(audioDayPartFilterEl);
-const audioCategoryFilterCmp = new MultiChipGroup(audioCategoryFilterEl);
-const audioAlternateGroupFilterCmp = new MultiChipGroup(audioAlternateGroupFilterEl);
-
-const audioListCmp = new ItemList(audioListEl, {
-  textField: "base",
-  valueField: "filePath",
-});
-
-const audioTypeCmp = new SoloChipGroup(audioTypeEl);
-const audioLanguageCmp = new SoloChipGroup(audioLanguageEl);
-const audioPositionCmp = new SoloChipGroup(audioPositionEl);
-const audioDayPartCmp = new MultiChipGroup(audioDayPartEl, {
+const audioTypeCmp = new SoloChipGroup("#audio-type");
+const audioLanguageCmp = new SoloChipGroup("#audio-language");
+const audioPositionCmp = new SoloChipGroup("#audio-position");
+const audioDayPartCmp = new MultiChipGroup("#audio-day-part", {
   showSelectActions: true,
 });
 
-/* state */
+// -----------------------------------------------------------------------------
+// State
+// -----------------------------------------------------------------------------
+
 const state = {
   filters: {
     types: [],
@@ -73,13 +58,13 @@ const state = {
     categories: [],
     alternateGroups: [],
   },
+  order: "default",
 };
 
 // -----------------------------------------------------------------------------
-// init
+// Initialization
 // -----------------------------------------------------------------------------
 
-// Bootstrap
 await safeRun(initializePage);
 
 async function initializePage() {
@@ -88,370 +73,269 @@ async function initializePage() {
 }
 
 function bindEvents() {
-  selectAudioDirBtn.addEventListener(
-    "click",
-    safeHandler(selectAudioDirBtn_clickHandler),
-  );
+  audioTypeFilterCmp.onSelect = safeHandler(filterChanged);
+  audioPositionFilterCmp.onSelect = safeHandler(filterChanged);
+  audioDayPartFilterCmp.onSelect = safeHandler(filterChanged);
+  audioLanguageFilterCmp.onSelect = safeHandler(filterChanged);
+  audioCategoryFilterCmp.onSelect = safeHandler(filterChanged);
+  audioAlternateGroupFilterCmp.onSelect = safeHandler(filterChanged);
 
-  audioTypeFilterCmp.onChange = safeHandler(audioTypeFilterCmp_changeHandler);
-  audioLanguageFilterCmp.onChange = safeHandler(
-    audioLanguageFilterCmp_changeHandler,
-  );
-  audioPositionFilterCmp.onChange = safeHandler(
-    audioPositionFilterCmp_changeHandler,
-  );
-  audioDayPartFilterCmp.onChange = safeHandler(
-    audioDayPartFilterCmp_changeHandler,
-  );
-  audioCategoryFilterCmp.onChange = safeHandler(
-    audioCategoryFilterCmp_changeHandler,
-  );
-  audioAlternateGroupFilterCmp.onChange = safeHandler(
-    audioAlternateGroupFilterCmp_changeHandler,
-  );
+  domEvent.click("#set-audio-root", setAudioRoot);
 
-  selectAllChk.addEventListener(
-    "change",
-    safeHandler(selectAllChk_changeHandler),
-  );
-  removeAudioBtn.addEventListener(
-    "click",
-    safeHandler(removeAudioBtn_clickHandler),
-  );
-  addAudioBtn.addEventListener("click", safeHandler(addAudioBtn_clickHandler));
-  selectOrderSel.addEventListener(
-    "change",
-    safeHandler(selectOrderSel_changeHandler),
-  );
-  renameAudioBtn.addEventListener(
-    "click",
-    safeHandler(renameAudioBtn_clickHandler),
-  );
+  domEvent.change("#select-all", setAudiosCheckedState);
+  domEvent.click("#remove-audios", removeAudios);
+  domEvent.click("#import-audios", importAudios);
+  domEvent.change("#order", orderChanged);
 
-  audioListCmp.onChange = safeHandler(audioListCmp_changeHandler);
-  audioListCmp.onDoubleClick = safeHandler(audioListCmp_doubleClickHandler);
-  audioListCmp.onCheckedChange = safeHandler(audioListCmp_checkedChangeHandler);
+  audiosCmp.onClick = safeHandler(selectAudio);
+  audiosCmp.onDoubleClick = safeHandler(doubleClickAudio);
+  audiosCmp.onCheckedChange = safeHandler(setSelectAllCheckedState);
 
-  saveMetaBtn.addEventListener("click", safeHandler(saveMetaBtn_clickHandler));
+  domEvent.click("#save-meta", saveMeta);
 
-  transcribeContentBtn.addEventListener(
-    "click",
-    safeHandler(transcribeContentBtn_clickHandler),
-  );
-  selectWhisperModelBtn.addEventListener(
-    "click",
-    safeHandler(selectWhisperModelBtn_clickHandler),
-  );
-  detectDurationBtn.addEventListener(
-    "click",
-    safeHandler(detectDurationBtn_clickHandler),
-  );
+  domEvent.click("#start-transcription", startTranscription);
+  domEvent.click("#select-whisper-model", selectWhisperModel);
+
+  domEvent.click("#detect-duration", detectDuration);
 }
 
 async function initData() {
   const [types, languages, positions, dayParts, categories, alternateGroups] =
     await Promise.all([
-      apiCalls.listAudioType(),
-      apiCalls.listAudioLanguage(),
-      apiCalls.listAudioPosition(),
-      apiCalls.listAudioDayPart(),
-      apiCalls.listAudioCategory(),
-      apiCalls.listAudioAlternateGroup(),
+      audioApi.listAudioTypes(),
+      audioApi.listAudioLanguages(),
+      audioApi.listAudioPositions(),
+      audioApi.listAudioDayParts(),
+      audioApi.listAudioCategories(),
+      audioApi.listAudioAlternateGroups(),
     ]);
 
-  await audioTypeFilterCmp.setItems(types);
-  await audioLanguageFilterCmp.setItems(languages);
-  await audioPositionFilterCmp.setItems(positions);
-  await audioDayPartFilterCmp.setItems(dayParts);
-  await audioCategoryFilterCmp.setItems(categories);
-  await audioAlternateGroupFilterCmp.setItems(alternateGroups);
+  audioTypeFilterCmp.setItems(types);
+  audioLanguageFilterCmp.setItems(languages);
+  audioPositionFilterCmp.setItems(positions);
+  audioDayPartFilterCmp.setItems(dayParts);
+  audioCategoryFilterCmp.setItems(categories);
+  audioAlternateGroupFilterCmp.setItems(alternateGroups);
 
-  await metaTypeCmp.setItems(types);
-  await metaLanguageCmp.setItems(languages);
-  await metaPositionCmp.setItems(positions);
-  await metaDayPartCmp.setItems(dayParts);
+  audioTypeCmp.setItems(types);
+  audioLanguageCmp.setItems(languages);
+  audioPositionCmp.setItems(positions);
+  audioDayPartCmp.setItems(dayParts);
 
-  setWhisperModel();
-  checkTranscriptionInProgress();
+  await initWhisperModel();
+  await initTranscriptionButtonState();
 
-  refreshAudioList();
+  await listAudios();
 }
 
 // -----------------------------------------------------------------------------
-// event handlers
+// Event Handlers
 // -----------------------------------------------------------------------------
 
-async function selectAudioDirBtn_clickHandler() {
-  const { canceled } = await apiCalls.selectAudioDir();
+async function filterChanged({ target, values }) {
+  const name = target.dataset.name;
+
+  switch (name) {
+    case "audio-type-filter":
+      state.filters.types = values;
+      break;
+    case "audio-language-filter":
+      state.filters.languages = values;
+      break;
+    case "audio-position-filter":
+      state.filters.positions = values;
+      break;
+    case "audio-day-part-filter":
+      state.filters.dayParts = values;
+      break;
+    case "audio-category-filter":
+      state.filters.categories = values;
+      break;
+    case "audio-alternate-group-filter":
+      state.filters.alternateGroups = values;
+      break;
+  }
+
+  await listAudios();
+}
+
+async function setAudioRoot() {
+  const { canceled } = await audioApi.setAudioRoot();
 
   if (canceled) {
     return;
   }
 
-  await refreshAudioList();
+  await listAudios();
 }
 
-async function audioTypeFilterCmp_changeHandler(items) {
-  state.filters.types = items.map((item) => item.value);
-  await refreshAudioList();
-}
+async function removeAudios() {
+  const audioPaths = audiosCmp.getCheckedValues();
 
-async function audioLanguageFilterCmp_changeHandler(items) {
-  state.filters.languages = items.map((item) => item.value);
-  await refreshAudioList();
-}
-
-async function audioPositionFilterCmp_changeHandler(items) {
-  state.filters.positions = items.map((item) => item.value);
-  await refreshAudioList();
-}
-
-async function audioDayPartFilterCmp_changeHandler(items) {
-  state.filters.dayParts = items.map((item) => item.value);
-  await refreshAudioList();
-}
-
-async function audioCategoryFilterCmp_changeHandler(items) {
-  state.filters.categories = items.map((item) => item.value);
-  await refreshAudioList();
-}
-
-async function audioAlternateGroupFilterCmp_changeHandler(items) {
-  state.filters.alternateGroups = items.map((item) => item.value);
-  await refreshAudioList();
-}
-
-async function selectAllChk_changeHandler(event) {
-  const isChecked = event.target.checked;
-
-  if (isChecked) {
-    await audioListCmp.checkAll();
-  } else {
-    await audioListCmp.uncheckAll();
-  }
-}
-
-async function removeAudioBtn_clickHandler() {
-  const checkedItems = audioListCmp.getCheckedItems();
-
-  if (checkedItems.length === 0) {
+  if (audioPaths.length === 0) {
     toast.show("请先选择要删除的音频文件");
     return;
   }
 
   const confirmDelete = confirm(
-    `确定要删除选中的 ${checkedItems.length} 个音频文件吗？`,
+    `确定要删除选中的 ${audioPaths.length} 个音频文件吗？`,
   );
 
   if (!confirmDelete) {
     return;
   }
 
-  const files = checkedItems.map((item) => item.filePath);
+  await audioApi.removeAudios(audioPaths);
 
-  const result = await apiCalls.removeAudio(files);
-
-  if (result.success) {
-    toast.show("已删除选中的音频文件");
-    await refreshAudioList();
-  } else {
-    toast.show(`删除音频文件失败: ${result.error}`);
-  }
+  toast.show("已删除选中的音频文件");
+  await listAudios();
 }
 
-async function addAudioBtn_clickHandler() {
-  const { canceled, files } = await apiCalls.addAudio();
+async function importAudios() {
+  const { canceled, audioPaths } = await audioApi.importAudios();
 
   if (canceled) {
     return;
   }
 
-  await refreshAudioList();
+  await listAudios();
 
-  toast.show(`添加了 ${files.length} 个音频文件`);
+  toast.show(`添加了 ${audioPaths.length} 个音频文件`);
 }
 
-async function renameAudioBtn_clickHandler() {
-  const selectedItem = audioListCmp.getSelectedItem();
+async function orderChanged(event) {
+  state.order = event.target.value;
 
-  if (!selectedItem) {
-    toast.show("请先选择一个音频文件");
-    return;
-  }
-
-  const name = window.prompt(
-    "请输入新的文件名：",
-    selectedItem.name, // 不带扩展名的旧名字
-  );
-
-  if (name === null) {
-    return;
-  }
-
-  const audioPath = selectedItem.filePath;
-
-  if (!name || name.trim() === "") {
-    toast.show("音频文件名不能为空");
-    return;
-  }
-
-  if (name === selectedItem.name) {
-    toast.show("音频文件名未修改");
-    return;
-  }
-
-  const confirmRename = confirm(
-    `确定要将音频文件 "${selectedItem.name}" 重命名为 "${name}" 吗？`,
-  );
-
-  if (!confirmRename) {
-    return;
-  }
-
-  const audioInfo = await apiCalls.renameAudio(audioPath, name);
-
-  // update the item in the list
-  const value = selectedItem.filePath;
-  const updatedItem = {
-    ...selectedItem,
-    ...audioInfo,
-  };
-
-  await audioListCmp.updateItem(value, updatedItem);
-
-  // set the meta form to the new meta
-  await setFormMeta(audioInfo.meta);
-
-  toast.show("音频文件重命名成功");
-}
-
-async function selectOrderSel_changeHandler() {
-  const audios = audioListCmp.getItems();
+  const audios = audiosCmp.getItems();
   orderAudios(audios);
-  await audioListCmp.setItems(audios);
+  await audiosCmp.setItems(audios);
 }
 
-async function audioListCmp_changeHandler(item, oldItem) {
-  await setFormMeta(item.meta);
-  setAudioPlayer(item);
+async function selectAudio({ item }) {
+  setFormMeta(item.meta);
+  setAudioPlayer(item.audioPath);
 }
 
-async function audioListCmp_doubleClickHandler(item) {
-  await setFormMeta(item.meta);
-  setAudioPlayer(item);
-
-  // play the audio
+async function doubleClickAudio({ item }) {
+  selectAudio({ item });
   audioPlayerEl.play();
 }
 
-async function audioListCmp_checkedChangeHandler(items) {
-  selectAllChk.checked = items.length === audioListCmp.getItems().length;
+async function setSelectAllCheckedState({ values }) {
+  selectAllChk.checked = values.length === audiosCmp.getItems().length;
 }
 
-async function saveMetaBtn_clickHandler() {
-  const selectedItem = audioListCmp.getSelectedItem();
+async function setAudiosCheckedState(event) {
+  const isChecked = event.target.checked;
 
-  if (!selectedItem) {
+  if (isChecked) {
+    await audiosCmp.checkAll();
+  } else {
+    await audiosCmp.uncheckAll();
+  }
+}
+
+async function saveMeta() {
+  const item = audiosCmp.getItem();
+
+  if (!item) {
     toast.show("请先选择一个音频文件");
     return;
   }
 
-  const audioPath = selectedItem.filePath;
-  const meta = getFormMeta();
+  const savedMeta = await metaApi.saveMeta(item.audioPath, getFormMeta());
 
-  const savedMeta = await apiCalls.saveMeta(audioPath, meta);
-
-  await setFormMeta(savedMeta);
+  setFormMeta(savedMeta);
 
   // update the item in the list
-  const value = selectedItem.filePath;
   const updatedItem = {
-    ...selectedItem,
+    ...item,
     meta: savedMeta,
   };
 
-  await audioListCmp.updateItem(value, updatedItem);
+  await audiosCmp.updateItem(item.audioPath, updatedItem);
 
   // if the category has changed, refresh the category filter
-  if (selectedItem.meta.category !== savedMeta.category) {
-    const categories = await apiCalls.listAudioCategory();
+  if (!haveSameValues(item.meta.category, savedMeta.category)) {
+    const categories = await audioApi.listAudioCategories();
     await audioCategoryFilterCmp.setItems(categories);
   }
 
   // if the alternateGroup has changed, refresh the alternateGroup filter
-  if (selectedItem.meta.alternateGroup !== savedMeta.alternateGroup) {
-    const alternateGroups = await apiCalls.listAudioAlternateGroup();
+  if (item.meta.alternateGroup !== savedMeta.alternateGroup) {
+    const alternateGroups = await audioApi.listAudioAlternateGroups();
     await audioAlternateGroupFilterCmp.setItems(alternateGroups);
   }
 
   toast.show("已保存音频元数据");
 }
 
-async function transcribeContentBtn_clickHandler() {
-  const selectedItem = audioListCmp.getSelectedItem();
+async function startTranscription() {
+  const item = audiosCmp.getItem();
 
-  if (!selectedItem) {
+  if (!item) {
     toast.show("请先选择一个音频文件");
     return;
   }
 
-  const audioPath = selectedItem.filePath;
-  const language = metaLanguageCmp.getValue() || "zh";
-
   const confirmTranscribe = confirm(
-    `确定要对音频文件 "${selectedItem.name}" 进行转录吗？`,
+    `确定要对音频文件 "${item.base}" 进行转录吗？`,
   );
 
   if (!confirmTranscribe) {
     return;
   }
 
-  setTranscribeButtonState(true);
+  setStartTranscriptionButtonState(true);
   toast.show("音频转录中...");
 
   let savedMeta = null;
   try {
-    savedMeta = await apiCalls.transcribeAudioAndSaveMeta(audioPath, language);
+    const audioPath = item.audioPath;
+    const language = audioLanguageCmp.getValue() || "zh";
+
+    savedMeta = await whisperApi.startTranscription(audioPath, language);
   } catch (error) {
     toast.show(`音频转录失败: ${error.message}`);
-    setTranscribeButtonState(false);
+    setStartTranscriptionButtonState(false);
     return;
   }
 
+  toast.show(`音频转录完成: ${item.base}`);
+
+  setStartTranscriptionButtonState(false);
+
   // update the item in the list
-  const value = selectedItem.filePath;
   const updatedItem = {
-    ...selectedItem,
+    ...item,
     meta: savedMeta,
   };
 
-  await audioListCmp.updateItem(value, updatedItem);
+  await audiosCmp.updateItem(item.audioPath, updatedItem);
 
   // if current selected item is the same as the one we just transcribed, update the form meta
-  const currentSelectedItem = audioListCmp.getSelectedItem();
-  if (currentSelectedItem && currentSelectedItem.filePath === value) {
-    await setFormMeta(savedMeta);
+  const currentItem = audiosCmp.getItem();
+  if (currentItem && currentItem.audioPath === item.audioPath) {
+    setFormMeta(savedMeta);
   }
-
-  setTranscribeButtonState(false);
 }
 
-async function selectWhisperModelBtn_clickHandler() {
-  const { canceled, path } = await apiCalls.selectWhisperModel();
+async function selectWhisperModel() {
+  const { canceled, modelName } = await whisperApi.selectWhisperModel();
 
   if (canceled) {
     return;
   }
 
-  setWhisperModel();
+  setWhisperModel(modelName);
 
-  toast.show(`已选择 Whisper 模型: ${path}`);
+  toast.show(`已选择 Whisper 模型: ${modelName}`);
 }
 
-async function detectDurationBtn_clickHandler() {
-  const selectedItem = audioListCmp.getSelectedItem();
+async function detectDuration() {
+  const item = audiosCmp.getItem();
 
-  if (!selectedItem) {
+  if (!item) {
     toast.show("请先选择一个音频文件");
     return;
   }
@@ -489,40 +373,30 @@ async function detectDurationBtn_clickHandler() {
 }
 
 // -----------------------------------------------------------------------------
-// helper functions
+// Page Logic
 // -----------------------------------------------------------------------------
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+/** audio list */
 
-async function refreshAudioList() {
-  const audios = await apiCalls.listAudio();
+async function listAudios() {
+  const audios = await audioApi.listAudios(state.filters);
   orderAudios(audios);
-  await audioListCmp.setItems(audios);
+  audiosCmp.setItems(audios);
 
   audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
-  const item = audioListCmp.getSelectedItem();
+  const item = audiosCmp.getItem();
   if (item) {
-    await setFormMeta(item.meta);
-    setAudioPlayer(item);
+    setFormMeta(item.meta);
+    setAudioPlayer(item.audioPath);
   } else {
-    await setFormMeta({});
-    setAudioPlayer({});
+    setFormMeta({});
+    setAudioPlayer("");
   }
 }
 
-function setAudioPlayer(audio) {
-  const url = `/audio/api/load-audio?filePath=${encodeURIComponent(audio.filePath)}`;
-  const src = audio.filePath ? url : "";
-
-  audioPlayerEl.src = src;
-  audioPlayerEl.load();
-}
-
 function orderAudios(audios) {
-  const order = selectOrderSel.value;
+  const order = state.order;
 
   if (order === "default") {
     audios.sort((a, b) => {
@@ -567,7 +441,14 @@ function orderAudios(audios) {
   });
 }
 
-async function setFormMeta(meta = {}) {
+function setAudioPlayer(audioPath) {
+  audioPlayerEl.src = audioApi.getAudioPlayerSrc(audioPath);
+  audioPlayerEl.load();
+}
+
+/** meta form */
+
+function setFormMeta(meta = {}) {
   metaFields.id.value = meta.id ?? "";
   metaFields.audioPath.value = meta.audioPath ?? "";
   metaFields.metaPath.value = meta.metaPath ?? "";
@@ -591,10 +472,10 @@ async function setFormMeta(meta = {}) {
   metaFields.createdAt.value = meta.createdAt ?? "";
   metaFields.updatedAt.value = meta.updatedAt ?? "";
 
-  await metaTypeCmp.setValue(meta.type ?? "");
-  await metaLanguageCmp.setValue(meta.language ?? "");
-  await metaPositionCmp.setValue(meta.position ?? "");
-  await metaDayPartCmp.setValues(meta.dayPart ?? []);
+  audioTypeCmp.setValue(meta.type ?? "");
+  audioLanguageCmp.setValue(meta.language ?? "");
+  audioPositionCmp.setValue(meta.position ?? "");
+  audioDayPartCmp.setValues(meta.dayPart ?? []);
 }
 
 function getFormMeta() {
@@ -617,11 +498,6 @@ function getFormMeta() {
     start: metaFields.start.value.trim() || "00:00:00.000",
     end: metaFields.end.value.trim() || null,
 
-    type: metaTypeCmp.getValue(),
-    language: metaLanguageCmp.getValue(),
-    position: metaPositionCmp.getValue(),
-    dayPart: metaDayPartCmp.getValues(),
-
     cutPoints: metaFields.cutPoints.value
       .split(/\r?\n/)
       .map((value) => value.trim())
@@ -629,34 +505,54 @@ function getFormMeta() {
 
     createdAt: metaFields.createdAt.value.trim() || null,
     updatedAt: metaFields.updatedAt.value.trim() || null,
+
+    type: audioTypeCmp.getValue(),
+    language: audioLanguageCmp.getValue(),
+    position: audioPositionCmp.getValue(),
+    dayPart: audioDayPartCmp.getValues(),
   };
 }
 
-async function setWhisperModel() {
-  const { whisperModel } = await apiCalls.getWhisperModel();
-  whisperModelEl.textContent = whisperModel
-    ? `(当前模型: ${whisperModel})`
+/** whisper */
+
+async function initWhisperModel() {
+  const { modelName } = await whisperApi.getWhisperModel();
+
+  setWhisperModel(modelName);
+}
+
+function setWhisperModel(modelName) {
+  whisperModelEl.textContent = modelName
+    ? `(当前模型: ${modelName})`
     : "未选择";
 }
 
-function setTranscribeButtonState(inProgress) {
-  if (inProgress) {
-    transcribeContentBtn.textContent = "转录中...";
-    transcribeContentBtn.disabled = true;
+async function initTranscriptionButtonState() {
+  const { isTranscribing } = await whisperApi.isTranscribing();
+
+  if (isTranscribing) {
+    setStartTranscriptionButtonState(true);
   } else {
-    transcribeContentBtn.textContent = "转录内容";
-    transcribeContentBtn.disabled = false;
+    setStartTranscriptionButtonState(false);
   }
 }
 
-async function checkTranscriptionInProgress() {
-  const { inProgress } = await apiCalls.isTranscriptionInProgress();
-
-  if (inProgress) {
-    setTranscribeButtonState(true);
+function setStartTranscriptionButtonState(isTranscribing) {
+  if (isTranscribing) {
+    startTranscriptionBtn.textContent = "转录中...";
+    startTranscriptionBtn.disabled = true;
   } else {
-    setTranscribeButtonState(false);
+    startTranscriptionBtn.textContent = "转录内容";
+    startTranscriptionBtn.disabled = false;
   }
+}
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function formatTime(seconds) {

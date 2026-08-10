@@ -1,7 +1,7 @@
 import { ApiRouter } from "welm-cdp/web";
 import {
   getWhisperModel,
-  setWhisperModel,
+  selectWhisperModel,
   startTranscription,
   isTranscribing,
 } from "../service/whisper.service.js";
@@ -17,9 +17,9 @@ apiRouter.get("/whisper-model", () => {
   return getWhisperModel();
 });
 
-// GET /whisper/api/set-whisper-model
-apiRouter.get("/set-whisper-model", () => {
-  return setWhisperModel();
+// GET /whisper/api/select-whisper-model
+apiRouter.get("/select-whisper-model", () => {
+  return selectWhisperModel();
 });
 
 // POST /whisper/api/start-transcription

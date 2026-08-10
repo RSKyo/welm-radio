@@ -40,14 +40,14 @@ let isTranscribing = false;
 // Public API
 // -----------------------------------------------------------------------------
 
-export function getWhisperModel(options = {}) {
+export function getWhisperModel() {
   return {
     modelPath: whisper_model ?? "",
     modelName: whisper_model ? nodePath.basename(whisper_model) : "",
   };
 }
 
-export async function setWhisperModel() {
+export async function selectWhisperModel() {
   const filePath = await dialog({
     dialogTitle: "Choose Whisper Model",
     mode: "file",
@@ -56,13 +56,20 @@ export async function setWhisperModel() {
 
   // cancel
   if (!filePath) {
-    return null;
+    return {
+      modelName: "",
+      modelPath: "",
+      canceled: true,
+    };
   }
 
   config.set(config_key_whisper_model, filePath);
   whisper_model = filePath;
 
-  return getWhisperModel();
+  return {
+    ...getWhisperModel(),
+    canceled: false,
+  };
 }
 
 export async function startTranscription(audioPath, language = "zh") {
@@ -88,7 +95,7 @@ export async function startTranscription(audioPath, language = "zh") {
     srtPath = await transcribeWav(wavPath, language, "srt");
     const content = readFileTextSync(srtPath);
 
-    return await saveMeta(audioPath, { content }, options);
+    return await saveMeta(audioPath, { content });
   } finally {
     removeFileSync(wavPath);
     removeFileSync(srtPath);

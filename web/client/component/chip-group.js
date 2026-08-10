@@ -25,7 +25,7 @@ export class ChipGroup {
   #mode;
   #values;
   onSetItems;
-  onChange;
+  onSelect;
   onRenderItem;
 
   #rootClass = "chip-group";
@@ -77,7 +77,7 @@ export class ChipGroup {
     }
 
     this.onSetItems = options.onSetItems ?? null;
-    this.onChange = options.onChange ?? null;
+    this.onSelect = options.onSelect ?? null;
     this.onRenderItem = options.onRenderItem ?? null;
 
     this.#bindEvents();
@@ -88,11 +88,15 @@ export class ChipGroup {
   // Public API
   // -----------------------------------------------------------------------------
 
+  get dataset() {
+    return this.#container.dataset;
+  }
+
   getItems() {
     return this.#items.map((item) => ({ ...item }));
   }
 
-  async setItems(items = []) {
+  setItems(items = []) {
     this.#resolveFields(items);
 
     assertItems(items, this.#textField, this.#valueField);
@@ -102,56 +106,33 @@ export class ChipGroup {
 
     this.#render();
 
-    await this.onSetItems?.(this.getItems());
-  }
-
-  getValue() {
-    if (this.#mode === "multiple") {
-      throw new Error("getValue is only available in single mode");
-    }
-    return this.#values[0] ?? "";
+    this.onSetItems?.(this.getItems());
   }
 
   getValues() {
-    if (this.#mode === "single") {
-      throw new Error("getValues is only available in multiple mode");
-    }
     return [...this.#values];
   }
 
-  async setValue(value) {
-    if (this.#mode === "multiple") {
-      throw new Error("setValue is only available in single mode");
-    }
-
-    const validatedValue = assertValue(value, this.#items, this.#valueField);
-    await this.#changeValues(validatedValue ? [validatedValue] : []);
-  }
-
-  async setValues(values) {
-    if (this.#mode === "single") {
-      throw new Error("setValues is only available in multiple mode");
+  setValues(values) {
+    if (this.#mode === "single" && values.length > 1) {
+      throw new Error("single mode accepts at most one value");
     }
 
     const validatedValues = assertValues(values, this.#items, this.#valueField);
-    await this.#changeValues(validatedValues);
+    this.#changeValues(validatedValues);
   }
 
-  async selectAll() {
+  selectAll() {
     if (this.#mode === "single") {
       throw new Error("selectAll is only available in multiple mode");
     }
 
     const allValues = this.#items.map((item) => item[this.#valueField]);
-    await this.#changeValues(allValues);
+    this.#changeValues(allValues);
   }
 
-  async unselect() {
-    if (this.#mode === "single") {
-      throw new Error("unselect is only available in multiple mode");
-    }
-
-    await this.#changeValues([]);
+  unselect() {
+    this.#changeValues([]);
   }
 
   // -----------------------------------------------------------------------------
@@ -186,7 +167,7 @@ export class ChipGroup {
   // change handlers
   // -----------------------------------------------------------------------------
 
-  async #changeValues(values, options = {}) {
+  #changeValues(values, options = {}) {
     const oldValues = this.#values;
 
     if (haveSameValues(values, oldValues)) {
@@ -196,20 +177,18 @@ export class ChipGroup {
     this.#values = [...values];
     this.#updateSelectedState();
 
-    if (this.onChange) {
+    if (this.onSelect) {
       const items = this.#items.filter((item) =>
         values.includes(item[this.#valueField]),
       );
 
-      const oldItems = this.#items.filter((item) =>
-        oldValues.includes(item[this.#valueField]),
-      );
-
-      if (this.#mode === "single") {
-        await this.onChange(items[0] ?? "", oldItems[0] ?? "", options.event);
-      } else {
-        await this.onChange(items, oldItems, options.event);
-      }
+      this.onSelect({
+        target: this,
+        mode: this.#mode,
+        values,
+        items,
+        event: options.event ?? null,
+      });
     }
   }
 
@@ -218,7 +197,7 @@ export class ChipGroup {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.#container.addEventListener("click", async (event) => {
+    this.#container.addEventListener("click", (event) => {
       // click on an item
       const itemElement = event.target.closest(`.${this.#rootClass}-item`);
       if (itemElement && this.#container.contains(itemElement)) {
@@ -234,7 +213,7 @@ export class ChipGroup {
           newValues = [...oldValues, value];
         }
 
-        await this.#changeValues(newValues, { event });
+        this.#changeValues(newValues, { event });
 
         return;
       }
@@ -243,9 +222,9 @@ export class ChipGroup {
       const actionElement = event.target.closest(`.${this.#rootClass}-action`);
       if (actionElement && this.#container.contains(actionElement)) {
         if (actionElement.dataset.action === "select-all") {
-          await this.selectAll();
+          this.selectAll();
         } else {
-          await this.unselect();
+          this.unselect();
         }
 
         return;
@@ -333,7 +312,6 @@ export class ChipGroup {
     }
   }
 }
-
 
 export class SoloChipGroup extends ChipGroup {
   constructor(container, options = {}) {
