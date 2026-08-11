@@ -1,13 +1,27 @@
-import { CollectionElm } from "./elm.js";
+import { Elm } from "./elm.js";
 import {
   safeHandler,
-  haveSameValues,
-  validateValues,
+  initRootElement,
+  detectFields,
+  validateItems,
+  validateItem,
   filterValue,
+  validateModeValue,
+  validateValue,
+  validateValueExists,
+  isEqualValue,
 } from "./helper.js";
-export class ItemList extends CollectionElm {
-  #titleField;
-  #checkedValues;
+export class ItemList extends Elm {
+  #rootClass="item-list";
+  #root;
+  #textField;
+  #valueField;
+  #tooltipField;
+  #items;
+  #value;
+  #valueMode;
+  #checkedValue;
+  #checkedValueMode;
   #onSetItems;
   #onClick;
   #onDoubleClick;
@@ -15,49 +29,63 @@ export class ItemList extends CollectionElm {
   #onRenderItem;
 
   constructor(root, options = {}) {
-    super(root, {
-      ...options,
-      rootClass: "item-list",
-      valueMode: "single",
-    });
-
-    this.#titleField = options.titleField ?? "title";
-    this.#checkedValues = [];
+    this.#root = initRootElement(root, this.#rootClass);
+    this.#textField = options.textField ?? null;
+    this.#valueField = options.valueField ?? null;
+    this.#tooltipField = options.tooltipField ?? null;
+    this.#items = [];
+    this.#value = null;
+    this.#valueMode = 1;
+    this.#checkedValue = null;
+    this.#checkedValueMode = 2;
+    this.#onSetItems = null;
+    this.#onClick = null;
+    this.#onDoubleClick = null;
+    this.#onCheckedChange = null;
+    this.#onRenderItem = null;
 
     this.#bindEvents();
   }
 
+  get root() {
+    return this.#root;
+  }
+
+  get dataset() {
+    return this.#root.dataset;
+  }
+
   // -----------------------------------------------------------------------------
-  // Public API
+  // items
   // -----------------------------------------------------------------------------
 
-  set onSetItems(handler) {
-    this.#onSetItems = safeHandler(handler);
-  }
-
-  set onClick(handler) {
-    this.#onClick = safeHandler(handler);
-  }
-
-  set onDoubleClick(handler) {
-    this.#onDoubleClick = safeHandler(handler);
-  }
-
-  set onCheckedChange(handler) {
-    this.#onCheckedChange = safeHandler(handler);
-  }
-
-  set onRenderItem(handler) {
-    this.#onRenderItem = handler;
+  get items() {
+    return this.#items.map((item) => ({ ...item }));
   }
 
   setItems(items) {
-    super.setItems(items);
+    if (items == null) {
+      this.#items = [];
+      this.#value = null;
+      this.#checkedValue = null;
+      return;
+    }
 
-    this.#checkedValues = filterValue(
-      this.#checkedValues,
-      this.items,
-      this.valueField,
+    if (!this.#textField || !this.#valueField || !this.#tooltipField) {
+      const { textField, valueField, tooltipField } = detectFields(items);
+      this.#textField = textField;
+      this.#valueField = valueField;
+      this.#tooltipField = tooltipField;
+    }
+
+    validateItems(items, this.#textField, this.#valueField);
+    this.#items = items.map((item) => ({ ...item }));
+
+    this.#value = filterValue(this.#value, this.#items, this.#valueField);
+    this.#checkedValue = filterValue(
+      this.#checkedValue,
+      this.#items,
+      this.#valueField,
     );
 
     this.#render(this.items);
@@ -65,54 +93,164 @@ export class ItemList extends CollectionElm {
     this.#onSetItems?.(this.items);
   }
 
-  setValue(value) {
-    const oldValue = this.value;
-    super.setValue(value);
+  updateItem(newItem) {
+    if (newItem == null) {
+      throw new Error("newItem must be provided");
+    }
 
-    if (this.value !== oldValue) {
+    validateItem(newItem, this.#valueField);
+
+    const value = newItem[this.#valueField];
+    validateValueExists(value, this.#items, this.#valueField);
+
+    const index = this.#items.findIndex(
+      (item) => item[this.#valueField] === value,
+    );
+
+    this.#items[index] = { ...newItem };
+  }
+
+  getItemByValue(value) {
+    if (value == null) {
+      return null;
+    }
+
+    const isArray = Array.isArray(value);
+    const values = isArray ? [...value] : [value];
+
+    const items = this.#items.filter((item) =>
+      values.includes(item[this.#valueField]),
+    );
+    if (items.length === 0) {
+      return null;
+    }
+
+    return isArray ? items.map((item) => ({ ...item })) : { ...items[0] };
+  }
+
+  // -----------------------------------------------------------------------------
+  // value
+  // -----------------------------------------------------------------------------
+
+  get value() {
+    if (this.#value == null) {
+      return null;
+    }
+
+    if (this.#valueMode === 2) {
+      return [...this.#value];
+    }
+
+    return this.#value;
+  }
+
+  setValue(value) {
+    validateModeValue(value, this.#valueMode);
+    validateValue(value);
+    validateValueExists(value, this.#items, this.#valueField);
+
+    const oldValue = this.#value;
+    this.#value = this.#valueMode === 1 ? value : [...value];
+
+    if (!isEqualValue(value, oldValue)) {
       this.#updateSelectedState();
 
-      this.#onClick?.({
-        target: this,
-        value: this.value,
-        item: this.item,
-      });
+      if (value != null) {
+        this.#onClick?.({
+          target: this,
+          value: Array.isArray(value) ? [...value] : value,
+          item: this.getItemByValue(value),
+        });
+      }
     }
   }
 
-  get checkedValues() {
-    return [...this.#checkedValues];
+  // -----------------------------------------------------------------------------
+  // checked value
+  // -----------------------------------------------------------------------------
+
+  get checkedValue() {
+    if (this.#checkedValue == null) {
+      return null;
+    }
+
+    if (this.#checkedValueMode === 2) {
+      return [...this.#checkedValue];
+    }
+
+    return this.#checkedValue;
   }
 
-  setCheckedValues(values = []) {
-    validateValues(values, this.items, this.valueField);
+  setCheckedValue(value) {
+    validateModeValue(value, this.#checkedValueMode);
+    validateValue(value);
+    validateValueExists(value, this.#items, this.#valueField);
 
-    const oldCheckedValues = this.#checkedValues;
+    const oldValue = this.#checkedValue;
+    this.#checkedValue = this.#checkedValueMode === 1 ? value : [...value];
 
-    this.#checkedValues = [...values];
-
-    if (!haveSameValues(this.#checkedValues, oldCheckedValues)) {
+    if (!isEqualValue(value, oldValue)) {
       this.#updateCheckedState();
-
-      const checkedItems = this.items.filter((item) =>
-        this.#checkedValues.includes(item[this.valueField]),
-      );
 
       this.#onCheckedChange?.({
         target: this,
-        checkedValues: this.#checkedValues,
-        checkedItems,
+        value: Array.isArray(value) ? [...value] : value,
+        item: this.getItemByValue(value),
       });
     }
   }
 
   checkAll() {
-    const allValues = this.items.map((item) => item[this.valueField]);
-    this.setCheckedValues(allValues);
+    const values = this.items.map((item) => item[this.valueField]);
+    this.setCheckedValue(values);
   }
 
   uncheckAll() {
-    this.setCheckedValues([]);
+    this.setCheckedValue(null);
+  }
+
+  // -----------------------------------------------------------------------------
+  // events
+  // -----------------------------------------------------------------------------
+
+  get onSetItems() {
+    return this.#onSetItems;
+  }
+
+  set onSetItems(handler) {
+    this.#onSetItems = safeHandler(handler);
+  }
+
+  get onClick() {
+    return this.#onClick;
+  }
+
+  set onClick(handler) {
+    this.#onClick = safeHandler(handler);
+  }
+
+  get onDoubleClick() {
+    return this.#onDoubleClick;
+  }
+
+  set onDoubleClick(handler) {
+    this.#onDoubleClick = safeHandler(handler);
+  }
+
+  get onCheckedChange() {
+    return this.#onCheckedChange;
+  }
+
+  set onCheckedChange(handler) {
+    this.#onCheckedChange = safeHandler(handler);
+  }
+
+  get onRenderItem() {
+    return this.#onRenderItem;
+  }
+
+  set onRenderItem(handler) {
+    this.#onRenderItem = handler;
   }
 
   // -----------------------------------------------------------------------------
@@ -121,35 +259,35 @@ export class ItemList extends CollectionElm {
 
   #bindEvents() {
     this.root.addEventListener("click", (event) => {
-      const itemElement = event.target.closest(`.${this.rootClass}-item`);
+      const itemElement = event.target.closest(`.${this.#rootClass}-item`);
       const value = itemElement?.dataset.value;
 
-      this.#closestHandler(event, `.${this.rootClass}-content`, () => {
+      this.#handleClosest(event, `.${this.#rootClass}-content`, () => {
         if (value === this.value) {
           return;
         }
         this.setValue(value);
       });
 
-      this.#closestHandler(event, `.${this.rootClass}-checkbox`, () => {
-        const oldCheckedValues = this.#checkedValues;
+      this.#handleClosest(event, `.${this.#rootClass}-checkbox`, () => {
+        const oldCheckedValues = this.#checkedValue;
         let newCheckedValues = [];
 
-        if (oldCheckedValues.includes(value)) {
+        if (oldCheckedValues?.includes(value)) {
           newCheckedValues = oldCheckedValues.filter((v) => v !== value);
         } else {
-          newCheckedValues = [...oldCheckedValues, value];
+          newCheckedValues = [...(oldCheckedValues ?? []), value];
         }
 
-        this.setCheckedValues(newCheckedValues);
+        this.setCheckedValue(newCheckedValues);
       });
     });
 
     this.root.addEventListener("dblclick", (event) => {
-      const itemElement = event.target.closest(`.${this.rootClass}-item`);
+      const itemElement = event.target.closest(`.${this.#rootClass}-item`);
       const value = itemElement?.dataset.value;
 
-      this.#closestHandler(event, `.${this.rootClass}-content`, () => {
+      this.#handleClosest(event, `.${this.#rootClass}-content`, () => {
         if (this.#onDoubleClick) {
           const item = this.items.find(
             (item) => item[this.valueField] === value,
@@ -160,7 +298,7 @@ export class ItemList extends CollectionElm {
     });
   }
 
-  #closestHandler(event, selector, handler) {
+  #handleClosest(event, selector, handler) {
     const el = event.target.closest(selector);
     if (el && this.root.contains(el)) {
       handler(el);
@@ -176,7 +314,7 @@ export class ItemList extends CollectionElm {
 
     if (items.length === 0) {
       const emptyElement = document.createElement("div");
-      emptyElement.className = `${this.rootClass}-empty`;
+      emptyElement.className = `${this.#rootClass}-empty`;
       emptyElement.textContent = "No items";
       this.root.appendChild(emptyElement);
       return;
@@ -196,13 +334,13 @@ export class ItemList extends CollectionElm {
     const checkboxContainer = document.createElement("div");
     const contentContainer = document.createElement("div");
 
-    itemElement.className = `${this.rootClass}-item`;
-    checkboxContainer.className = `${this.rootClass}-check`;
-    contentContainer.className = `${this.rootClass}-content`;
+    itemElement.className = `${this.#rootClass}-item`;
+    checkboxContainer.className = `${this.#rootClass}-check`;
+    contentContainer.className = `${this.#rootClass}-content`;
 
     const checkbox = document.createElement("input");
 
-    checkbox.className = `${this.rootClass}-checkbox`;
+    checkbox.className = `${this.#rootClass}-checkbox`;
     checkbox.type = "checkbox";
     checkbox.tabIndex = -1;
 
@@ -226,7 +364,7 @@ export class ItemList extends CollectionElm {
 
   #createDefaultContentElement(item) {
     const textElement = document.createElement("span");
-    textElement.className = `${this.rootClass}-text`;
+    textElement.className = `${this.#rootClass}-text`;
 
     textElement.textContent = item[this.textField];
     textElement.title = item[this.titleField] || item[this.textField];
@@ -235,7 +373,7 @@ export class ItemList extends CollectionElm {
   }
 
   #updateSelectedState() {
-    const itemElements = this.root.querySelectorAll(`.${this.rootClass}-item`);
+    const itemElements = this.root.querySelectorAll(`.${this.#rootClass}-item`);
 
     for (const itemElement of itemElements) {
       itemElement.classList.toggle(
@@ -246,11 +384,11 @@ export class ItemList extends CollectionElm {
   }
 
   #updateCheckedState() {
-    const itemElements = this.root.querySelectorAll(`.${this.rootClass}-item`);
+    const itemElements = this.root.querySelectorAll(`.${this.#rootClass}-item`);
 
     for (const itemElement of itemElements) {
       const checked = this.#checkedValues.includes(itemElement.dataset.value);
-      const checkbox = itemElement.querySelector(`.${this.rootClass}-checkbox`);
+      const checkbox = itemElement.querySelector(`.${this.#rootClass}-checkbox`);
       checkbox.checked = checked;
       itemElement.classList.toggle("is-checked", checked);
     }
