@@ -19,43 +19,8 @@ export function safeHandler(handler) {
 }
 
 // -----------------------------------------------------------------------------
-// init root element
+// element
 // -----------------------------------------------------------------------------
-
-export function initRootElement(root, rootClass) {
-  if (root == null) {
-    throw new Error("root must be provided");
-  }
-
-  if (
-    rootClass != null &&
-    (!isNonBlankString(rootClass) || /\s/.test(rootClass))
-  ) {
-    throw new Error("rootClass must be a single non-blank CSS class name");
-  }
-
-  let el;
-
-  if (isNonBlankString(root)) {
-    const selector = root.startsWith("#") ? root : `#${root}`;
-
-    el = document.querySelector(selector);
-
-    if (!el) {
-      throw new Error(`element not found: ${selector}`);
-    }
-  } else if (root instanceof HTMLElement) {
-    el = root;
-  } else {
-    throw new Error("root must be a non-blank string or an HTMLElement");
-  }
-
-  if (rootClass) {
-    el.classList.add(rootClass);
-  }
-
-  return el;
-}
 
 export function createElementByHTML(templateString) {
   const template = document.createElement("template");
@@ -64,7 +29,7 @@ export function createElementByHTML(templateString) {
 }
 
 // -----------------------------------------------------------------------------
-// resolve field
+// resolve text, value, tooltip fields
 // -----------------------------------------------------------------------------
 
 const textFieldCandidates = ["text", "label", "name", "title"];
@@ -137,6 +102,10 @@ export function validateItem(item, valueField) {
     throw new Error(`item.${valueField} must be a non-blank string`);
   }
 }
+
+// -----------------------------------------------------------------------------
+// filter value
+// -----------------------------------------------------------------------------
 
 export function filterValue(value, items, valueField) {
   const isArray = Array.isArray(value);
@@ -216,6 +185,10 @@ export function validateValueExists(value, items, valueField) {
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// compare value
+// -----------------------------------------------------------------------------
 
 export function isEqualValue(value1, value2) {
   if (value1 == null || value2 == null) {
