@@ -105,8 +105,6 @@ export function validateItems(items, valueField) {
     throw new Error("items must be an array");
   }
 
-  const values = new Set();
-
   for (const item of items) {
     validateItem(item, valueField);
 
@@ -212,42 +210,6 @@ export function validateValueExists(value, items, valueField) {
     }
   }
 }
-
-// export function validateValues(values, items, valueField) {
-//   if (values == null) {
-//     return;
-//   }
-
-//   if (!Array.isArray(values) || values.length === 0) {
-//     throw new Error("values must be a non-empty array");
-//   }
-
-//   const itemValues = items.map((item) => item[valueField]);
-
-//   for (const v of values) {
-//     if (!isNonBlankString(v)) {
-//       throw new Error("value array must contain only non-blank strings");
-//     }
-
-//     if (!itemValues.includes(v)) {
-//       throw new Error(`value not found: ${v}`);
-//     }
-//   }
-// }
-
-// export function validateValue(value, items, valueField) {
-//   if (value == null) {
-//     return;
-//   }
-
-//   if (!isNonBlankString(value)) {
-//     throw new Error("value must be a non-blank string");
-//   }
-
-//   if (!items.some((item) => item[valueField] === value)) {
-//     throw new Error(`value not found: ${value}`);
-//   }
-// }
 
 export function isEqualValue(value1, value2) {
   if (value1 == null || value2 == null) {
