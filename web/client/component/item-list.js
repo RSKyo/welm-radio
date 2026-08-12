@@ -1,6 +1,7 @@
 import {
   safeHandler,
   initRootElement,
+  createElementByHTML,
   detectFields,
   validateItems,
   validateItem,
@@ -10,9 +11,28 @@ import {
   validateValueExists,
   isEqualValue,
 } from "./helper.js";
+import { ElementCollection } from "./element-collection.js";
+
+const defaultEmptyHTML = `<div class="item-list-empty">No items</div>`;
+const defaultItemHTML = `
+<div class="item-list-item" data-role="item">
+  <div class="item-list-check">
+    <input type="checkbox" class="item-list-checkbox" data-role="checkbox" tabindex="-1">
+  </div>
+  <div class="item-list-content" data-role="content">
+    <span class="item-list-text" data-role="text"></span>
+  </div>
+</div>
+`;
+
+const template = {
+  emptyElement: createElementByHTML(defaultEmptyHTML),
+  itemElement: createElementByHTML(defaultItemHTML),
+};
+
 export class ItemList {
-  #rootClass = "item-list";
   #root;
+  #elementCollection;
   #textField;
   #valueField;
   #tooltipField;
@@ -26,10 +46,10 @@ export class ItemList {
   #onDoubleClick;
   #onCheckedChange;
   #onRenderItem;
-  #itemElementMap;
 
   constructor(root, options = {}) {
-    this.#root = initRootElement(root, this.#rootClass);
+    this.#root = initRootElement(root, "item-list");
+    this.#elementCollection = new ElementCollection(this.#root);
     this.#textField = options.textField ?? null;
     this.#valueField = options.valueField ?? null;
     this.#tooltipField = options.tooltipField ?? null;
@@ -43,7 +63,6 @@ export class ItemList {
     this.#onDoubleClick = null;
     this.#onCheckedChange = null;
     this.#onRenderItem = null;
-    this.#itemElementMap = new Map();
 
     this.#bindEvents();
   }
@@ -297,86 +316,44 @@ export class ItemList {
   // -----------------------------------------------------------------------------
 
   #render(items) {
-    this.#root.innerHTML = "";
-    this.#itemElementMap.clear();
+    this.#elementCollection.clear();
 
     if (items.length === 0) {
-      const emptyTemplate = `<div class="item-list-empty">No items</div>`;
-      const emptyElement = this.#createElementByTemplate(emptyTemplate);
-      this.#root.appendChild(emptyElement);
+      this.#root.appendChild(template.emptyElement.cloneNode(true));
       return;
     }
 
     for (const item of items) {
-      const itemElement = this.#createItemElement(item);
-      this.#root.appendChild(itemElement);
-      this.#itemElementMap.set(item[this.#valueField], itemElement);
+      this.#renderItem(item);
     }
 
     this.#updateSelectedState();
     this.#updateCheckedState();
   }
 
-  #createItemElement(item) {
-    const itemTemplate = `<div class="item-list-item" data-role="item">
-      <div class="item-list-check">
-        <input type="checkbox" class="item-list-checkbox" data-role="checkbox" tabindex="-1">
-      </div>
-      <div class="item-list-content" data-role="content"></div>
-    </div>`;
-
-    const itemElement = this.#createElementByTemplate(itemTemplate);
-    itemElement.dataset.value = item[this.#valueField];
-
-    const contentContainer = itemElement.querySelector("[data-role='content']");
-
-    const contentElement =
-      this.#onRenderItem?.(item) ?? this.#createDefaultContentElement(item);
-
-    if (!(contentElement instanceof HTMLElement)) {
-      throw new Error("onRenderItem must return an HTMLElement");
-    }
-
-    contentContainer.appendChild(contentElement);
-
-    return itemElement;
-  }
-
-  #createDefaultContentElement(item) {
-    const contentTemplate = `
-      <span class="item-list-text"></span>
-    `;
-
-    const contentElement = this.#createElementByTemplate(contentTemplate);
-    contentElement.textContent = item[this.#textField];
-    contentElement.title = item[this.#tooltipField] || item[this.#textField];
-    return contentElement;
-  }
-
-  #createElementByTemplate(templateString) {
-    const template = document.createElement("template");
-    template.innerHTML = templateString.trim();
-    return template.content.firstElementChild;
-  }
-
-  #updateItemElement(item) {
+  #renderItem(item) {
+    const text = item[this.#textField];
     const value = item[this.#valueField];
-    const oldElement = this.#itemElementMap.get(value);
-    if (!oldElement) {
-      throw new Error(`element not found: ${value}`);
+
+    const itemElement = template.itemElement.cloneNode(true);
+    itemElement.dataset.value = value;
+    itemElement.querySelector("[data-role='text']").textContent = text;
+
+    const customItemElement = this.#onRenderItem?.(
+      item,
+      itemElement.cloneNode(true),
+    );
+
+    if (customItemElement instanceof HTMLElement) {
+      this.#elementCollection.add(value, customItemElement);
+      return;
     }
 
-    const newElement = this.#createItemElement(item);
-    oldElement.replaceWith(newElement);
-    
-    this.#itemElementMap.delete(value);
-    this.#itemElementMap.set(value, newElement);
+    this.#elementCollection.add(value, itemElement);
   }
 
   #updateSelectedState() {
-    const itemElements = this.#getItemElements();
-
-    for (const itemElement of itemElements) {
+    for (const itemElement of this.#itemElementMap.values()) {
       itemElement.classList.toggle(
         "is-selected",
         itemElement.dataset.value === this.#value,
@@ -385,9 +362,7 @@ export class ItemList {
   }
 
   #updateCheckedState() {
-    const itemElements = this.#getItemElements();
-
-    for (const itemElement of itemElements) {
+    for (const itemElement of this.#itemElementMap.values()) {
       const checked =
         this.#checkedValue?.includes(itemElement.dataset.value) ?? false;
       const checkbox = itemElement.querySelector('[data-role="checkbox"]');
