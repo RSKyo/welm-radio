@@ -76,6 +76,8 @@ export function validateItems(items, valueField) {
     throw new Error("items must be an array");
   }
 
+  const values = new Set();
+
   for (const item of items) {
     validateItem(item, valueField);
 
@@ -135,8 +137,11 @@ export function validateModeValue(value, valueMode = 1) {
       throw new Error("value must be a non-blank string");
     }
   } else if (valueMode === 2) {
-    if (!Array.isArray(value)) {
-      throw new Error("value must be an array");
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error("value must be a non-empty array");
+    }
+    if (value.length !== new Set(value).size) {
+      throw new Error("value must not contain duplicates");
     }
   } else {
     throw new Error(`invalid valueMode: ${valueMode}`);

@@ -90,16 +90,13 @@ export class ItemList extends Elm {
       this.#items = [];
       this.#value = null;
       this.#checkedValue = null;
-      this.#render(this.#items, this.#value, this.#checkedValue);
+      this.#render(this.#items);
       return;
     }
 
-    if (!this.#textField || !this.#valueField || !this.#tooltipField) {
-      const { textField, valueField, tooltipField } = detectFields(items);
-      this.#textField = textField;
-      this.#valueField = valueField;
-      this.#tooltipField = tooltipField;
-    }
+    this.#textField ??= detectedFields.textField;
+    this.#valueField ??= detectedFields.valueField;
+    this.#tooltipField ??= detectedFields.tooltipField;
 
     validateItems(items, this.#valueField);
     this.#items = items.map((item) => ({ ...item }));
@@ -111,7 +108,7 @@ export class ItemList extends Elm {
       this.#valueField,
     );
 
-    this.#render(this.#items, this.#value, this.#checkedValue);
+    this.#render(this.#items);
 
     this.#onSetItems?.({
       target: this,
@@ -135,7 +132,8 @@ export class ItemList extends Elm {
 
     this.#items[index] = { ...newItem };
 
-    this.root.replace(value, newItem);
+    const newItemElement = this.#createItemElement(newItem);
+    this.root.replace(newItem[this.#valueField], newItemElement);
   }
 
   getItemByValue(value) {
@@ -170,7 +168,7 @@ export class ItemList extends Elm {
     }
 
     if (this.#valueMode === 2) {
-      return [...this.#value];
+      return this.#value.length > 0 ? [...this.#value] : null;
     }
 
     return this.#value;
@@ -213,7 +211,7 @@ export class ItemList extends Elm {
     }
 
     if (this.#checkedValueMode === 2) {
-      return [...this.#checkedValue];
+      return this.#checkedValue.length > 0 ? [...this.#checkedValue] : null;
     }
 
     return this.#checkedValue;
@@ -246,7 +244,7 @@ export class ItemList extends Elm {
 
   checkAll() {
     const values = this.#items.map((item) => item[this.#valueField]);
-    this.setCheckedValue(values);
+    this.setCheckedValue(values.length > 0 ? values : null);
   }
 
   uncheckAll() {
@@ -362,7 +360,7 @@ export class ItemList extends Elm {
   // rendering and updating the DOM
   // -----------------------------------------------------------------------------
 
-  #render(items, value, checkedValue) {
+  #render(items) {
     this.#onRender?.({
       target: this,
       items: this.items,
@@ -377,14 +375,15 @@ export class ItemList extends Elm {
     }
 
     for (const item of items) {
-      this.#renderItem(item);
+      const itemElement = this.#createItemElement(item);
+      this.root.add(item[this.#valueField], itemElement);
     }
 
-    this.#updateSelectedState(value);
-    this.#updateCheckedState(checkedValue);
+    this.#updateSelectedState();
+    this.#updateCheckedState();
   }
 
-  #renderItem(item) {
+  #createItemElement(item) {
     const text = item[this.#textField];
     const value = item[this.#valueField];
 
@@ -398,23 +397,24 @@ export class ItemList extends Elm {
       itemElement: itemElement.cloneNode(true),
     });
 
-    this.root.add(
-      value,
-      customItemElement instanceof HTMLElement
-        ? customItemElement
-        : itemElement,
-    );
+    return customItemElement instanceof HTMLElement
+      ? customItemElement
+      : itemElement;
   }
 
-  #updateSelectedState(value) {
+  #updateSelectedState() {
     for (const element of this.root.elements()) {
-      element.classList.toggle("is-selected", element.dataset.value === value);
+      element.classList.toggle(
+        "is-selected",
+        element.dataset.value === this.#value,
+      );
     }
   }
 
-  #updateCheckedState(checkedValue) {
+  #updateCheckedState() {
     for (const element of this.root.elements()) {
-      const checked = checkedValue?.includes(element.dataset.value) ?? false;
+      const checked =
+        this.#checkedValue?.includes(element.dataset.value) ?? false;
       const checkbox = element.querySelector('[data-role="checkbox"]');
       checkbox.checked = checked;
       element.classList.toggle("is-checked", checked);
