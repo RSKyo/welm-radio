@@ -1,19 +1,18 @@
 import {
   safeHandler,
   createElementByHTML,
-  detectFields,
-  validateItems,
-  validateItem,
+  validateItemFields,
   filterValue,
   validateModeValue,
   validateValue,
   validateValueExists,
   isEqualValue,
+  isNullOrEmpty,
 } from "./elm-helper.js";
-import { Elm } from "./elm.js";
+import { ItemsElm } from "./elm.js";
 
-const defaultEmptyElementHTML = `<div class="item-list-empty">No items</div>`;
-const defaultItemElementHTML = `
+const DEFAULT_EMPTY_HTML = `<div class="item-list-empty">No items</div>`;
+const DEFAULT_ITEM_ELEMENT_HTML = `
 <div class="item-list-item" data-role="item">
   <div class="item-list-check">
     <input type="checkbox" class="item-list-checkbox" data-role="checkbox" tabindex="-1">
@@ -24,138 +23,73 @@ const defaultItemElementHTML = `
 </div>
 `;
 
-export class ItemList extends Elm {
-  // fields
-  #textField;
-  #valueField;
-  #tooltipField;
-  // data and state
-  #items;
+export class ItemList extends ItemsElm {
+  // templates
+  #emptyTemplate;
+  #itemElementTemplate;
+  // state
   #value;
-  #valueMode;
+  #valueMode = 1;
   #checkedValue;
-  #checkedValueMode;
-  // events
-  #onSetItems;
+  #checkedValueMode = 2;
+  // event
   #onClick;
   #onDoubleClick;
   #onCheckedChange;
-  #onRender;
-  #onRenderItem;
-  // templates
-  #emptyElementHTML;
-  #emptyElementTemplate;
-  #itemElementHTML;
-  #itemElementTemplate;
 
   constructor(root, options = {}) {
-    super(root, "item-list", { name: "item-list" });
+    const rootClass = options.rootClass ?? "item-list";
+    const dataset = options.dataset ?? {};
 
-    // fields
-    this.#textField = options.textField ?? null;
-    this.#valueField = options.valueField ?? null;
-    this.#tooltipField = options.tooltipField ?? null;
-    // data and state
-    this.#items = [];
-    this.#value = null;
-    this.#valueMode = 1;
-    this.#checkedValue = null;
-    this.#checkedValueMode = 2;
-    // events
-    this.#onSetItems = null;
-    this.#onClick = null;
-    this.#onDoubleClick = null;
-    this.#onCheckedChange = null;
-    this.#onRender = null;
-    this.#onRenderItem = null;
-    // templates
-    this.#emptyElementHTML = defaultEmptyElementHTML;
-    this.#emptyElementTemplate = createElementByHTML(this.#emptyElementHTML);
-    this.#itemElementHTML = defaultItemElementHTML;
-    this.#itemElementTemplate = createElementByHTML(this.#itemElementHTML);
+    super(root, {
+      ...options,
 
+      rootClass,
+      dataset: {
+        ...dataset,
+        name: "item-list",
+      },
+    });
+
+    this.#initTemplates(options);
     this.#bindEvents();
   }
 
-  // -----------------------------------------------------------------------------
-  // items
-  // -----------------------------------------------------------------------------
+  #initTemplates(options) {
+    const emptyHTML = options.emptyHTML ?? DEFAULT_EMPTY_HTML;
+    this.#emptyTemplate = createElementByHTML(emptyHTML);
 
-  get items() {
-    return this.#items.map((item) => ({ ...item }));
+    const itemElementHTML =
+      options.itemElementHTML ?? DEFAULT_ITEM_ELEMENT_HTML;
+    this.#itemElementTemplate = createElementByHTML(itemElementHTML);
+
+    this.#validateItemElementTemplate(this.#itemElementTemplate);
   }
 
-  setItems(items) {
-    if (items == null) {
-      this.#items = [];
-      this.#value = null;
-      this.#checkedValue = null;
-      this.#render(this.#items);
-      return;
+  #validateItemElementTemplate(element) {
+    // querySelector will not match the itemElement itself,
+    // so we use matches to check for the itemElement itself
+    if (!element.matches('[data-role="item"]')) {
+      throw new Error("itemElement must have data-role='item'");
     }
 
-    this.#textField ??= detectedFields.textField;
-    this.#valueField ??= detectedFields.valueField;
-    this.#tooltipField ??= detectedFields.tooltipField;
-
-    validateItems(items, this.#valueField);
-    this.#items = items.map((item) => ({ ...item }));
-
-    this.#value = filterValue(this.#value, this.#items, this.#valueField);
-    this.#checkedValue = filterValue(
-      this.#checkedValue,
-      this.#items,
-      this.#valueField,
-    );
-
-    this.#render(this.#items);
-
-    this.#onSetItems?.({
-      target: this,
-      items: this.items,
-    });
-  }
-
-  updateItem(newItem) {
-    if (newItem == null) {
-      throw new Error("newItem must be provided");
+    if (!element.querySelector('[data-role="content"]')) {
+      throw new Error(
+        "itemElement must have a child element with data-role='content'",
+      );
     }
 
-    validateItem(newItem, this.#valueField);
-
-    const value = newItem[this.#valueField];
-    validateValueExists(value, this.#items, this.#valueField);
-
-    const index = this.#items.findIndex(
-      (item) => item[this.#valueField] === value,
-    );
-
-    this.#items[index] = { ...newItem };
-
-    const newItemElement = this.#createItemElement(newItem);
-    this.root.replace(newItem[this.#valueField], newItemElement);
-  }
-
-  getItemByValue(value) {
-    if (value == null) {
-      return null;
+    if (!element.querySelector('[data-role="text"]')) {
+      throw new Error(
+        "itemElement must have a child element with data-role='text'",
+      );
     }
 
-    validateValue(value);
-    validateValueExists(value, this.#items, this.#valueField);
-
-    const isArray = Array.isArray(value);
-    const values = isArray ? [...value] : [value];
-
-    const items = this.#items.filter((item) =>
-      values.includes(item[this.#valueField]),
-    );
-
-    if (items.length === 0) {
-      return null;
+    if (!element.querySelector('[data-role="checkbox"]')) {
+      throw new Error(
+        "itemElement must have a child element with data-role='checkbox'",
+      );
     }
-
-    return isArray ? items.map((item) => ({ ...item })) : { ...items[0] };
   }
 
   // -----------------------------------------------------------------------------
@@ -175,27 +109,27 @@ export class ItemList extends Elm {
   }
 
   setValue(value) {
-    if (value == null) {
+    const oldValue = this.#value;
+
+    if (isNullOrEmpty(value)) {
       this.#value = null;
-      this.#updateSelectedState(null);
-      return;
+    } else {
+      validateModeValue(value, this.#valueMode);
+      validateValue(value);
+      validateValueExists(value, this.items, this.valueField);
+
+      this.#value = this.#valueMode === 1 ? value : [...value];
     }
 
-    validateModeValue(value, this.#valueMode);
-    validateValue(value);
-    validateValueExists(value, this.#items, this.#valueField);
+    const newValue = this.#value;
+    if (!isEqualValue(newValue, oldValue)) {
+      this.#updateSelectedState();
 
-    const oldValue = this.#value;
-    this.#value = this.#valueMode === 1 ? value : [...value];
-
-    if (!isEqualValue(value, oldValue)) {
-      this.#updateSelectedState(value);
-
-      if (value != null) {
+      if (newValue != null) {
         this.#onClick?.({
           target: this,
-          value: Array.isArray(value) ? [...value] : value,
-          item: this.getItemByValue(value),
+          value: Array.isArray(newValue) ? [...newValue] : newValue,
+          item: this.getItemByValue(newValue),
         });
       }
     }
@@ -218,33 +152,33 @@ export class ItemList extends Elm {
   }
 
   setCheckedValue(value) {
-    if (value == null) {
+    const oldValue = this.#checkedValue;
+
+    if (isNullOrEmpty(value)) {
       this.#checkedValue = null;
-      this.#updateCheckedState(null);
-      return;
+    } else {
+      validateModeValue(value, this.#checkedValueMode);
+      validateValue(value);
+      validateValueExists(value, this.items, this.valueField);
+
+      this.#checkedValue = this.#checkedValueMode === 1 ? value : [...value];
     }
 
-    validateModeValue(value, this.#checkedValueMode);
-    validateValue(value);
-    validateValueExists(value, this.#items, this.#valueField);
-
-    const oldValue = this.#checkedValue;
-    this.#checkedValue = this.#checkedValueMode === 1 ? value : [...value];
-
-    if (!isEqualValue(value, oldValue)) {
-      this.#updateCheckedState(value);
+    const newValue = this.#checkedValue;
+    if (!isEqualValue(newValue, oldValue)) {
+      this.#updateCheckedState();
 
       this.#onCheckedChange?.({
         target: this,
-        value: Array.isArray(value) ? [...value] : value,
-        item: this.getItemByValue(value),
+        value: Array.isArray(newValue) ? [...newValue] : newValue,
+        item: this.getItemByValue(newValue),
       });
     }
   }
 
   checkAll() {
-    const values = this.#items.map((item) => item[this.#valueField]);
-    this.setCheckedValue(values.length > 0 ? values : null);
+    const values = this.items.map((item) => item[this.valueField]);
+    this.setCheckedValue(values);
   }
 
   uncheckAll() {
@@ -255,46 +189,19 @@ export class ItemList extends Elm {
   // events
   // -----------------------------------------------------------------------------
 
-  set onSetItems(handler) {
-    this.#onSetItems = safeHandler(handler);
-  }
-
   set onClick(handler) {
-    this.#onClick = safeHandler(handler);
+    // handler can be null to remove the event listener
+    this.#onClick = handler == null ? null : safeHandler(handler);
   }
 
   set onDoubleClick(handler) {
-    this.#onDoubleClick = safeHandler(handler);
+    // handler can be null to remove the event listener
+    this.#onDoubleClick = handler == null ? null : safeHandler(handler);
   }
 
   set onCheckedChange(handler) {
-    this.#onCheckedChange = safeHandler(handler);
-  }
-
-  set onRender(handler) {
-    this.#onRender = safeHandler(handler);
-  }
-
-  set onRenderItem(handler) {
-    this.#onRenderItem = safeHandler(handler);
-  }
-
-  get emptyElementHTML() {
-    return this.#emptyElementHTML;
-  }
-
-  set emptyElementHTML(html) {
-    this.#emptyElementHTML = html;
-    this.#emptyElementTemplate = createElementByHTML(this.#emptyElementHTML);
-  }
-
-  get itemElementHTML() {
-    return this.#itemElementHTML;
-  }
-
-  set itemElementHTML(html) {
-    this.#itemElementHTML = html;
-    this.#itemElementTemplate = createElementByHTML(this.#itemElementHTML);
+    // handler can be null to remove the event listener
+    this.#onCheckedChange = handler == null ? null : safeHandler(handler);
   }
 
   // -----------------------------------------------------------------------------
@@ -336,13 +243,11 @@ export class ItemList extends Elm {
     };
 
     const dblclickContentHandler = ({ value }) => {
-      if (this.#onDoubleClick) {
-        this.#onDoubleClick({
-          target: this,
-          value,
-          item: this.getItemByValue(value),
-        });
-      }
+      this.#onDoubleClick?.({
+        target: this,
+        value,
+        item: this.getItemByValue(value),
+      });
     };
 
     this.rootElement.addEventListener("click", (event) => {
@@ -360,46 +265,50 @@ export class ItemList extends Elm {
   // rendering and updating the DOM
   // -----------------------------------------------------------------------------
 
-  #render(items) {
-    this.#onRender?.({
-      target: this,
-      items: this.items,
-      rootElement: this.rootElement,
-    });
-
-    this.root.clear();
-
-    if (items.length === 0) {
-      this.root.add("empty", this.#emptyElementTemplate.cloneNode(true));
-      return;
-    }
-
-    for (const item of items) {
-      const itemElement = this.#createItemElement(item);
-      this.root.add(item[this.#valueField], itemElement);
-    }
-
-    this.#updateSelectedState();
-    this.#updateCheckedState();
+  // override
+  createEmptyElement() {
+    return this.#emptyTemplate.cloneNode(true);
   }
 
-  #createItemElement(item) {
-    const text = item[this.#textField];
-    const value = item[this.#valueField];
+  // override
+  createItemElement(item) {
+    const text = item[this.textField];
+    const value = item[this.valueField];
+    const tooltip = item[this.tooltipField];
 
     const itemElement = this.#itemElementTemplate.cloneNode(true);
     itemElement.dataset.value = value;
     itemElement.querySelector("[data-role='text']").textContent = text;
+    itemElement.title = tooltip || text || "";
 
-    const customItemElement = this.#onRenderItem?.({
-      target: this,
-      item: { ...item },
-      itemElement: itemElement.cloneNode(true),
-    });
+    return itemElement;
+  }
 
-    return customItemElement instanceof HTMLElement
-      ? customItemElement
-      : itemElement;
+  // override
+  afterRender(items) {
+    if (isNullOrEmpty(items)) {
+      this.#value = null;
+      this.#checkedValue = null;
+    } else {
+      this.#value = filterValue(this.#value, items, this.valueField);
+      this.#checkedValue = filterValue(
+        this.#checkedValue,
+        items,
+        this.valueField,
+      );
+
+      this.#updateState();
+    }
+  }
+
+  // override
+  afterUpdateItem(newItem) {
+    this.#updateState();
+  }
+
+  #updateState() {
+    this.#updateSelectedState();
+    this.#updateCheckedState();
   }
 
   #updateSelectedState() {

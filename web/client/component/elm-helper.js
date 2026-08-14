@@ -4,6 +4,10 @@
 
 export async function safeRun(handler, ...args) {
   try {
+    if (typeof handler !== "function") {
+      throw new Error("handler must be a function");
+    }
+
     return await handler(...args);
   } catch (error) {
     console.error(error);
@@ -15,17 +19,62 @@ export async function safeRun(handler, ...args) {
 }
 
 export function safeHandler(handler) {
+  if (typeof handler !== "function") {
+    throw new Error("handler must be a function");
+  }
+
   return (...args) => safeRun(handler, ...args);
+}
+
+export function safeRunSync(handler, ...args) {
+  try {
+    if (typeof handler !== "function") {
+      throw new Error("handler must be a function");
+    }
+
+    return handler(...args);
+  } catch (error) {
+    console.error(error);
+
+    toast.error(error?.message ?? String(error));
+
+    return undefined;
+  }
+}
+
+export function safeHandlerSync(handler) {
+  if (typeof handler !== "function") {
+    throw new Error("handler must be a function");
+  }
+
+  return (...args) => safeRunSync(handler, ...args);
 }
 
 // -----------------------------------------------------------------------------
 // element
 // -----------------------------------------------------------------------------
 
-export function createElementByHTML(templateString) {
+export function createElementByHTML(html, fieldName = "html") {
+  if (!isNonBlankString(html)) {
+    throw new Error(`${fieldName} must be a non-blank HTML string`);
+  }
+
   const template = document.createElement("template");
-  template.innerHTML = templateString.trim();
-  return template.content.firstElementChild;
+  template.innerHTML = html.trim();
+
+  const { children } = template.content;
+
+  if (children.length !== 1) {
+    throw new Error(`${fieldName} must contain exactly one root element`);
+  }
+
+  const element = children[0];
+
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`${fieldName} must create an HTMLElement`);
+  }
+
+  return element;
 }
 
 // -----------------------------------------------------------------------------
@@ -71,37 +120,54 @@ function detectField(candidates, items) {
 // validate item
 // -----------------------------------------------------------------------------
 
-export function validateItems(items, valueField) {
+export function validateItems(items) {
+  if (items == null) {
+    return;
+  }
+
   if (!Array.isArray(items)) {
     throw new Error("items must be an array");
   }
 
-  const values = new Set();
-
   for (const item of items) {
-    validateItem(item, valueField);
-
-    const value = item[valueField];
-
-    if (values.has(value)) {
-      throw new Error(`duplicate item value: ${value}`);
+    if (!isPlainObject(item)) {
+      throw new Error("item must be a plain object");
     }
-
-    values.add(value);
   }
 }
 
-export function validateItem(item, valueField) {
-  if (!isPlainObject(item)) {
-    throw new Error("item must be a plain object");
+export function validateItemFields(input, textField, valueField) {
+  if (input == null) {
+    return;
   }
 
-  if (!Object.hasOwn(item, valueField)) {
-    throw new Error(`item is missing the ${valueField} field`);
+  const items = Array.isArray(input) ? input : [input];
+
+  for (const item of items) {
+    if (!isPlainObject(item)) {
+      throw new Error("item must be a plain object");
+    }
+
+    if (!Object.hasOwn(item, textField)) {
+      throw new Error(`item is missing the ${textField} field`);
+    }
+
+    if (!Object.hasOwn(item, valueField)) {
+      throw new Error(`item is missing the ${valueField} field`);
+    }
+
+    if (!isNonBlankString(item[textField])) {
+      throw new Error(`item.${textField} must be a non-blank string`);
+    }
+
+    if (!isNonBlankString(item[valueField])) {
+      throw new Error(`item.${valueField} must be a non-blank string`);
+    }
   }
 
-  if (!isNonBlankString(item[valueField])) {
-    throw new Error(`item.${valueField} must be a non-blank string`);
+  const values = new Set(items.map((item) => item[valueField]));
+  if (values.size !== items.length) {
+    throw new Error("items must not contain duplicate values");
   }
 }
 
@@ -221,14 +287,25 @@ export function isEqualValue(value1, value2) {
 }
 
 // -----------------------------------------------------------------------------
-// Private Helpers
+// validate type
 // -----------------------------------------------------------------------------
 
-function isNonBlankString(value) {
+export function isNonBlankString(value) {
   return typeof value === "string" && value.trim() !== "";
 }
 
-function isPlainObject(value) {
+export function isNullOrEmpty(value) {
+  if (
+    value == null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isPlainObject(value) {
   if (Object.prototype.toString.call(value) !== "[object Object]") {
     return false;
   }
