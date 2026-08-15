@@ -3,7 +3,7 @@ import {
   getWhisperModel,
   selectWhisperModel,
   startTranscription,
-  isTranscribing,
+  getTranscriptionStatus,
 } from "../service/whisper.service.js";
 
 const apiRouter = new ApiRouter("/whisper/api");
@@ -27,9 +27,9 @@ apiRouter.post("/start-transcription", (data) => {
   return startTranscription(data.audioPath, data.language);
 });
 
-// GET /whisper/api/is-transcribing
-apiRouter.get("/is-transcribing", () => {
-  return isTranscribing();
+// GET /whisper/api/transcribing-status
+apiRouter.get("/transcribing-status", () => {
+  return getTranscriptionStatus();
 });
 
 export default apiRouter;

@@ -1,17 +1,16 @@
 import {
-  safeHandler,
   createElementByHTML,
   validateItemFields,
   filterValue,
   validateModeValue,
   validateValue,
   validateValueExists,
+  dispatchItemEvent,
   isEqualValue,
   isNullOrEmpty,
 } from "./elm-helper.js";
 import { ItemsElm } from "./elm.js";
 
-const DEFAULT_EMPTY_HTML = `<div class="item-list-empty">No items</div>`;
 const DEFAULT_ITEM_ELEMENT_HTML = `
 <div class="item-list-item" data-role="item">
   <div class="item-list-check">
@@ -25,7 +24,6 @@ const DEFAULT_ITEM_ELEMENT_HTML = `
 
 export class ItemList extends ItemsElm {
   // templates
-  #emptyTemplate;
   #itemElementTemplate;
   // state
   #value;
@@ -33,37 +31,41 @@ export class ItemList extends ItemsElm {
   #checkedValue;
   #checkedValueMode = 2;
   // event
-  #onClick;
-  #onDoubleClick;
+  #onChange;
+  #onDblclick;
   #onCheckedChange;
 
   constructor(root, options = {}) {
     const rootClass = options.rootClass ?? "item-list";
+
     const dataset = options.dataset ?? {};
+    if (options.name != null) {
+      dataset.name = options.name;
+    }
 
     super(root, {
       ...options,
 
       rootClass,
-      dataset: {
-        ...dataset,
-        name: "item-list",
-      },
+      dataset,
     });
 
     this.#initTemplates(options);
     this.#bindEvents();
   }
 
-  #initTemplates(options) {
-    const emptyHTML = options.emptyHTML ?? DEFAULT_EMPTY_HTML;
-    this.#emptyTemplate = createElementByHTML(emptyHTML);
+  // -----------------------------------------------------------------------------
+  // templates
+  // -----------------------------------------------------------------------------
 
+  #initTemplates(options) {
     const itemElementHTML =
       options.itemElementHTML ?? DEFAULT_ITEM_ELEMENT_HTML;
     this.#itemElementTemplate = createElementByHTML(itemElementHTML);
 
-    this.#validateItemElementTemplate(this.#itemElementTemplate);
+    if (options.itemElementHTML != null) {
+      this.#validateItemElementTemplate(this.#itemElementTemplate);
+    }
   }
 
   #validateItemElementTemplate(element) {
@@ -97,6 +99,10 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   get value() {
+    return this.#value;
+  }
+
+  getValue() {
     if (this.#value == null) {
       return null;
     }
@@ -125,13 +131,11 @@ export class ItemList extends ItemsElm {
     if (!isEqualValue(newValue, oldValue)) {
       this.#updateSelectedState();
 
-      if (newValue != null) {
-        this.#onClick?.({
-          target: this,
-          value: Array.isArray(newValue) ? [...newValue] : newValue,
-          item: this.getItemByValue(newValue),
-        });
-      }
+      this.#onChange?.({
+        target: this,
+        value: Array.isArray(newValue) ? [...newValue] : newValue,
+        item: this.getItemByValue(newValue),
+      });
     }
   }
 
@@ -140,6 +144,10 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   get checkedValue() {
+    return this.#checkedValue;
+  }
+
+  getCheckedValue() {
     if (this.#checkedValue == null) {
       return null;
     }
@@ -189,19 +197,19 @@ export class ItemList extends ItemsElm {
   // events
   // -----------------------------------------------------------------------------
 
-  set onClick(handler) {
+  set onChange(handler) {
     // handler can be null to remove the event listener
-    this.#onClick = handler == null ? null : safeHandler(handler);
+    this.#onChange = handler == null ? null : handler;
   }
 
-  set onDoubleClick(handler) {
+  set onDblclick(handler) {
     // handler can be null to remove the event listener
-    this.#onDoubleClick = handler == null ? null : safeHandler(handler);
+    this.#onDblclick = handler == null ? null : handler;
   }
 
   set onCheckedChange(handler) {
     // handler can be null to remove the event listener
-    this.#onCheckedChange = handler == null ? null : safeHandler(handler);
+    this.#onCheckedChange = handler == null ? null : handler;
   }
 
   // -----------------------------------------------------------------------------
@@ -209,25 +217,6 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    const handleClosest = (selector, event, handler) => {
-      const target = event.target.closest(selector);
-      if (!target || !event.currentTarget.contains(target)) {
-        return;
-      }
-
-      const itemElement = target.closest('[data-role="item"]');
-      if (!itemElement || !event.currentTarget.contains(itemElement)) {
-        return;
-      }
-
-      handler({
-        event,
-        target,
-        element: itemElement,
-        value: itemElement.dataset.value,
-      });
-    };
-
     const clickContentHandler = ({ value }) => {
       this.setValue(value);
     };
@@ -243,7 +232,7 @@ export class ItemList extends ItemsElm {
     };
 
     const dblclickContentHandler = ({ value }) => {
-      this.#onDoubleClick?.({
+      this.#onDblclick?.({
         target: this,
         value,
         item: this.getItemByValue(value),
@@ -251,24 +240,19 @@ export class ItemList extends ItemsElm {
     };
 
     this.rootElement.addEventListener("click", (event) => {
-      handleClosest('[data-role="content"]', event, clickContentHandler);
+      dispatchItemEvent('[data-role="item"]', event, clickContentHandler);
 
-      handleClosest('[data-role="checkbox"]', event, clickCheckboxHandler);
+      dispatchItemEvent('[data-role="item"]', event, clickCheckboxHandler);
     });
 
     this.rootElement.addEventListener("dblclick", (event) => {
-      handleClosest('[data-role="content"]', event, dblclickContentHandler);
+      dispatchItemEvent('[data-role="item"]', event, dblclickContentHandler);
     });
   }
 
   // -----------------------------------------------------------------------------
   // rendering and updating the DOM
   // -----------------------------------------------------------------------------
-
-  // override
-  createEmptyElement() {
-    return this.#emptyTemplate.cloneNode(true);
-  }
 
   // override
   createItemElement(item) {
@@ -312,21 +296,25 @@ export class ItemList extends ItemsElm {
   }
 
   #updateSelectedState() {
-    for (const element of this.root.elements()) {
-      element.classList.toggle(
-        "is-selected",
-        element.dataset.value === this.#value,
-      );
-    }
+    this.root.each((key, element) => {
+      if (this.#valueMode === 1) {
+        element.classList.toggle("is-selected", this.#value === key);
+      } else if (this.#valueMode === 2) {
+        element.classList.toggle(
+          "is-selected",
+          this.#value?.includes(key) ?? false,
+        );
+      }
+    });
   }
 
   #updateCheckedState() {
-    for (const element of this.root.elements()) {
+    this.root.each((key, element) => {
       const checked =
         this.#checkedValue?.includes(element.dataset.value) ?? false;
       const checkbox = element.querySelector('[data-role="checkbox"]');
       checkbox.checked = checked;
       element.classList.toggle("is-checked", checked);
-    }
+    });
   }
 }

@@ -1,106 +1,192 @@
-import { CollectionElm } from "./elm.js";
 import {
-  prepareRootElement,
-  assertValues,
-  filterValues,
-  haveSameValues,
-} from "./helper.js";
-export class ChipGroup extends CollectionElm {
-  #mode;
-  #values;
-  onSetItems;
-  onSelect;
-  onRenderItem;
+  createElementByHTML,
+  validateItemFields,
+  filterValue,
+  validateModeValue,
+  validateValue,
+  validateValueExists,
+  dispatchEvent,
+  dispatchItemEvent,
+  isEqualValue,
+  isNullOrEmpty,
+} from "./elm-helper.js";
+import { ItemsElm } from "./elm.js";
 
-  
+const DEFAULT_ITEM_ELEMENT_HTML = `
+<div class="chip-group-item" data-role="item">
+  <span class="chip-group-text" data-role="text"></span>
+</div>
+`;
+const DEFAULT_FOOTER_ELEMENT_HTML = `
+<div class="chip-group-actions" data-role="actions">
+  <button type="button" class="chip-group-action" data-action="select-all">全选</button>
+  <button type="button" class="chip-group-action" data-action="unselect">取消</button>
+</div>
+`;
+
+export class ChipGroup extends ItemsElm {
+  // templates
+  #itemElementTemplate;
+  #footerElementTemplate;
+  // state
+  #mode = "multiple";
+  #value;
+  #valueMode = 2;
+  // event
+  #onChange;
 
   constructor(root, options = {}) {
-    super(root, { rootClass: "chip-group" });
+    const rootClass = options.rootClass ?? "chip-group";
 
-    this.textField = options.textField ?? null;
-    this.valueField = options.valueField ?? null;
-    this.titleField = options.titleField ?? null;
-    this.#mode = options.mode ?? "multiple";
-
-    if (!["single", "multiple"].includes(this.#mode)) {
-      throw new Error("mode must be either 'single' or 'multiple'");
+    const dataset = options.dataset ?? {};
+    if (options.name != null) {
+      dataset.name = options.name;
     }
 
-    this.#values = [];
-    this.onSetItems = options.onSetItems ?? null;
-    this.onSelect = options.onSelect ?? null;
-    this.onRenderItem = options.onRenderItem ?? null;
+    super(root, {
+      ...options,
 
+      rootClass,
+      dataset,
+    });
+
+    if (options.mode != null) {
+      if (!["single", "multiple"].includes(options.mode)) {
+        throw new Error("mode must be either 'single' or 'multiple'");
+      }
+
+      this.#mode = options.mode;
+      this.#valueMode = this.#mode === "single" ? 1 : 2;
+    }
+
+    this.#initTemplates(options);
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // Public API
+  // templates
   // -----------------------------------------------------------------------------
 
-  setItems(items = []) {
-    this.items = [...items];
+  #initTemplates(options) {
+    const itemElementHTML =
+      options.itemElementHTML ?? DEFAULT_ITEM_ELEMENT_HTML;
+    this.#itemElementTemplate = createElementByHTML(itemElementHTML);
 
-    this.#values = filterValues(this.#values, items, this.valueField);
-
-    this.#render();
-
-    this.onSetItems?.(this.getItems());
-  }
-
-  getValues() {
-    return [...this.#values];
-  }
-
-  setValues(values) {
-    if (this.#mode === "single" && values.length > 1) {
-      throw new Error("single mode accepts at most one value");
+    if (options.itemElementHTML != null) {
+      this.#validateItemElementTemplate(this.#itemElementTemplate);
     }
 
-    const validatedValues = assertValues(values, this.items, this.valueField);
-    this.#changeValues(validatedValues);
+    const footerElementHTML =
+      options.footerElementHTML ?? DEFAULT_FOOTER_ELEMENT_HTML;
+    this.#footerElementTemplate = createElementByHTML(footerElementHTML);
+
+    if (options.footerElementHTML != null) {
+      this.#validateFooterElementTemplate(this.#footerElementTemplate);
+    }
+  }
+
+  #validateItemElementTemplate(element) {
+    // querySelector will not match the itemElement itself,
+    // so we use matches to check for the itemElement itself
+    if (!element.matches('[data-role="item"]')) {
+      throw new Error("itemElement must have data-role='item'");
+    }
+
+    if (!element.querySelector('[data-role="text"]')) {
+      throw new Error(
+        "itemElement must have a child element with data-role='text'",
+      );
+    }
+  }
+
+  #validateFooterElementTemplate(element) {
+    if (!element.matches('[data-role="actions"]')) {
+      throw new Error("footerElement must have data-role='actions'");
+    }
+
+    const selectAllButton = element.querySelector(
+      '[data-role="action"][data-action="select-all"]',
+    );
+    if (!selectAllButton) {
+      throw new Error(
+        "footerElement must have a child button with data-role='action' and data-action='select-all'",
+      );
+    }
+
+    const unselectButton = element.querySelector(
+      '[data-role="action"][data-action="unselect"]',
+    );
+    if (!unselectButton) {
+      throw new Error(
+        "footerElement must have a child button with data-role='action' and data-action='unselect'",
+      );
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // value
+  // -----------------------------------------------------------------------------
+  get value() {
+    return this.#value;
+  }
+
+  getValue() {
+    if (this.#value == null) {
+      return null;
+    }
+
+    if (this.#valueMode === 2) {
+      return this.#value.length > 0 ? [...this.#value] : null;
+    }
+
+    return this.#value;
+  }
+
+  setValue(value) {
+    const oldValue = this.#value;
+
+    if (isNullOrEmpty(value)) {
+      this.#value = null;
+    } else {
+      validateModeValue(value, this.#valueMode);
+      validateValue(value);
+      validateValueExists(value, this.items, this.valueField);
+
+      this.#value = this.#valueMode === 1 ? value : [...value];
+    }
+
+    const newValue = this.#value;
+    if (!isEqualValue(newValue, oldValue)) {
+      this.#updateSelectedState();
+
+      this.#onChange?.({
+        target: this,
+        value: Array.isArray(newValue) ? [...newValue] : newValue,
+        item: this.getItemByValue(newValue),
+      });
+    }
   }
 
   selectAll() {
-    if (this.#mode === "single") {
+    if (this.#valueMode !== 2) {
       throw new Error("selectAll is only available in multiple mode");
     }
 
-    const allValues = this.items.map((item) => item[this.valueField]);
-    this.#changeValues(allValues);
+    const values = this.items.map((item) => item[this.valueField]);
+    this.setValue(values);
   }
 
   unselect() {
-    this.#changeValues([]);
+    this.setValue(null);
   }
 
   // -----------------------------------------------------------------------------
-  // change handlers
+  // events
   // -----------------------------------------------------------------------------
 
-  #changeValues(values, options = {}) {
-    const oldValues = this.#values;
-
-    if (haveSameValues(values, oldValues)) {
-      return;
-    }
-
-    this.#values = [...values];
-    this.#updateSelectedState();
-
-    if (this.onSelect) {
-      const items = this.items.filter((item) =>
-        values.includes(item[this.valueField]),
-      );
-
-      this.onSelect({
-        target: this,
-        mode: this.#mode,
-        values,
-        items,
-        event: options.event ?? null,
-      });
-    }
+  set onChange(handler) {
+    // handler can be null to remove the event listener
+    this.#onChange = handler == null ? null : handler;
   }
 
   // -----------------------------------------------------------------------------
@@ -108,38 +194,32 @@ export class ChipGroup extends CollectionElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.root.addEventListener("click", (event) => {
-      // click on an item
-      const itemElement = event.target.closest(`.${this.rootClass}-item`);
-      if (itemElement && this.root.contains(itemElement)) {
-        const value = itemElement.dataset.value;
-        const oldValues = this.#values;
-        let newValues = [];
-
-        if (this.#mode === "single") {
-          newValues = oldValues.includes(value) ? [] : [value];
-        } else if (oldValues.includes(value)) {
-          newValues = oldValues.filter((v) => v !== value);
-        } else {
-          newValues = [...oldValues, value];
-        }
-
-        this.#changeValues(newValues, { event });
-
+    const clickItemHandler = ({ value }) => {
+      if (this.#valueMode === 1) {
+        this.setValue(this.#value === value ? null : value);
         return;
       }
 
-      // click on an action button
-      const actionElement = event.target.closest(`.${this.rootClass}-action`);
-      if (actionElement && this.root.contains(actionElement)) {
-        if (actionElement.dataset.action === "select-all") {
-          this.selectAll();
-        } else {
-          this.unselect();
-        }
+      const oldValue = this.#value ?? [];
+      const newValue = oldValue.includes(value)
+        ? oldValue.filter((v) => v !== value)
+        : [...oldValue, value];
 
-        return;
+      this.setValue(newValue);
+    };
+
+    const clickActionHandler = ({ target }) => {
+      if (target.dataset.action === "select-all") {
+        this.selectAll();
+      } else if (target.dataset.action === "unselect") {
+        this.unselect();
       }
+    };
+
+    this.rootElement.addEventListener("click", (event) => {
+      dispatchItemEvent('[data-role="item"]', event, clickItemHandler);
+
+      dispatchEvent("[data-action]", event, clickActionHandler);
     });
   }
 
@@ -147,86 +227,64 @@ export class ChipGroup extends CollectionElm {
   // rendering and updating the DOM
   // -----------------------------------------------------------------------------
 
-  #render() {
-    this.root.innerHTML = "";
+  // override
+  createItemElement(item) {
+    const text = item[this.textField];
+    const value = item[this.valueField];
+    const tooltip = item[this.tooltipField];
 
-    for (const item of this.items) {
-      const itemElement = this.#renderItem(item);
-      this.root.appendChild(itemElement);
-    }
-
-    if (this.#mode === "multiple") {
-      this.root.appendChild(this.#renderSelectActions());
-    }
-
-    this.#updateSelectedState();
-  }
-
-  #renderItem(item) {
-    const itemElement = document.createElement("div");
-
-    itemElement.className = `${this.rootClass}-item`;
-
-    const contentElement = this.onRenderItem
-      ? this.onRenderItem(item)
-      : this.#createDefaultContentElement(item);
-
-    if (!(contentElement instanceof HTMLElement)) {
-      throw new Error("onRenderItem must return an HTMLElement");
-    }
-
-    itemElement.appendChild(contentElement);
-    itemElement.dataset.value = item[this.valueField];
+    const itemElement = this.#itemElementTemplate.cloneNode(true);
+    itemElement.dataset.value = value;
+    itemElement.querySelector("[data-role='text']").textContent = text;
+    itemElement.title = tooltip || text || "";
 
     return itemElement;
   }
 
-  #renderSelectActions() {
-    const actionsElement = document.createElement("div");
-    actionsElement.className = `${this.rootClass}-actions`;
-
-    const selectAllButton = document.createElement("button");
-    selectAllButton.type = "button";
-    selectAllButton.className = `${this.rootClass}-action`;
-    selectAllButton.dataset.action = "select-all";
-    selectAllButton.textContent = "全选";
-
-    const unselectButton = document.createElement("button");
-    unselectButton.type = "button";
-    unselectButton.className = `${this.rootClass}-action`;
-    unselectButton.dataset.action = "unselect";
-    unselectButton.textContent = "取消";
-
-    actionsElement.append(selectAllButton, unselectButton);
-
-    return actionsElement;
+  createFooterElement() {
+    if (this.#valueMode === 2) {
+      const footerElement = this.#footerElementTemplate.cloneNode(true);
+      return footerElement;
+    }
   }
 
-  #createDefaultContentElement(item) {
-    const textElement = document.createElement("span");
+  // override
+  afterRender(items) {
+    if (isNullOrEmpty(items)) {
+      this.#value = null;
+    } else {
+      this.#value = filterValue(this.#value, items, this.valueField);
 
-    textElement.textContent = item[this.textField];
-    textElement.className = `${this.rootClass}-text`;
-    textElement.title = item[this.titleField] || item[this.textField];
+      this.#updateState();
+    }
+  }
 
-    return textElement;
+  // override
+  afterUpdateItem(newItem) {
+    this.#updateState();
+  }
+
+  #updateState() {
+    this.#updateSelectedState();
   }
 
   #updateSelectedState() {
-    const itemElements = this.root.querySelectorAll(
-      `.${this.rootClass}-item`,
-    );
-
-    for (const itemElement of itemElements) {
-      const selected = this.#values.includes(itemElement.dataset.value);
-      itemElement.classList.toggle("is-selected", selected);
-    }
+    this.root.each((key, element) => {
+      if (this.#valueMode === 1) {
+        element.classList.toggle("is-selected", this.#value === key);
+      } else if (this.#valueMode === 2) {
+        element.classList.toggle(
+          "is-selected",
+          this.#value?.includes(key) ?? false,
+        );
+      }
+    });
   }
 }
 
 export class SoloChipGroup extends ChipGroup {
-  constructor(container, options = {}) {
-    super(container, {
+  constructor(root, options = {}) {
+    super(root, {
       ...options,
       mode: "single",
     });
@@ -234,8 +292,8 @@ export class SoloChipGroup extends ChipGroup {
 }
 
 export class MultiChipGroup extends ChipGroup {
-  constructor(container, options = {}) {
-    super(container, {
+  constructor(root, options = {}) {
+    super(root, {
       ...options,
       mode: "multiple",
     });

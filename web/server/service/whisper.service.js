@@ -8,7 +8,7 @@ import { assertExistingFile } from "welm-cdp/common/assert";
 import { readFileTextSync, removeFileSync } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
 
-import { saveMeta } from "./meta-service.js";
+import { saveMeta } from "./meta.service.js";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -103,7 +103,7 @@ export async function startTranscription(audioPath, language = "zh") {
   }
 }
 
-export function isTranscribing() {
+export function getTranscriptionStatus() {
   return { isTranscribing };
 }
 

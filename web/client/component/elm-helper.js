@@ -1,56 +1,4 @@
 // -----------------------------------------------------------------------------
-// Safe Run
-// -----------------------------------------------------------------------------
-
-export async function safeRun(handler, ...args) {
-  try {
-    if (typeof handler !== "function") {
-      throw new Error("handler must be a function");
-    }
-
-    return await handler(...args);
-  } catch (error) {
-    console.error(error);
-
-    toast.error(error?.message ?? String(error));
-
-    return undefined;
-  }
-}
-
-export function safeHandler(handler) {
-  if (typeof handler !== "function") {
-    throw new Error("handler must be a function");
-  }
-
-  return (...args) => safeRun(handler, ...args);
-}
-
-export function safeRunSync(handler, ...args) {
-  try {
-    if (typeof handler !== "function") {
-      throw new Error("handler must be a function");
-    }
-
-    return handler(...args);
-  } catch (error) {
-    console.error(error);
-
-    toast.error(error?.message ?? String(error));
-
-    return undefined;
-  }
-}
-
-export function safeHandlerSync(handler) {
-  if (typeof handler !== "function") {
-    throw new Error("handler must be a function");
-  }
-
-  return (...args) => safeRunSync(handler, ...args);
-}
-
-// -----------------------------------------------------------------------------
 // element
 // -----------------------------------------------------------------------------
 
@@ -255,6 +203,34 @@ export function validateValueExists(value, items, valueField) {
       }
     }
   }
+}
+
+export function dispatchEvent(selector, event, handler) {
+  const target = event.target.closest(selector);
+  if (!target || !event.currentTarget.contains(target)) {
+    return;
+  }
+
+  handler({ event, target });
+}
+
+export function dispatchItemEvent(selector, event, handler) {
+  const target = event.target.closest(selector);
+  if (!target || !event.currentTarget.contains(target)) {
+    return;
+  }
+
+  const itemElement = target.closest('[data-role="item"]');
+  if (!itemElement || !event.currentTarget.contains(itemElement)) {
+    return;
+  }
+
+  handler({
+    event,
+    target,
+    itemElement,
+    value: itemElement.dataset.value,
+  });
 }
 
 // -----------------------------------------------------------------------------

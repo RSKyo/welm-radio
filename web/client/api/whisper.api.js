@@ -16,6 +16,6 @@ export const whisperApi = {
       language,
     }),
 
-  // GET /whisper/api/is-transcribing
-  isTranscribing: () => http.get("/is-transcribing"),
+  // GET /whisper/api/transcribing-status
+  getTranscriptionStatus: () => http.get("/transcribing-status"),
 };

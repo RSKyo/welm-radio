@@ -1,8 +1,8 @@
+@import "/assets/vendor/radix/radix-blue.css";
+@import "/assets/vendor/radix/radix-slate.css";
+
 @import "/assets/vendor/radix/radix-blue-dark.css";
 @import "/assets/vendor/radix/radix-slate-dark.css";
-
-@import "/assets/vendor/radix/radix-blue.css";
-@import "/assets/vendor/radix/radix-blue-dark.css";
 
 :root {
   color-scheme: light;

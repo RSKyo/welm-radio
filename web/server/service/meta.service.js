@@ -3,9 +3,8 @@ import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 
 import {
-  readFileJson,
-  writeFileJson,
-  renameFile,
+  readFileJsonSync,
+  writeFileJsonSync,
 } from "welm-cdp/fs";
 import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 
@@ -44,7 +43,7 @@ export function loadMeta(audioPath) {
   try {
     return {
       ...createDefaultMeta({ audioPath, metaPath }),
-      ...readFileJson(metaPath),
+      ...readFileJsonSync(metaPath),
     };
   } catch {
     return createDefaultMeta({ audioPath, metaPath });
@@ -65,7 +64,7 @@ export function saveMeta(audioPath, meta = {}) {
     updatedAt: now,
   };
 
-  writeFileJson(metaPath, newMeta, { overwrite: true, spaces: 2 });
+  writeFileJsonSync(metaPath, newMeta, { overwrite: true, spaces: 2 });
 
   return newMeta;
 }

@@ -9,8 +9,6 @@ import {
   scanFilesSync,
   removeFileSync,
   copyFileToSync,
-  renameFileSync,
-  readFileTextSync,
   readFileBufferSync,
 } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
@@ -21,7 +19,7 @@ import {
   assertPlainObject,
 } from "welm-cdp/common/assert";
 
-import { loadMeta, saveMeta } from "./meta-service.js";
+import { loadMeta, saveMeta } from "./meta.service.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -215,13 +213,13 @@ export function listAudios(filters = {}) {
     return [];
   }
 
-  const files = scanFiles(audio_root, {
+  const files = scanFilesSync(audio_root, {
     includeExts: audio_exts,
   });
 
   let audios = files.map(({ root, dir, base, name, ext, filePath }) => {
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
-    const meta = loadMeta(filePath, options);
+    const meta = loadMeta(filePath);
 
     return {
       text: base,
@@ -289,9 +287,9 @@ export async function importAudios() {
 
   if (!files || files.length === 0) {
     return {
-    audioPaths: [],
-    canceled: true,
-  };
+      audioPaths: [],
+      canceled: true,
+    };
   }
 
   for (const filePath of files) {
@@ -307,62 +305,18 @@ export async function importAudios() {
     copyFileToSync(filePath, destPath);
   }
 
-
   return {
     audioPaths: files,
     canceled: false,
   };
 }
 
-// export async function renameAudio(audioPath, newNameWithoutExt, options = {}) {
-//   assertExistingFile(audioPath, "audioPath");
-//   assertNonBlankString(newNameWithoutExt, "newNameWithoutExt");
-
-//   const dir = nodePath.dirname(audioPath);
-//   const ext = nodePath.extname(audioPath);
-//   const audioName = nodePath.basename(audioPath, ext);
-
-//   if (audioName === newNameWithoutExt) {
-//     throw new Error("New name is the same as the current name");
-//   }
-
-//   const newAudioName = `${newNameWithoutExt}${ext}`;
-//   const newAudioPath = nodePath.join(dir, newAudioName);
-//   // the second argument is the new name, not the full path
-  //  renameFileSync(audioPath, newAudioName);
-
-//   const metaPath = nodePath.join(dir, `${audioName}.meta.json`);
-//   const newMetaName = `${newNameWithoutExt}.meta.json`;
-//   const newMetaPath = nodePath.join(dir, newMetaName);
-
-//   if (fs.existsSync(metaPath)) {
-    //  renameFileSync(metaPath, newMetaName);
-//   }
-
-//   // update the audioPath and metaPath in the meta file
-//   const meta = await saveMeta(
-//     newAudioPath,
-//     { audioPath: newAudioPath, metaPath: newMetaPath },
-//     options,
-//   );
-
-//   const { base, name } = nodePath.parse(newAudioPath);
-
-//   return {
-//     base,
-//     name,
-//     filePath: newAudioPath,
-//     metaPath: newMetaPath,
-//     meta,
-//   };
-// }
-
 export async function loadAudio(audioPath) {
   assertExistingFile(audioPath, "audioPath");
 
   const ext = nodePath.extname(audioPath).toLowerCase();
   const contentType = audio_mime_types[ext] || "application/octet-stream";
-  const buffer = readFileBuffer(audioPath);
+  const buffer = readFileBufferSync(audioPath);
 
   return {
     contentType,

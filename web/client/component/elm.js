@@ -3,72 +3,12 @@ import {
   detectFields,
   validateItems,
   validateItemFields,
+  validateValue,
   validateValueExists,
   isNonBlankString,
   isNullOrEmpty,
   isPlainObject,
 } from "./elm-helper.js";
-
-export class Elm {
-  #rootElement;
-  #root;
-
-  constructor(root, options = {}) {
-    const rootClass = options.rootClass;
-    this.#rootElement = this.#initRootElement(root, rootClass);
-    this.#root = new ElmRoot(this.#rootElement);
-
-    const dataset = options.dataset ?? {};
-    this.#initRootElementDataset(dataset);
-  }
-
-  get rootElement() {
-    return this.#rootElement;
-  }
-
-  get root() {
-    return this.#root;
-  }
-
-  get dataset() {
-    return this.#rootElement.dataset;
-  }
-
-  #initRootElement(target, className) {
-    if (
-      className != null &&
-      (!isNonBlankString(className) || /\s/.test(className))
-    ) {
-      throw new Error("className must be a single non-blank CSS class name");
-    }
-
-    let element = target;
-
-    if (isNonBlankString(target)) {
-      element = document.getElementById(target);
-    }
-
-    if (!element || !(element instanceof HTMLElement)) {
-      throw new Error("target must be an element id or an HTMLElement");
-    }
-
-    if (className) {
-      element.classList.add(className);
-    }
-
-    return element;
-  }
-
-  #initRootElementDataset(dataset) {
-    if (!isPlainObject(dataset)) {
-      throw new Error("dataset must be a plain object");
-    }
-
-    for (const [key, value] of Object.entries(dataset)) {
-      this.#rootElement.dataset[key] = value;
-    }
-  }
-}
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
@@ -151,6 +91,16 @@ export class ElmRoot {
     return this.#childMap.size;
   }
 
+  each(callback) {
+    if (typeof callback !== "function") {
+      throw new Error("callback must be a function");
+    }
+
+    for (const [key, element] of this.#childMap.entries()) {
+      callback(key, element);
+    }
+  }
+
   #assertKey(key) {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error("key must be a non-blank string");
@@ -168,6 +118,78 @@ export class ElmRoot {
   #assertElement(element) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("element must be an HTMLElement");
+    }
+  }
+}
+
+export class Elm {
+  #rootElement;
+  #root;
+
+  constructor(root, options = {}) {
+    const rootClass = options.rootClass;
+    this.#rootElement = this.#initRootElement(root, rootClass);
+    this.#root = new ElmRoot(this.#rootElement);
+
+    const dataset = options.dataset ?? {};
+    this.#initRootElementDataset(dataset);
+  }
+
+  get rootElement() {
+    return this.#rootElement;
+  }
+
+  get root() {
+    return this.#root;
+  }
+
+  get dataset() {
+    return this.#rootElement.dataset;
+  }
+
+  #initRootElement(target, className) {
+    if (
+      className != null &&
+      (!isNonBlankString(className) || /\s/.test(className))
+    ) {
+      throw new Error("className must be a single non-blank CSS class name");
+    }
+
+    let element = target;
+
+    if (isNonBlankString(target)) {
+      if (target.startsWith("#")) {
+        target = target.slice(1);
+      }
+      element = document.getElementById(target);
+    }
+
+    if (!element || !(element instanceof HTMLElement)) {
+      throw new Error(`target must be an element id or an HTMLElement but got: ${String(target)}`);
+    }
+
+    if (className) {
+      element.classList.add(className);
+    }
+
+    return element;
+  }
+
+  #initRootElementDataset(dataset) {
+    if (!isPlainObject(dataset)) {
+      throw new Error("dataset must be a plain object");
+    }
+
+    for (const [key, value] of Object.entries(dataset)) {
+      if (!isNonBlankString(key)) {
+        throw new Error("dataset keys must be non-blank strings");
+      }
+
+      if (!isNonBlankString(value)) {
+        throw new Error("dataset values must be non-blank strings");
+      }
+
+      this.#rootElement.dataset[key] = value;
     }
   }
 }
@@ -238,6 +260,7 @@ export class ItemsElm extends Elm {
   // items
   // -----------------------------------------------------------------------------
 
+  // Internal items for this class and subclasses. Do not mutate directly.
   get items() {
     return this.#items;
   }
@@ -322,31 +345,66 @@ export class ItemsElm extends Elm {
     if (items.length === 0) {
       const emptyElement = this.createEmptyElement();
       this.root.add("__empty__", emptyElement);
-    } else {
-      for (const item of items) {
-        this.#renderItem(item);
+      this.afterRender(items);
+      return;
+    }
+
+    const headerElement = this.createHeaderElement();
+    if (headerElement) {
+      if (!(headerElement instanceof HTMLElement)) {
+        throw new Error("createHeaderElement must return an HTMLElement");
       }
+
+      this.root.add("__header__", headerElement);
+    }
+
+    for (const item of items) {
+      const itemElement = this.createItemElement(item);
+      if (!(itemElement instanceof HTMLElement)) {
+        throw new Error("createItemElement must return an HTMLElement");
+      }
+
+      this.root.add(item[this.#valueField], itemElement);
+    }
+
+    const footerElement = this.createFooterElement();
+    if (footerElement) {
+      if (!(footerElement instanceof HTMLElement)) {
+        throw new Error("createFooterElement must return an HTMLElement");
+      }
+
+      this.root.add("__footer__", footerElement);
     }
 
     this.afterRender(items);
   }
 
-  #renderItem(item) {
-    const itemElement = this.createItemElement(item);
-    this.root.add(item[this.#valueField], itemElement);
+  beforeRender(items) {
+    // Override this method to perform actions before rendering items.
   }
 
   createEmptyElement() {
-    throw new Error("createEmptyElement must be implemented");
+    const name = this.rootElement.dataset.name ?? "";
+    const defaultEmptyHTML = `<div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No ${name} items</div>`;
+    const template = document.createElement("template");
+    template.innerHTML = defaultEmptyHTML.trim();
+    return template.content.firstChild;
+  }
+
+  createHeaderElement() {
+    // Override this method to create a header element. Return null if no header is needed.
+    return null;
   }
 
   createItemElement(item) {
     throw new Error("createItemElement must be implemented");
   }
 
-  beforeRender(items) {
-    // Override this method to perform actions before rendering items.
+  createFooterElement() {
+    // Override this method to create a footer element. Return null if no footer is needed.
+    return null;
   }
+
   afterRender(items) {
     // Override this method to perform actions after rendering items.
   }
