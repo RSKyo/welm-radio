@@ -240,9 +240,9 @@ export class ItemList extends ItemsElm {
     };
 
     this.rootElement.addEventListener("click", (event) => {
-      dispatchItemEvent('[data-role="item"]', event, clickContentHandler);
+      dispatchItemEvent('[data-role="content"]', event, clickContentHandler);
 
-      dispatchItemEvent('[data-role="item"]', event, clickCheckboxHandler);
+      dispatchItemEvent('[data-role="checkbox"]', event, clickCheckboxHandler);
     });
 
     this.rootElement.addEventListener("dblclick", (event) => {

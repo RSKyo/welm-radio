@@ -41,27 +41,42 @@
 
           <div class="shrink vbox gap-8">
             <label class="label">音频位置</label>
-            <div id="audio-position-filter" data-name="audio-position-filter"></div>
+            <div
+              id="audio-position-filter"
+              data-name="audio-position-filter"
+            ></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频日段</label>
-            <div id="audio-day-part-filter" data-name="audio-day-part-filter"></div>
+            <div
+              id="audio-day-part-filter"
+              data-name="audio-day-part-filter"
+            ></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频语言</label>
-            <div id="audio-language-filter" data-name="audio-language-filter"></div>
+            <div
+              id="audio-language-filter"
+              data-name="audio-language-filter"
+            ></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频分类</label>
-            <div id="audio-category-filter" data-name="audio-category-filter"></div>
+            <div
+              id="audio-category-filter"
+              data-name="audio-category-filter"
+            ></div>
           </div>
 
           <div class="shrink vbox gap-8">
             <label class="label">音频备选组</label>
-            <div id="audio-alternate-group-filter" data-name="audio-alternate-group-filter"></div>
+            <div
+              id="audio-alternate-group-filter"
+              data-name="audio-alternate-group-filter"
+            ></div>
           </div>
         </div>
 
@@ -118,9 +133,23 @@
           </div>
           <div class="p-12-8 grow scroll vbox gap-20">
             <form id="meta-form" class="form">
-              <input name="id" type="hidden" />
               <input name="audioPath" type="hidden" />
               <input name="metaPath" type="hidden" />
+              <div class="form-field">
+                <label>标题</label>
+                <div class="input-overlay">
+                  <input name="title" type="text" placeholder="音频标题" />
+                  <div class="input-overlay-suffix">
+                    <input
+                      name="extension"
+                      type="text"
+                      class="input-overlay-info"
+                      value=".mp3"
+                      readonly
+                    />
+                  </div>
+                </div>
+              </div>
               <div class="form-field">
                 <label>描述</label>
                 <textarea
@@ -174,16 +203,10 @@
                 <label>内容</label>
                 <textarea name="content" rows="8"></textarea>
                 <div>
-                  <button
-                    id="start-transcription"
-                    type="button"
-                  >
+                  <button id="start-transcription" type="button">
                     识别音频内容
                   </button>
-                  <button
-                    id="select-whisper-model"
-                    type="button"
-                  >
+                  <button id="select-whisper-model" type="button">
                     选择 Whisper 模型
                   </button>
                   <span id="whisper-model"></span>

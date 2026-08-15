@@ -1,20 +1,16 @@
 import nodePath from "node:path";
 import fs from "node:fs";
-import { randomUUID } from "node:crypto";
 
-import {
-  readFileJsonSync,
-  writeFileJsonSync,
-} from "welm-cdp/fs";
+
+import { readFileJsonSync, writeFileJsonSync } from "welm-cdp/fs";
 import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
 
 function createDefaultMeta(options = {}) {
-  const { audioPath, metaPath } = options;
-
   return {
-    id: randomUUID(),
-    audioPath: audioPath ?? "", // 音频文件的绝对路径
-    metaPath: metaPath ?? "", // 元数据文件的绝对路径
+    audioPath: options.audioPath ?? "", // 音频文件的绝对路径
+    metaPath: options.metaPath ?? "", // 元数据文件的绝对路径
+    title: "", // 音频标题
+    extension: "", // 音频文件的扩展名，例如 .mp3、.flac、.wav 等
     description: "",
     language: "zh",
     type: "",
@@ -33,7 +29,7 @@ function createDefaultMeta(options = {}) {
 }
 
 export function loadMeta(audioPath) {
-  const { dir, name } = nodePath.parse(audioPath);
+  const { dir, base, name } = nodePath.parse(audioPath);
   const metaPath = nodePath.join(dir, `${name}.meta.json`);
 
   if (!metaPath || !fs.existsSync(metaPath)) {

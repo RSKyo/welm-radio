@@ -2,6 +2,7 @@ import nodePath from "node:path";
 import fs from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { randomUUID } from "node:crypto";
 
 import { config } from "welm-cdp/common/config";
 import { log } from "welm-cdp/common/log";
@@ -220,9 +221,10 @@ export function listAudios(filters = {}) {
   let audios = files.map(({ root, dir, base, name, ext, filePath }) => {
     const metaPath = nodePath.join(dir, `${name}.meta.json`);
     const meta = loadMeta(filePath);
+    const text = meta.title ? meta.title + ext : base;
 
     return {
-      text: base,
+      text,
       value: filePath,
       root,
       dir,
@@ -292,17 +294,31 @@ export async function importAudios() {
     };
   }
 
+  // check file existence and absolute path
+  // check if any of the selected files are in the audio root directory
   for (const filePath of files) {
     assertExistingFile(filePath, "filePath");
 
     const dir = nodePath.dirname(filePath);
-    if (dir === audio_root) {
-      continue;
+    if (dir.startsWith(audio_root)) {
+      throw new Error(
+        `Cannot import audio file from the audio root directory: ${filePath}`,
+      );
     }
-    const fileName = nodePath.basename(filePath);
-    const destPath = nodePath.join(audio_root, fileName);
+  }
 
+  for (const filePath of files) {
+    // copy the file to the audio root directory with a random UUID as the file name
+    const { ext, name } = nodePath.parse(filePath);
+    const fileName = randomUUID() + ext;
+    const destPath = nodePath.join(audio_root, fileName);
     copyFileToSync(filePath, destPath);
+
+    // create meta file for the imported audio
+    const meta = loadMeta(destPath);
+    meta.title = name;
+    meta.extension = ext;
+    saveMeta(destPath, meta);
   }
 
   return {

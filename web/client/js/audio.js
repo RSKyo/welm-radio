@@ -247,10 +247,11 @@ async function saveMeta() {
   // update the item in the list
   const updatedItem = {
     ...item,
+    text: savedMeta.title + savedMeta.extension || item.text,
     meta: savedMeta,
   };
 
-  await audiosElm.updateItem(item.audioPath, updatedItem);
+  await audiosElm.updateItem(updatedItem);
 
   // if the category has changed, refresh the category filter
   if (!isEqualValue(item.meta.category, savedMeta.category)) {
@@ -308,7 +309,7 @@ async function startTranscription() {
     meta: savedMeta,
   };
 
-  await audiosElm.updateItem(item.audioPath, updatedItem);
+  await audiosElm.updateItem(updatedItem);
 
   // if current selected item is the same as the one we just transcribed, update the form meta
   const currentItem = audiosElm.getItemByValue(audiosElm.getValue());
@@ -446,9 +447,10 @@ function setAudioPlayer(audioPath) {
 /** meta form */
 
 function setFormMeta(meta = {}) {
-  metaFields.id.value = meta.id ?? "";
   metaFields.audioPath.value = meta.audioPath ?? "";
   metaFields.metaPath.value = meta.metaPath ?? "";
+  metaFields.title.value = meta.title ?? "";
+  metaFields.extension.value = meta.extension ?? "";
 
   metaFields.description.value = meta.description ?? "";
   metaFields.alternateGroup.value = meta.alternateGroup ?? "";
@@ -477,9 +479,10 @@ function setFormMeta(meta = {}) {
 
 function getFormMeta() {
   return {
-    id: metaFields.id.value.trim(),
     audioPath: metaFields.audioPath.value.trim(),
     metaPath: metaFields.metaPath.value.trim(),
+    title: metaFields.title.value.trim(),
+    extension: metaFields.extension.value.trim(),
 
     description: metaFields.description.value.trim(),
     alternateGroup: metaFields.alternateGroup.value.trim(),

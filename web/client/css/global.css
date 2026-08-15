@@ -328,7 +328,8 @@ button.primary:not(:disabled):active {
   font-weight: 500;
 }
 
-.form-field input:not([type="checkbox"]):not([type="radio"]),
+.form-field
+  input:not([type="checkbox"]):not([type="radio"]):not(.input-overlay-info),
 .form-field select,
 .form-field textarea {
   width: 100%;
@@ -339,6 +340,7 @@ button.primary:not(:disabled):active {
   resize: vertical;
 }
 
+/* input action */
 .input-action {
   display: flex;
   align-items: center;
@@ -354,11 +356,45 @@ button.primary:not(:disabled):active {
   flex: none;
 }
 
+/* input overlay */
+.input-overlay {
+  position: relative;
+}
+
+.input-overlay > input:first-child {
+  width: 100%;
+  padding-right: 52px;
+}
+
+.input-overlay-suffix {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  bottom: 0;
+
+  display: flex;
+  align-items: center;
+
+  pointer-events: none;
+}
+
+.input-overlay input.input-overlay-info {
+  width: 42px;
+  min-height: 0;
+
+  padding: 0;
+  border: 0;
+
+  background: transparent;
+  color: var(--color-text-secondary);
+
+  pointer-events: none;
+}
+
 .label {
   color: var(--color-text-secondary);
   font-weight: 500;
 }
-
 
 .floating-panel {
   padding: 24px 12px;

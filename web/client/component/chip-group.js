@@ -32,6 +32,8 @@ export class ChipGroup extends ItemsElm {
   #mode = "multiple";
   #value;
   #valueMode = 2;
+  #showActions = true;
+  #minItemsForActions = 3;
   // event
   #onChange;
 
@@ -57,6 +59,25 @@ export class ChipGroup extends ItemsElm {
 
       this.#mode = options.mode;
       this.#valueMode = this.#mode === "single" ? 1 : 2;
+    }
+
+    if (options.showActions != null) {
+      if (typeof options.showActions !== "boolean") {
+        throw new Error("showActions must be a boolean");
+      }
+
+      this.#showActions = options.showActions;
+    }
+
+    if (options.minItemsForActions != null) {
+      if (
+        !Number.isInteger(options.minItemsForActions) ||
+        options.minItemsForActions < 1
+      ) {
+        throw new Error("minItemsForActions must be a positive integer");
+      }
+
+      this.#minItemsForActions = options.minItemsForActions;
     }
 
     this.#initTemplates(options);
@@ -242,7 +263,11 @@ export class ChipGroup extends ItemsElm {
   }
 
   createFooterElement() {
-    if (this.#valueMode === 2) {
+    if (
+      this.#valueMode === 2 &&
+      this.#showActions &&
+      this.items.length >= this.#minItemsForActions
+    ) {
       const footerElement = this.#footerElementTemplate.cloneNode(true);
       return footerElement;
     }
