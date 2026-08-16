@@ -17,6 +17,7 @@ import { saveMeta } from "./meta.service.js";
 const execFileAsync = promisify(execFile);
 
 const config_key_whisper_model = "radio.whisper_model";
+const config_key_vad_model = "radio.vad_model";
 
 const transcribe_types = {
   srt: {
@@ -34,6 +35,7 @@ const transcribe_types = {
 };
 
 let whisper_model = config.get(config_key_whisper_model);
+let vad_model = config.get(config_key_vad_model);
 let isTranscribing = false;
 
 // -----------------------------------------------------------------------------
@@ -72,6 +74,38 @@ export async function selectWhisperModel() {
   };
 }
 
+export function getVadModel() {
+  return {
+    modelPath: vad_model ?? "",
+    modelName: vad_model ? nodePath.basename(vad_model) : "",
+  };
+}
+
+export async function selectVadModel() {
+  const filePath = await dialog({
+    dialogTitle: "Choose VAD Model",
+    mode: "file",
+    includeExts: [".bin"],
+  });
+
+  // cancel
+  if (!filePath) {
+    return {
+      modelName: "",
+      modelPath: "",
+      canceled: true,
+    };
+  }
+
+  config.set(config_key_vad_model, filePath);
+  vad_model = filePath;
+
+  return {
+    ...getVadModel(),
+    canceled: false,
+  };
+}
+
 export async function startTranscription(audioPath, language = "zh") {
   if (isTranscribing) {
     throw new Error(
@@ -79,15 +113,21 @@ export async function startTranscription(audioPath, language = "zh") {
     );
   }
 
-  isTranscribing = true;
-
-  assertExistingFile(audioPath, "audioPath");
-
-  if (!whisper_model || !fs.existsSync(whisper_model)) {
+  if(!whisper_model || !fs.existsSync(whisper_model)) {
     throw new Error(
       "Whisper model is not set or does not exist. Please select a valid Whisper model.",
     );
   }
+
+  if(!vad_model || !fs.existsSync(vad_model)) {
+    throw new Error(
+      "VAD model is not set or does not exist. Please select a valid VAD model.",
+    );
+  }
+
+  assertExistingFile(audioPath, "audioPath");
+
+  isTranscribing = true;
 
   let wavPath, srtPath;
   try {
@@ -108,8 +148,6 @@ export function getTranscriptionStatus() {
 }
 
 async function convertAudioToWhisperWav(audioPath) {
-  assertExistingFile(audioPath, "audioPath");
-
   const { dir, name } = nodePath.parse(audioPath);
   const tempDir = nodePath.join(dir, ".temp");
   fs.mkdirSync(tempDir, { recursive: true });
@@ -160,8 +198,6 @@ async function convertAudioToWhisperWav(audioPath) {
 }
 
 async function transcribeWav(wavPath, language = "zh", outputType = "srt") {
-  assertExistingFile(wavPath, "wavPath");
-
   const typeConfig = transcribe_types[outputType];
 
   const { dir, name } = nodePath.parse(wavPath);
@@ -178,6 +214,9 @@ async function transcribeWav(wavPath, language = "zh", outputType = "srt") {
       [
         "-m",
         whisper_model,
+        "--vad",
+        "-vm",
+        vad_model,
         "-f",
         wavPath,
         "-l",

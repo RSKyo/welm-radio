@@ -2,6 +2,8 @@ import { ApiRouter } from "welm-cdp/web";
 import {
   getWhisperModel,
   selectWhisperModel,
+  getVadModel,
+  selectVadModel,
   startTranscription,
   getTranscriptionStatus,
 } from "../service/whisper.service.js";
@@ -22,8 +24,18 @@ apiRouter.get("/select-whisper-model", () => {
   return selectWhisperModel();
 });
 
+// GET /whisper/api/vad-model
+apiRouter.get("/vad-model", () => {
+  return getVadModel();
+});
+
+// GET /whisper/api/select-vad-model
+apiRouter.get("/select-vad-model", () => {
+  return selectVadModel();
+});
+
 // POST /whisper/api/start-transcription
-apiRouter.post("/start-transcription", (data) => {
+apiRouter.post("/start-transcription", ({ data }) => {
   return startTranscription(data.audioPath, data.language);
 });
 

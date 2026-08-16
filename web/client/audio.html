@@ -94,7 +94,7 @@
               <button id="import-audios" type="button">添加</button>
               <button id="set-audio-root" type="button">选择音频目录</button>
 
-              <select id="order">
+              <select id="order" style="min-height: 24px;">
                 <option value="default">默认</option>
                 <option value="createdAt-desc">创建时间（新到旧）</option>
                 <option value="createdAt-asc">创建时间（旧到新）</option>
@@ -209,7 +209,13 @@
                   <button id="select-whisper-model" type="button">
                     选择 Whisper 模型
                   </button>
+                  <button id="select-vad-model" type="button">
+                    选择 VAD 模型
+                  </button>
+                </div>
+                <div class="vbox">
                   <span id="whisper-model"></span>
+                  <span id="vad-model"></span>
                 </div>
               </div>
 

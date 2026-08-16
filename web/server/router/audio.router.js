@@ -50,7 +50,7 @@ apiRouter.get("/alternate-groups", () => {
 });
 
 // POST /audio/api/audios
-apiRouter.post("/audios", (data) => {
+apiRouter.post("/audios", ({ data }) => {
   return listAudios(data.filters);
 });
 
@@ -60,7 +60,7 @@ apiRouter.post("/set-audio-root", () => {
 });
 
 // POST /audio/api/remove-audios
-apiRouter.post("/remove-audios", (data) => {
+apiRouter.post("/remove-audios", ({ data }) => {
   return removeAudios(data.audioPaths);
 });
 
@@ -70,7 +70,7 @@ apiRouter.post("/import-audios", () => {
 });
 
 // GET /audio/api/load-audio
-apiRouter.get("/load-audio", async (data, { res }) => {
+apiRouter.get("/load-audio", async ({ data, res }) => {
   const { contentType, buffer } = await loadAudio(data.audioPath);
 
   res.type(contentType);

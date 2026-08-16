@@ -8,7 +8,7 @@ const apiRouter = new ApiRouter("/meta/api");
 // -----------------------------------------------------------------------------
 
 // POST /meta/api/save-meta
-apiRouter.post("/save-meta", (data) => {
+apiRouter.post("/save-meta", ({ data }) => {
   return saveMeta(data.audioPath, data.meta);
 });
 

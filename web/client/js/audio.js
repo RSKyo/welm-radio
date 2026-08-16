@@ -18,6 +18,7 @@ const audioPlayerEl = document.querySelector("#audio-player");
 const metaFormFrm = document.querySelector("#meta-form");
 const metaFields = metaFormFrm.elements;
 const whisperModelEl = document.querySelector("#whisper-model");
+const vadModelEl = document.querySelector("#vad-model");
 const startTranscriptionBtn = document.querySelector("#start-transcription");
 
 // -----------------------------------------------------------------------------
@@ -91,6 +92,7 @@ function bindEvents() {
 
   on.click("#start-transcription", startTranscription);
   on.click("#select-whisper-model", selectWhisperModel);
+  on.click("#select-vad-model", selectVadModel);
 
   on.click("#detect-duration", detectDuration);
 }
@@ -119,6 +121,7 @@ async function initData() {
   audioDayPartElm.setItems(dayParts);
 
   initWhisperModel();
+  initVadModel();
   initTranscriptionButtonState();
 
   listAudios();
@@ -128,27 +131,27 @@ async function initData() {
 // Event Handlers
 // -----------------------------------------------------------------------------
 
-async function filterChanged({ target, values }) {
+async function filterChanged({ target, value }) {
   const name = target.dataset.name;
 
   switch (name) {
     case "audio-type-filter":
-      state.filters.types = values;
+      state.filters.types = value;
       break;
     case "audio-language-filter":
-      state.filters.languages = values;
+      state.filters.languages = value;
       break;
     case "audio-position-filter":
-      state.filters.positions = values;
+      state.filters.positions = value;
       break;
     case "audio-day-part-filter":
-      state.filters.dayParts = values;
+      state.filters.dayParts = value;
       break;
     case "audio-category-filter":
-      state.filters.categories = values;
+      state.filters.categories = value;
       break;
     case "audio-alternate-group-filter":
-      state.filters.alternateGroups = values;
+      state.filters.alternateGroups = value;
       break;
   }
 
@@ -166,7 +169,7 @@ async function setAudioRoot() {
 }
 
 async function removeAudios() {
-  const audioPaths = audiosElm.getCheckedValues();
+  const audioPaths = audiosElm.getCheckedValue();
 
   if (audioPaths.length === 0) {
     toast.show("请先选择要删除的音频文件");
@@ -218,8 +221,8 @@ async function doubleClickAudio({ item }) {
   audioPlayerEl.play();
 }
 
-async function setSelectAllCheckedState({ values }) {
-  selectAllChk.checked = values.length === audiosElm.getItems().length;
+async function setSelectAllCheckedState({ value }) {
+  selectAllChk.checked = value.length === audiosElm.getItems().length;
 }
 
 async function setAudiosCheckedState(event) {
@@ -328,6 +331,18 @@ async function selectWhisperModel() {
   setWhisperModel(modelName);
 
   toast.show(`已选择 Whisper 模型: ${modelName}`);
+}
+
+async function selectVadModel() {
+  const { canceled, modelName } = await whisperApi.selectVadModel();
+
+  if (canceled) {
+    return;
+  }
+
+  setVadModel(modelName);
+
+  toast.show(`已选择 VAD 模型: ${modelName}`);
 }
 
 async function detectDuration() {
@@ -522,9 +537,17 @@ async function initWhisperModel() {
 }
 
 function setWhisperModel(modelName) {
-  whisperModelEl.textContent = modelName
-    ? `(当前模型: ${modelName})`
-    : "未选择";
+  whisperModelEl.textContent = "Whisper Model: " + modelName || "未选择";
+}
+
+async function initVadModel() {
+  const { modelName } = await whisperApi.getVadModel();
+
+  setVadModel(modelName);
+}
+
+function setVadModel(modelName) {
+  vadModelEl.textContent = "VAD Model: " + modelName || "未选择";
 }
 
 async function initTranscriptionButtonState() {
@@ -542,7 +565,7 @@ function setStartTranscriptionButtonState(isTranscribing) {
     startTranscriptionBtn.textContent = "转录中...";
     startTranscriptionBtn.disabled = true;
   } else {
-    startTranscriptionBtn.textContent = "转录内容";
+    startTranscriptionBtn.textContent = "识别音频内容";
     startTranscriptionBtn.disabled = false;
   }
 }

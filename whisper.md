@@ -162,58 +162,19 @@ pwd
 
 ---
 
-## 6. 下载 large-v3 模型
-
-官方模型说明：
-
-```txt
-https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md
-```
-
-模型有很多：
-
-```txt
-tiny  tiny.en  tiny-q5_1  tiny-q8_0
-base  base.en  base-q5_1  base-q8_0
-small  small.en  small.en-tdrz  small-q5_1  small-q8_0
-medium  medium.en  medium-q5_0  medium-q8_0
-large-v1  large-v2  large-v2-q5_0  large-v3
-large-v3-q5_0  large-v3-turbo
-large-v3-turbo-q5_0  large-v3-turbo-q8_0
-```
-
-目前只关注这些就够了：
-
-```txt
-small
-medium
-large-v3
-large-v3-turbo
-```
-
-模型文件名有固定规律：
-
-```txt
-模型名 medium     → ggml-medium.bin
-模型名 large-v3   → ggml-large-v3.bin
-```
-
-.en 表示仅英语；你的音频可能有中文或其他语言，选不带 .en 的模型。
+## 6. 下载 Whisper Model
 
 Hugging Face 是一个专门服务于 AI 的网站和平台，可以把它理解成：
 AI 模型领域的 GitHub + 模型下载站 + 在线体验站。
 
-官方 Hugging Face 地址：
+Hugging Face 上找模型可以按“先找仓库，再找文件”来理解。
+- 1、打开 Hugging Face 首页：https://huggingface.co/
+- 2、在站内搜索 ggerganov/whisper.cpp 这个模型仓库
+- 3、进入仓库后打开 Files and versions / Files
+- 4、在文件列表里找到 ggml-large-v3.bin
+- 5、点进去后再下载
 
-```txt
-https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
-```
-
-国内访问 Hugging Face 可能不稳定，可以使用镜像：
-
-```txt
-https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
-```
+国内访问 Hugging Face 可能不稳定，可以使用镜像：https://hf-mirror.com（查找方式和上面一致）
 
 推荐下载命令：
 
@@ -264,9 +225,31 @@ ls -lh /Users/zzz/GitHub/whisper/models/ggml-large-v3.bin
 
 预期大小：约 3GB。
 
----
+## 7. 下载 Silero VAD
 
-## 7. 基本转写命令
+Silero VAD 是一个 Voice Activity Detection（语音活动检测）模型，来自 Silero AI，Silero 是一家专注语音 AI 的团队，他们开源了一系列语音模型（与 OpenAI 没有关系）。
+
+VAD 全称：Voice Activity Detection，判断音频中哪里有语音活动。它不关心说什么语言、说了什么内容、谁在说，它只回答 这里有人讲话吗？
+
+因为 Whisper 本身没有专门负责 VAD，Whisper 的设计是：给我一段音频，我帮你转文字，但它会对除人声以外的音乐、环境音、静音进行猜测，会出现幻觉文字，所以工程上通常会加 VAD → ASR，这是语音系统非常常见的架构。
+
+比如：电话客服系统：麦克风 → VAD → ASR → NLP → 回复
+
+所以 whisper.cpp 把 Silero VAD 集成进来，是为了让 Whisper 在真实场景更稳定。
+
+- 1、打开 Hugging Face 首页：https://huggingface.co/
+- 2、在站内搜索 ggml-org/whisper-vad 这个模型仓库
+- 3、进入仓库后打开 Files and versions / Files
+- 4、在文件列表里找到 ggml-silero-v6.2.0.bin
+- 5、点进去后再下载
+
+使用：
+在运行 whisper-cli 命令的参数中增加：
+
+--vad \
+--vad-model ggml-silero-v6.2.0.bin
+
+## 8. 基本转写命令
 
 假设测试音频是：
 
@@ -303,7 +286,7 @@ whisper-cli \
 
 ---
 
-## 8. 输出 txt 文件
+## 9. 输出 txt 文件
 
 以后要写入 `meta.content`，所以需要生成文本文件。
 
@@ -339,7 +322,7 @@ cat /Users/zzz/GitHub/whisper/output/test.txt
 
 ---
 
-## 9. 常用参数
+## 10. 常用参数
 
 ```txt
 -m      模型路径
@@ -370,7 +353,7 @@ whisper-cli \
 
 ---
 
-## 10. 如果音频格式有问题
+## 11. 如果音频格式有问题
 
 当前 `whisper-cli --help` 显示支持：
 
@@ -389,135 +372,27 @@ brew install ffmpeg
 转换：
 
 ```bash
-ffmpeg -i /Users/zzz/Downloads/test.mp3 \
+ffmpeg \
+  -nostdin \
+  -y \
+  -i "/Users/zzz/Music/双点医院广播电台05.mp3" \
+  -vn \
   -ar 16000 \
   -ac 1 \
-  /Users/zzz/Downloads/test.wav
+  -c:a pcm_s16le \
+  "/Users/zzz/Music/双点医院广播电台05.wav"
 ```
 
 再转写：
 
 ```bash
 whisper-cli \
-  -m /Users/zzz/GitHub/whisper/models/ggml-large-v3.bin \
-  -f /Users/zzz/Downloads/test.wav \
+  -m "/Users/zzz/GitHub/whisper/models/ggml-large-v3-turbo-q5_0.bin" \
+  -f "/Users/zzz/Music/双点医院广播电台05.wav" \
   -l zh \
-  -otxt \
-  -of /Users/zzz/GitHub/whisper/output/test
-```
-
----
-
-## 11. 和 welm-radio 的关系
-
-当前 `meta.content` 字段定位为：
-
-```txt
-音频正文 / 转写文本 / 内容原文
-```
-
-未来流程可以是：
-
-```txt
-选择音频文件
-  ↓
-调用 whisper-cli
-  ↓
-读取输出 txt
-  ↓
-写入 meta.content
-```
-
-未来可能封装成 Node 方法：
-
-```js
-async function transcribeAudio(filePath, options = {}) {
-  // 调用 whisper-cli
-  // 返回转写文本
-}
-```
-
-然后：
-
-```js
-const content = await transcribeAudio(filePath);
-
-saveMeta(metaPath, {
-  content,
-});
-```
-
-模型路径以后可以写入配置：
-
-```json
-{
-  "whisper": {
-    "model": "/Users/zzz/GitHub/whisper/models/ggml-large-v3.bin"
-  }
-}
-```
-
----
-
-## 12. 当前已确认信息
-
-已安装：
-
-```txt
-whisper-cpp 1.9.1
-```
-
-实际命令：
-
-```txt
-whisper-cli
-```
-
-命令路径：
-
-```txt
-/opt/homebrew/bin/whisper-cli
-```
-
-本机后端输出中可见：
-
-```txt
-Apple M2
-Metal backend loaded
-CPU backend loaded
-```
-
-说明当前机器可以使用 whisper.cpp 的本地后端运行。
-
----
-
-## 13. 下一步
-
-1. 下载模型：
-
-```bash
-cd /Users/zzz/GitHub
-mkdir -p whisper/models
-cd whisper/models
-
-curl -L -C - -o ggml-large-v3.bin \
-  https://hf-mirror.com/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
-```
-
-2. 检查模型：
-
-```bash
-ls -lh /Users/zzz/GitHub/whisper/models/ggml-large-v3.bin
-```
-
-3. 找一个短音频测试：
-
-```bash
-whisper-cli \
-  -m /Users/zzz/GitHub/whisper/models/ggml-large-v3.bin \
-  -f /Users/zzz/Downloads/test.mp3 \
-  -l zh \
-  -otxt \
-  -of /Users/zzz/GitHub/whisper/output/test
+  -osrt \
+  -of "/Users/zzz/Music/双点医院广播电台05" \
+  --vad \
+  -vm "/Users/zzz/GitHub/whisper/vad/ggml-silero-v6.2.0.bin"
 ```
 

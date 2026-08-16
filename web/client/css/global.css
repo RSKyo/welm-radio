@@ -303,7 +303,9 @@ button.primary:not(:disabled):active {
   border-radius: 4px;
   background-color: var(--color-surface-toolbar);
 }
-.toolbar button {
+.toolbar input:not([type="checkbox"]):not([type="radio"]),
+.toolbar button,
+.toolbar select {
   min-height: 24px;
   padding: 2px 8px;
   border-radius: 4px;
