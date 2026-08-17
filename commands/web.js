@@ -23,6 +23,10 @@ export const WEB_COMMANDS = {
   "audio-library": {
     handler: cmd_audioLibrary,
   },
+
+  "audio-studio": {
+    handler: cmd_audioStudio,
+  }
 };
 
 export async function cmd_start({ argv, options } = {}) {
@@ -47,6 +51,12 @@ export async function cmd_reload({ argv, options } = {}) {
 
 export async function cmd_audioLibrary({ argv, options } = {}) {
   const url = `http://localhost:${serverPort}/audio.html`;
+
+  return await startWebServerAndPage(url, options);
+}
+
+export async function cmd_audioStudio({ argv, options } = {}) {
+  const url = `http://localhost:${serverPort}/studio.html`;
 
   return await startWebServerAndPage(url, options);
 }

@@ -26,15 +26,12 @@ export class ElmRoot {
   }
 
   clear() {
-    for (const element of this.#childMap.values()) {
-      // Remove the element from the DOM.
-      element.remove();
+    for (const key of this.keys()) {
+      this.remove(key);
     }
-
-    this.#childMap.clear();
   }
 
-  add(key, element) {
+  add(key, element, parentKey = null) {
     this.#assertKey(key);
     this.#assertElement(element);
 
@@ -42,35 +39,66 @@ export class ElmRoot {
       throw new Error(`element already exists: ${key}`);
     }
 
-    this.#element.appendChild(element);
-    this.#childMap.set(key, element);
+    if (parentKey != null) {
+      this.#assertExistingKey(parentKey);
+    }
+
+    const parent = parentKey
+      ? this.#childMap.get(parentKey).element
+      : this.#element;
+
+    parent.appendChild(element);
+
+    this.#childMap.set(key, {
+      element,
+      parentKey,
+    });
   }
 
   get(key) {
     // Returns undefined if the key does not exist.
-    return this.#childMap.get(key);
+    return this.#childMap.get(key)?.element;
   }
 
   remove(key) {
     this.#assertExistingKey(key);
-    const element = this.#childMap.get(key);
 
-    element.remove();
+    const childKeys = this.childKeys(key);
+    for (const k of childKeys) {
+      this.remove(k);
+    }
+
+    const item = this.#childMap.get(key);
+
+    item.element.remove();
     this.#childMap.delete(key);
-
-    return element;
   }
 
   replace(key, element) {
     this.#assertElement(element);
     this.#assertExistingKey(key);
 
-    const oldElement = this.#childMap.get(key);
+    const oldItem = this.#childMap.get(key);
+    oldItem.element.replaceWith(element);
 
-    oldElement.replaceWith(element);
-    this.#childMap.set(key, element);
+    this.#childMap.set(key, {
+      ...oldItem,
+      element,
+    });
 
-    return oldElement;
+    return oldItem.element;
+  }
+
+  childKeys(parentKey) {
+    const result = [];
+
+    for (const [key, item] of this.#childMap) {
+      if (item.parentKey === parentKey) {
+        result.push(key);
+      }
+    }
+
+    return result;
   }
 
   keys() {
@@ -78,7 +106,7 @@ export class ElmRoot {
   }
 
   elements() {
-    return [...this.#childMap.values()];
+    return Array.from(this.#childMap.values(), (item) => item.element);
   }
 
   has(key) {
@@ -96,8 +124,8 @@ export class ElmRoot {
       throw new Error("callback must be a function");
     }
 
-    for (const [key, element] of this.#childMap.entries()) {
-      callback(key, element);
+    for (const [key, item] of this.#childMap.entries()) {
+      callback(key, item.element);
     }
   }
 
@@ -165,7 +193,9 @@ export class Elm {
     }
 
     if (!element || !(element instanceof HTMLElement)) {
-      throw new Error(`target must be an element id or an HTMLElement but got: ${String(target)}`);
+      throw new Error(
+        `target must be an element id or an HTMLElement but got: ${String(target)}`,
+      );
     }
 
     if (className) {
