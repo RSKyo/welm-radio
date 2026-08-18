@@ -13,45 +13,58 @@ import {
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
 export class ElmRoot {
-  #element;
+  #rootElement;
   #childMap = new Map();
 
   constructor(element) {
     this.#assertElement(element);
-    this.#element = element;
+    this.#rootElement = element;
+  }
+
+  reset() {
+    this.clear();
+    this.#rootElement = null;
+    this.#childMap = new Map();
   }
 
   get element() {
-    return this.#element;
+    return this.#rootElement;
+  }
+
+  get size() {
+    return this.#childMap.size;
   }
 
   clear() {
-    for (const key of this.keys()) {
-      this.remove(key);
+    while (this.size > 0) {
+      const keys = this.keys();
+
+      this.remove(keys.at(-1));
     }
   }
 
   add(key, element, parentKey = null) {
-    this.#assertKey(key);
+    this.#assertNotExistingKey(key);
     this.#assertElement(element);
-
-    if (this.#childMap.has(key)) {
-      throw new Error(`element already exists: ${key}`);
-    }
 
     if (parentKey != null) {
       this.#assertExistingKey(parentKey);
+
+      const parent = this.#childMap.get(parentKey);
+      parent.element.appendChild(element);
+
+      // Update the parent's childKeys to include the new child.
+      parent.childKeys.push(key);
+      this.#childMap.set(parentKey, parent);
+    } else {
+      this.#rootElement.appendChild(element);
     }
 
-    const parent = parentKey
-      ? this.#childMap.get(parentKey).element
-      : this.#element;
-
-    parent.appendChild(element);
-
+    // add the new element to the child map
     this.#childMap.set(key, {
       element,
       parentKey,
+      childKeys: [],
     });
   }
 
@@ -63,50 +76,61 @@ export class ElmRoot {
   remove(key) {
     this.#assertExistingKey(key);
 
-    const childKeys = this.childKeys(key);
-    for (const k of childKeys) {
-      this.remove(k);
+    for (const childKey of this.childKeys(key)) {
+      this.remove(childKey);
     }
 
-    const item = this.#childMap.get(key);
+    const { parentKey } = this.#childMap.get(key);
+    if (parentKey != null) {
+      const parent = this.#childMap.get(parentKey);
+      parent.childKeys = parent.childKeys.filter((k) => k !== key);
+      this.#childMap.set(parentKey, parent);
+    }
 
-    item.element.remove();
+    const { element } = this.#childMap.get(key);
+
+    element.remove();
     this.#childMap.delete(key);
   }
 
   replace(key, element) {
-    this.#assertElement(element);
     this.#assertExistingKey(key);
+    this.#assertElement(element);
 
-    const oldItem = this.#childMap.get(key);
-    oldItem.element.replaceWith(element);
+    const current = this.#childMap.get(key);
+    current.element.replaceWith(element);
 
-    this.#childMap.set(key, {
-      ...oldItem,
-      element,
-    });
-
-    return oldItem.element;
-  }
-
-  childKeys(parentKey) {
-    const result = [];
-
-    for (const [key, item] of this.#childMap) {
-      if (item.parentKey === parentKey) {
-        result.push(key);
+    if (current.childKeys.length > 0) {
+      for (const childKey of current.childKeys) {
+        const child = this.#childMap.get(childKey);
+        element.appendChild(child.element);
       }
     }
 
-    return result;
+    this.#childMap.set(key, {
+      ...current,
+      element,
+    });
   }
 
   keys() {
     return [...this.#childMap.keys()];
   }
 
+  childKeys(key) {
+    this.#assertExistingKey(key);
+
+    return [...this.#childMap.get(key).childKeys];
+  }
+
   elements() {
     return Array.from(this.#childMap.values(), (item) => item.element);
+  }
+
+  children(key) {
+    this.#assertExistingKey(key);
+
+    return this.childKeys(key).map((childKey) => this.get(childKey));
   }
 
   has(key) {
@@ -115,17 +139,13 @@ export class ElmRoot {
     return this.#childMap.has(key);
   }
 
-  get size() {
-    return this.#childMap.size;
-  }
-
   each(callback) {
     if (typeof callback !== "function") {
       throw new Error("callback must be a function");
     }
 
     for (const [key, item] of this.#childMap.entries()) {
-      callback(key, item.element);
+      callback(key, item.element, item.parentKey);
     }
   }
 
@@ -143,6 +163,14 @@ export class ElmRoot {
     }
   }
 
+  #assertNotExistingKey(key) {
+    this.#assertKey(key);
+
+    if (this.#childMap.has(key)) {
+      throw new Error(`element already exists: ${key}`);
+    }
+  }
+
   #assertElement(element) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("element must be an HTMLElement");
@@ -151,16 +179,20 @@ export class ElmRoot {
 }
 
 export class Elm {
+  #rootClass;
+  #dataset;
   #rootElement;
   #root;
 
   constructor(root, options = {}) {
-    const rootClass = options.rootClass;
-    this.#rootElement = this.#initRootElement(root, rootClass);
-    this.#root = new ElmRoot(this.#rootElement);
+    this.#rootClass = options.rootClass;
+    this.#dataset = options.dataset;
+    this.#rootElement = null;
+    this.#root = null;
 
-    const dataset = options.dataset ?? {};
-    this.#initRootElementDataset(dataset);
+    if (options.deferInit !== true) {
+      this.init(root, { throwIfRootNotFound: false });
+    }
   }
 
   get rootElement() {
@@ -172,40 +204,75 @@ export class Elm {
   }
 
   get dataset() {
-    return this.#rootElement.dataset;
+    return this.#dataset;
   }
 
-  #initRootElement(target, className) {
-    if (
-      className != null &&
-      (!isNonBlankString(className) || /\s/.test(className))
-    ) {
-      throw new Error("className must be a single non-blank CSS class name");
+  init(root, options = {}) {
+    if (this.#root != null) {
+      this.#root.clear();
     }
 
-    let element = target;
+    const {
+      rootClass = this.#rootClass,
+      dataset = this.#dataset,
+      throwIfRootNotFound = true,
+    } = options;
 
-    if (isNonBlankString(target)) {
-      if (target.startsWith("#")) {
-        target = target.slice(1);
+    if (rootClass != null) {
+      this.#assertRootClass(rootClass);
+    }
+
+    if (dataset != null) {
+      this.#assertDataset(dataset);
+    }
+
+    let element = root;
+
+    if (isNonBlankString(root)) {
+      if (root.startsWith("#")) {
+        root = root.slice(1);
       }
-      element = document.getElementById(target);
+      element = document.getElementById(root);
     }
 
     if (!element || !(element instanceof HTMLElement)) {
-      throw new Error(
-        `target must be an element id or an HTMLElement but got: ${String(target)}`,
-      );
+      if (throwIfRootNotFound) {
+        throw new Error("root element not found or invalid");
+      }
+      return;
     }
 
-    if (className) {
-      element.classList.add(className);
+    this.#rootElement = element;
+    this.#root = new ElmRoot(this.#rootElement);
+
+    if (rootClass != null) {
+      this.#rootClass = rootClass;
+      this.#rootElement.classList.add(rootClass);
     }
 
-    return element;
+    if (dataset != null) {
+      this.#dataset = dataset;
+      for (const [key, value] of Object.entries(dataset)) {
+        if (!isNonBlankString(key)) {
+          throw new Error("dataset keys must be non-blank strings");
+        }
+
+        if (!isNonBlankString(value)) {
+          throw new Error("dataset values must be non-blank strings");
+        }
+
+        this.#rootElement.dataset[key] = value;
+      }
+    }
   }
 
-  #initRootElementDataset(dataset) {
+  #assertRootClass(className) {
+    if (!isNonBlankString(className) || /\s/.test(className)) {
+      throw new Error("className must be a single non-blank CSS class name");
+    }
+  }
+
+  #assertDataset(dataset) {
     if (!isPlainObject(dataset)) {
       throw new Error("dataset must be a plain object");
     }
@@ -218,8 +285,6 @@ export class Elm {
       if (!isNonBlankString(value)) {
         throw new Error("dataset values must be non-blank strings");
       }
-
-      this.#rootElement.dataset[key] = value;
     }
   }
 }
