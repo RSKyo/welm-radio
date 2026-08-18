@@ -21,18 +21,18 @@ export class ElmRoot {
     this.#rootElement = element;
   }
 
-  reset() {
-    this.clear();
-    this.#rootElement = null;
-    this.#childMap = new Map();
-  }
-
   get element() {
     return this.#rootElement;
   }
 
   get size() {
     return this.#childMap.size;
+  }
+
+  reset() {
+    this.clear();
+    this.#rootElement = null;
+    this.#childMap = new Map();
   }
 
   clear() {
@@ -209,7 +209,7 @@ export class Elm {
 
   init(root, options = {}) {
     if (this.#root != null) {
-      this.#root.clear();
+      this.#root.reset();
     }
 
     const {
