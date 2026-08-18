@@ -29,12 +29,6 @@ export class ElmRoot {
     return this.#childMap.size;
   }
 
-  reset() {
-    this.clear();
-    this.#rootElement = null;
-    this.#childMap = new Map();
-  }
-
   clear() {
     while (this.size > 0) {
       const keys = this.keys();
@@ -178,116 +172,7 @@ export class ElmRoot {
   }
 }
 
-export class Elm {
-  #rootClass;
-  #dataset;
-  #rootElement;
-  #root;
 
-  constructor(root, options = {}) {
-    this.#rootClass = options.rootClass;
-    this.#dataset = options.dataset;
-    this.#rootElement = null;
-    this.#root = null;
-
-    if (options.deferInit !== true) {
-      this.init(root, { throwIfRootNotFound: false });
-    }
-  }
-
-  get rootElement() {
-    return this.#rootElement;
-  }
-
-  get root() {
-    return this.#root;
-  }
-
-  get dataset() {
-    return this.#dataset;
-  }
-
-  init(root, options = {}) {
-    if (this.#root != null) {
-      this.#root.reset();
-    }
-
-    const {
-      rootClass = this.#rootClass,
-      dataset = this.#dataset,
-      throwIfRootNotFound = true,
-    } = options;
-
-    if (rootClass != null) {
-      this.#assertRootClass(rootClass);
-    }
-
-    if (dataset != null) {
-      this.#assertDataset(dataset);
-    }
-
-    let element = root;
-
-    if (isNonBlankString(root)) {
-      if (root.startsWith("#")) {
-        root = root.slice(1);
-      }
-      element = document.getElementById(root);
-    }
-
-    if (!element || !(element instanceof HTMLElement)) {
-      if (throwIfRootNotFound) {
-        throw new Error("root element not found or invalid");
-      }
-      return;
-    }
-
-    this.#rootElement = element;
-    this.#root = new ElmRoot(this.#rootElement);
-
-    if (rootClass != null) {
-      this.#rootClass = rootClass;
-      this.#rootElement.classList.add(rootClass);
-    }
-
-    if (dataset != null) {
-      this.#dataset = dataset;
-      for (const [key, value] of Object.entries(dataset)) {
-        if (!isNonBlankString(key)) {
-          throw new Error("dataset keys must be non-blank strings");
-        }
-
-        if (!isNonBlankString(value)) {
-          throw new Error("dataset values must be non-blank strings");
-        }
-
-        this.#rootElement.dataset[key] = value;
-      }
-    }
-  }
-
-  #assertRootClass(className) {
-    if (!isNonBlankString(className) || /\s/.test(className)) {
-      throw new Error("className must be a single non-blank CSS class name");
-    }
-  }
-
-  #assertDataset(dataset) {
-    if (!isPlainObject(dataset)) {
-      throw new Error("dataset must be a plain object");
-    }
-
-    for (const [key, value] of Object.entries(dataset)) {
-      if (!isNonBlankString(key)) {
-        throw new Error("dataset keys must be non-blank strings");
-      }
-
-      if (!isNonBlankString(value)) {
-        throw new Error("dataset values must be non-blank strings");
-      }
-    }
-  }
-}
 
 export class ItemsElm extends Elm {
   #textField;
@@ -382,6 +267,30 @@ export class ItemsElm extends Elm {
     this.#render(this.#items);
   }
 
+  addItem(newItem) {
+    if (newItem == null) {
+      throw new Error("newItem must be provided");
+    }
+
+    validateItemFields(newItem, this.#textField, this.#valueField);
+
+    const value = newItem[this.#valueField];
+    if (this.#items.some((item) => item[this.#valueField] === value)) {
+      throw new Error(`item with value '${value}' already exists`);
+    }
+
+    this.#items.push({ ...newItem });
+
+    const newItemElement = this.createItemElement(newItem);
+    this.root.add(value, newItemElement);
+
+    this.afterAddItem(newItem);
+  }
+
+  afterAddItem(newItem) {
+    // Override this method to perform actions after adding an item.
+  }
+
   updateItem(newItem) {
     if (newItem == null) {
       throw new Error("newItem must be provided");
@@ -390,6 +299,11 @@ export class ItemsElm extends Elm {
     validateItemFields(newItem, this.#textField, this.#valueField);
 
     const value = newItem[this.#valueField];
+    if (!this.#items.some((item) => item[this.#valueField] === value)) {
+      throw new Error(`item with value '${value}' does not exist`);
+    }
+
+    validateValue(value);
     validateValueExists(value, this.#items, this.#valueField);
 
     const index = this.#items.findIndex(
@@ -413,7 +327,9 @@ export class ItemsElm extends Elm {
       return null;
     }
 
-    validateValue(value);
+    if(!isNonBlankString(value)) {
+      throw new Error("value must be a non-blank string");
+    }
     validateValueExists(value, this.#items, this.#valueField);
 
     const isArray = Array.isArray(value);
