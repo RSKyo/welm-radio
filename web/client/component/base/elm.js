@@ -7,10 +7,14 @@ export class Elm {
   #dom;
 
   constructor(root, options = {}) {
-    this.init(root, options);
+    this.#init(root, options);
   }
 
   init(root, options = {}) {
+    this.#init(root, options);
+  }
+
+  #init(root, options = {}) {
     const oldRootClass = this.#rootClass;
     if (options.rootClass != null) {
       assertClassName(options.rootClass, "rootClass");
@@ -24,26 +28,27 @@ export class Elm {
     }
 
     if (root == null) {
+      this.#dom?.destroy();
+      this.#rootElement = null;
+      this.#dom = null;
       return;
     }
 
-    let element = root;
+    let rootElement = root;
 
     if (isNonBlankString(root)) {
       if (root.startsWith("#")) {
         root = root.slice(1);
       }
-      element = document.getElementById(root);
+      rootElement = document.getElementById(root);
     }
 
-    if (!element || !(element instanceof HTMLElement)) {
+    if (!rootElement || !(rootElement instanceof HTMLElement)) {
       throw new Error("root element not found or invalid");
     }
 
     const oldRootElement = this.#rootElement;
-    const isSameRoot = oldRootElement === element;
-
-    this.#dom?.clear();
+    const isSameRoot = oldRootElement === rootElement;
 
     if (isSameRoot && oldRootClass != null) {
       oldRootElement.classList.remove(oldRootClass);
@@ -55,8 +60,13 @@ export class Elm {
       }
     }
 
-    this.#rootElement = element;
-    this.#dom = new ElmDom(element);
+    if (isSameRoot) {
+      this.#dom?.clear();
+    } else {
+      this.#dom = new ElmDom(rootElement);
+    }
+
+    this.#rootElement = rootElement;
 
     if (this.#rootClass != null) {
       this.#rootElement.classList.add(this.#rootClass);

@@ -1,10 +1,6 @@
-import {
-  createElementByHTML,
-  validateValue,
-  validateValueExists,
-  isPlainObject,
-} from "./elm-helper.js";
 import { Elm } from "./elm.js";
+
+const RESERVED_KEYS = ["__root__", "__empty__", "__header__", "__footer__"];
 
 export class ItemsElm extends Elm {
   #textField = "text";
@@ -14,41 +10,39 @@ export class ItemsElm extends Elm {
 
   constructor(root, options = {}) {
     super(root, options);
-    this.init(root, options);
+    this.#init(root, options);
   }
 
   init(root, options = {}) {
     super.init(root, options);
+    this.#init(root, options);
+  }
 
-    const textField = options.textField
-      ? options.textField
-      : this.rootElement.dataset["text-field"]
-        ? this.rootElement.dataset["text-field"]
-        : null;
+  #init(root, options = {}) {
+    const rootElement = this.rootElement;
+    const datasetTextField = rootElement?.dataset.textField;
+    const datasetValueField = rootElement?.dataset.valueField;
+    const datasetTooltipField = rootElement?.dataset.tooltipField;
+
+    const textField = options.textField ?? datasetTextField ?? null;
     if (textField != null) {
       assertNonBlankString(textField, "textField");
       this.#textField = textField;
     }
 
-    const valueField = options.valueField
-      ? options.valueField
-      : this.rootElement.dataset["value-field"]
-        ? this.rootElement.dataset["value-field"]
-        : null;
+    const valueField = options.valueField ?? datasetValueField ?? null;
     if (valueField != null) {
       assertNonBlankString(valueField, "valueField");
       this.#valueField = valueField;
     }
 
-    const tooltipField = options.tooltipField
-      ? options.tooltipField
-      : this.rootElement.dataset["tooltip-field"]
-        ? this.rootElement.dataset["tooltip-field"]
-        : null;
+    const tooltipField = options.tooltipField ?? datasetTooltipField ?? null;
     if (tooltipField != null) {
       assertNonBlankString(tooltipField, "tooltipField");
       this.#tooltipField = tooltipField;
     }
+
+    this.#render(this.#items);
   }
   // -----------------------------------------------------------------------------
   // fields
@@ -91,85 +85,72 @@ export class ItemsElm extends Elm {
   }
 
   addItem(item) {
-    if (!isPlainObject(item) && !Array.isArray(item)) {
-      throw new Error("item must be a plain object or an array");
-    }
+    assertItemOrArray(item, this.#textField, this.#valueField);
+    assertItemNotExists(item, this.#items, this.#valueField);
 
-    const isArray = Array.isArray(item);
-    const items = isArray ? [...item] : [item];
+    const [items] = normalizeArray(item);
+    items.forEach((tmp) => {
+      this.#items.push({ ...tmp });
+    });
 
-    for (const o of items) {
-      assertItem(o, this.#textField, this.#valueField);
-      const value = o[this.#valueField];
-      if (this.#items.some((item) => item[this.#valueField] === value)) {
-        throw new Error(`item with value '${value}' already exists`);
-      }
+    this.#render(this.#items);
+    this.afterAddItem(item);
+  }
 
-      this.#items.push({ ...o });
-
-      this.#renderItem(this.#items[this.#items.length - 1]);
-    }
+  afterAddItem(targetItem) {
+    // Override this method to perform actions after adding items.
   }
 
   updateItem(item) {
-    if (!isPlainObject(item) && !Array.isArray(item)) {
-      throw new Error("item must be a plain object or an array");
-    }
+    assertItemOrArray(item, this.#textField, this.#valueField);
+    assertItemExists(item, this.#items, this.#valueField);
 
-    const isArray = Array.isArray(item);
-    const items = isArray ? [...item] : [item];
-
-    for (const o of items) {
-      assertItem(o, this.#textField, this.#valueField);
-
-      const value = o[this.#valueField];
-      if (!this.#items.some((item) => item[this.#valueField] === value)) {
-        throw new Error(`item with value '${value}' does not exist`);
-      }
-
-      const index = this.#items.findIndex(
-        (item) => item[this.#valueField] === value,
+    const [items] = normalizeArray(item);
+    items.forEach((tmp) => {
+      const index = getItemIndex(
+        tmp[this.#valueField],
+        this.#items,
+        this.#valueField,
       );
 
-      this.#items[index] = { ...o };
+      this.#items[index] = { ...tmp };
+    });
 
-      const newItemElement = this.createItemElement(o);
-      this.dom.replace(value, newItemElement);
-    }
+    this.#render(this.#items);
+    this.afterUpdateItem(item);
+  }
+
+  afterUpdateItem(targetItem) {
+    // Override this method to perform actions after updating items.
   }
 
   removeItem(value) {
-    if (!isNonBlankString(value) && !Array.isArray(value)) {
-      throw new Error("value must be a non-blank string or an array");
-    }
+    assertNonBlankStringOrArray(value, "value");
+    assertValueExists(value, this.#items, this.#valueField, "value");
 
-    const isArray = Array.isArray(value);
-    const values = isArray ? [...value] : [value];
+    const [values] = normalizeArray(value);
 
     this.#items = this.#items.filter(
       (item) => !values.includes(item[this.#valueField]),
     );
 
-    for (const val of values) {
-      this.dom.remove(val);
-    }
+    this.#render(this.#items);
+    this.afterRemoveItem(value);
+  }
+
+  afterRemoveItem(value) {
+    // Override this method to perform actions after removing items.
   }
 
   getItem(value) {
-    if (!isNonBlankString(value) && !Array.isArray(value)) {
-      throw new Error("value must be a non-blank string or an array");
-    }
+    assertNonBlankStringOrArray(value, "value");
+    assertValueExists(value, this.#items, this.#valueField, "value");
 
-    const isArray = Array.isArray(value);
-    const values = isArray ? [...value] : [value];
+    const [values, isArray] = normalizeArray(value);
 
     const items = this.#items.filter((item) =>
       values.includes(item[this.#valueField]),
     );
-
-    if (items.length === 0) {
-      return null;
-    }
 
     return isArray ? items.map((item) => ({ ...item })) : { ...items[0] };
   }
@@ -179,8 +160,12 @@ export class ItemsElm extends Elm {
   // -----------------------------------------------------------------------------
 
   #render(items) {
+    if (this.dom == null) {
+      return;
+    }
+    this.dom.clear();
+
     this.beforeRender(items);
-    this.root.clear();
 
     if (items.length === 0) {
       const emptyElement = this.createEmptyElement();
@@ -265,8 +250,10 @@ export class ItemsElm extends Elm {
 }
 
 // ----------------------------------------------
-// Private helper
+// Private assert functions
 // ----------------------------------------------
+
+/** assert item */
 
 function assertItems(items, textField, valueField) {
   if (!Array.isArray(items)) {
@@ -285,10 +272,16 @@ function assertItems(items, textField, valueField) {
 
 function assertItem(item, textField, valueField) {
   if (!isPlainObject(item)) {
-    throw new Error("items item must be a plain object");
+    throw new Error("item must be a plain object");
   }
 
   assertItemFields(item, textField, valueField);
+
+  if (RESERVED_KEYS.includes(item[valueField])) {
+    throw new Error(
+      `item value '${item[valueField]}' is reserved and cannot be used`,
+    );
+  }
 }
 
 function assertItemFields(item, ...fields) {
@@ -303,17 +296,100 @@ function assertItemFields(item, ...fields) {
   }
 }
 
+function assertItemOrArray(item, textField, valueField) {
+  const [item_items, isArray] = normalizeArray(item);
+
+  if (isArray && item_items.length === 0) {
+    throw new Error(
+      "item must be a valid item or a non-empty array of valid items",
+    );
+  }
+
+  for (const o of item_items) {
+    assertItem(o, textField, valueField);
+  }
+
+  if (isArray) {
+    const values = new Set(item_items.map((item) => item[valueField]));
+    if (values.size !== item_items.length) {
+      throw new Error("item array must not contain duplicate values");
+    }
+  }
+}
+
+function assertItemExists(item, items, valueField) {
+  const values = items.map((i) => i[valueField]);
+  const [item_items] = normalizeArray(item);
+
+  const missingItem = item_items.find(
+    (tmp) => !values.includes(tmp[valueField]),
+  );
+  if (missingItem) {
+    throw new Error(
+      `item with value '${missingItem[valueField]}' does not exist in items`,
+    );
+  }
+}
+
+function assertItemNotExists(item, items, valueField) {
+  const values = items.map((i) => i[valueField]);
+  const [item_items] = normalizeArray(item);
+
+  const existingItem = item_items.find((tmp) =>
+    values.includes(tmp[valueField]),
+  );
+  if (existingItem) {
+    throw new Error(
+      `item with value '${existingItem[valueField]}' already exists in items`,
+    );
+  }
+}
+
+/** assert value */
+
+function assertValueExists(value, items, valueField, fieldName = "value") {
+  const values = items.map((i) => i[valueField]);
+  const [value_values] = normalizeArray(value);
+
+  const missingValue = value_values.find((v) => !values.includes(v));
+  if (missingValue) {
+    throw new Error(`${fieldName} '${missingValue}' does not exist in items`);
+  }
+}
+
+/** assert dom */
+
 function assertHtmlElement(element, fieldName = "element") {
   if (!(element instanceof HTMLElement)) {
     throw new Error(`${fieldName} must be an HTMLElement`);
   }
 }
 
+/** assert base */
+
 function assertNonBlankString(value, fieldName = "value") {
   if (!isNonBlankString(value)) {
     throw new Error(`${fieldName} must be a non-blank string`);
   }
 }
+
+function assertNonBlankStringOrArray(value, fieldName = "value") {
+  const [values, isArray] = normalizeArray(value);
+
+  if (isArray && values.length === 0) {
+    throw new Error(
+      `${fieldName} must be a non-blank string or a non-empty array of non-blank strings`,
+    );
+  }
+
+  for (const v of values) {
+    assertNonBlankString(v, fieldName);
+  }
+}
+
+// ----------------------------------------------
+// Private helper functions
+// ----------------------------------------------
 
 function isNonBlankString(value) {
   return typeof value === "string" && value.trim() !== "";
@@ -338,4 +414,12 @@ function isNullOrEmpty(value) {
     return true;
   }
   return false;
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? [value, true] : [[value], false];
+}
+
+function getItemIndex(value, items, valueField) {
+  return items.findIndex((item) => item[valueField] === value);
 }

@@ -1,16 +1,17 @@
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
 export class ElmDom {
-  #root;
+  #rootElement;
+  #rootEvents = [];
   #elementMap = new Map();
 
-  constructor(element) {
-    this.#assertElement(element);
-    this.#root = element;
+  constructor(rootElement) {
+    assertHtmlElement(rootElement, "root element");
+    this.#rootElement = rootElement;
   }
 
-  get root() {
-    return this.#root;
+  get rootElement() {
+    return this.#rootElement;
   }
 
   get size() {
@@ -20,33 +21,42 @@ export class ElmDom {
   clear() {
     while (this.size > 0) {
       const keys = this.keys();
-
       this.remove(keys.at(-1));
     }
   }
 
-  add(key, element, parentKey = null) {
-    this.#assertNotExistingKey(key);
-    this.#assertElement(element);
+  destroy() {
+    this.clear();
 
-    if (parentKey != null) {
-      this.#assertExistingKey(parentKey);
-
-      const parent = this.#elementMap.get(parentKey);
-      parent.element.appendChild(element);
-
-      // Update the parent's childKeys to include the new child.
-      parent.childKeys.push(key);
-      this.#elementMap.set(parentKey, parent);
-    } else {
-      this.#root.appendChild(element);
+    for (const event of this.#rootEvents) {
+      this.#rootElement.removeEventListener(event.type, event.handler);
     }
 
-    // add the new element to the child map
+    this.#rootElement = null;
+    this.#rootEvents = [];
+  }
+
+  add(key, newElement, parentKey = null) {
+    assertKeyNotExists(key, this.#elementMap);
+    assertElementNotExists(newElement, this.#elementMap, "newElement");
+    if (newElement === this.#rootElement) {
+      throw new Error("newElement cannot be the root element");
+    }
+
+    if (parentKey !== null) {
+      assertKeyExists(parentKey, this.#elementMap);
+      const parent = this.#elementMap.get(parentKey);
+      parent.element.appendChild(newElement);
+      parent.childKeys.push(key);
+    } else {
+      this.#rootElement.appendChild(newElement);
+    }
+
     this.#elementMap.set(key, {
-      element,
+      element: newElement,
       parentKey,
       childKeys: [],
+      events: [],
     });
   }
 
@@ -56,43 +66,52 @@ export class ElmDom {
   }
 
   remove(key) {
-    this.#assertExistingKey(key);
+    assertKeyExists(key, this.#elementMap);
 
+    // Remove all child elements recursively.
     for (const childKey of this.childKeys(key)) {
       this.remove(childKey);
     }
 
-    const { parentKey } = this.#elementMap.get(key);
-    if (parentKey != null) {
-      const parent = this.#elementMap.get(parentKey);
+    const current = this.#elementMap.get(key);
+
+    // update the parent's childKeys to remove the child being removed
+    if (current.parentKey != null) {
+      const parent = this.#elementMap.get(current.parentKey);
       parent.childKeys = parent.childKeys.filter((k) => k !== key);
-      this.#elementMap.set(parentKey, parent);
     }
 
-    const { element } = this.#elementMap.get(key);
+    // Remove all event listeners from the element.
+    for (const event of current.events) {
+      current.element.removeEventListener(event.type, event.handler);
+    }
 
-    element.remove();
+    current.element.remove();
     this.#elementMap.delete(key);
   }
 
-  replace(key, element) {
-    this.#assertExistingKey(key);
-    this.#assertElement(element);
-
-    const current = this.#elementMap.get(key);
-    current.element.replaceWith(element);
-
-    if (current.childKeys.length > 0) {
-      for (const childKey of current.childKeys) {
-        const child = this.#elementMap.get(childKey);
-        element.appendChild(child.element);
-      }
+  replace(key, newElement) {
+    assertKeyExists(key, this.#elementMap);
+    assertElementNotExists(newElement, this.#elementMap, "newElement");
+    if (newElement === this.#rootElement) {
+      throw new Error("newElement cannot be the root element");
     }
 
-    this.#elementMap.set(key, {
-      ...current,
-      element,
-    });
+    const current = this.#elementMap.get(key);
+    const oldElement = current.element;
+
+    for (const childKey of current.childKeys) {
+      const child = this.#elementMap.get(childKey);
+      newElement.appendChild(child.element);
+    }
+
+    for (const event of current.events) {
+      oldElement.removeEventListener(event.type, event.handler);
+      newElement.addEventListener(event.type, event.handler);
+    }
+
+    oldElement.replaceWith(newElement);
+    current.element = newElement;
   }
 
   keys() {
@@ -100,7 +119,7 @@ export class ElmDom {
   }
 
   childKeys(key) {
-    this.#assertExistingKey(key);
+    assertKeyExists(key, this.#elementMap);
 
     return [...this.#elementMap.get(key).childKeys];
   }
@@ -110,13 +129,13 @@ export class ElmDom {
   }
 
   children(key) {
-    this.#assertExistingKey(key);
+    assertKeyExists(key, this.#elementMap);
 
     return this.childKeys(key).map((childKey) => this.get(childKey));
   }
 
   has(key) {
-    this.#assertKey(key);
+    assertNonBlankString(key, "key");
 
     return this.#elementMap.has(key);
   }
@@ -131,31 +150,137 @@ export class ElmDom {
     }
   }
 
-  #assertKey(key) {
-    if (typeof key !== "string" || key.trim() === "") {
-      throw new Error("key must be a non-blank string");
+  on(key, type, handler) {
+    assertKeyExists(key, this.#elementMap);
+    assertNonBlankString(type, "type");
+    assertFunction(handler, "handler");
+
+    const item = this.#elementMap.get(key);
+
+    const index = item.events.findIndex(
+      (event) => event.type === type && event.handler === handler,
+    );
+
+    if (index === -1) {
+      item.element.addEventListener(type, handler);
+      item.events.push({
+        type,
+        handler,
+      });
     }
   }
 
-  #assertExistingKey(key) {
-    this.#assertKey(key);
+  off(key, type, handler) {
+    assertKeyExists(key, this.#elementMap);
+    assertNonBlankString(type, "type");
+    assertFunction(handler, "handler");
 
-    if (!this.#elementMap.has(key)) {
-      throw new Error(`element not found: ${key}`);
+    const item = this.#elementMap.get(key);
+
+    const index = item.events.findIndex(
+      (event) => event.type === type && event.handler === handler,
+    );
+
+    if (index === -1) {
+      return;
+    }
+
+    const event = item.events[index];
+
+    item.element.removeEventListener(event.type, event.handler);
+
+    item.events.splice(index, 1);
+  }
+
+  onRoot(type, handler) {
+    if (this.#rootElement == null) {
+      return;
+    }
+
+    assertNonBlankString(type, "type");
+    assertFunction(handler, "handler");
+
+    const index = this.#rootEvents.findIndex(
+      (event) => event.type === type && event.handler === handler,
+    );
+
+    if (index === -1) {
+      this.#rootElement.addEventListener(type, handler);
+      this.#rootEvents.push({
+        type,
+        handler,
+      });
     }
   }
 
-  #assertNotExistingKey(key) {
-    this.#assertKey(key);
+  offRoot(type, handler) {
+    if (this.#rootElement == null) {
+      return;
+    }
 
-    if (this.#elementMap.has(key)) {
-      throw new Error(`element already exists: ${key}`);
+    assertNonBlankString(type, "type");
+    assertFunction(handler, "handler");
+
+    const index = this.#rootEvents.findIndex(
+      (event) => event.type === type && event.handler === handler,
+    );
+
+    if (index === -1) {
+      return;
+    }
+
+    const event = this.#rootEvents[index];
+
+    this.#rootElement.removeEventListener(event.type, event.handler);
+
+    this.#rootEvents.splice(index, 1);
+  }
+}
+
+function assertHtmlElement(element, fieldName = "element") {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`${fieldName} must be an HTMLElement`);
+  }
+}
+
+function assertKeyExists(key, elementMap) {
+  assertNonBlankString(key, "key");
+
+  if (!elementMap.has(key)) {
+    throw new Error(`element not found: ${key}`);
+  }
+}
+
+function assertKeyNotExists(key, elementMap) {
+  assertNonBlankString(key, "key");
+
+  if (elementMap.has(key)) {
+    throw new Error(`element already exists: ${key}`);
+  }
+}
+
+function assertElementNotExists(element, elementMap, fieldName = "element") {
+  assertHtmlElement(element, fieldName);
+
+  for (const [key, item] of elementMap.entries()) {
+    if (item.element === element) {
+      throw new Error(`${fieldName} already exists: ${key}`);
     }
   }
+}
 
-  #assertElement(element) {
-    if (!(element instanceof HTMLElement)) {
-      throw new Error("element must be an HTMLElement");
-    }
+function assertFunction(value, fieldName = "value") {
+  if (typeof value !== "function") {
+    throw new Error(`${fieldName} must be a function`);
   }
+}
+
+function assertNonBlankString(value, fieldName = "value") {
+  if (!isNonBlankString(value)) {
+    throw new Error(`${fieldName} must be a non-blank string`);
+  }
+}
+
+function isNonBlankString(value) {
+  return typeof value === "string" && value.trim() !== "";
 }

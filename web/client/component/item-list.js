@@ -1,15 +1,10 @@
 import {
-  createElementByHTML,
   validateItemFields,
   filterValue,
-  validateModeValue,
-  validateValue,
-  validateValueExists,
   dispatchItemEvent,
-  isEqualValue,
-  isNullOrEmpty,
 } from "./elm-helper.js";
-import { ItemsElm } from "./elm.js";
+import { ItemsElm } from "./base/items-elm.js";
+import { EventDispatcher } from "./base/event-dispatcher.js";
 
 const DEFAULT_ITEM_ELEMENT_HTML = `
 <div class="item-list-item" data-role="item">
@@ -23,6 +18,7 @@ const DEFAULT_ITEM_ELEMENT_HTML = `
 `;
 
 export class ItemList extends ItemsElm {
+  #className = "item-list";
   // templates
   #itemElementTemplate;
   // state
@@ -36,20 +32,22 @@ export class ItemList extends ItemsElm {
   #onCheckedChange;
 
   constructor(root, options = {}) {
-    const rootClass = options.rootClass ?? "item-list";
-
-    const dataset = options.dataset ?? {};
-    if (options.name != null) {
-      dataset.name = options.name;
-    }
-
     super(root, {
       ...options,
-
-      rootClass,
-      dataset,
+      rootClass: this.#className,
     });
+    this.#init(root, options);
+  }
 
+  init(root, options = {}) {
+    super.init(root, {
+      ...options,
+      rootClass: this.#className,
+    });
+    this.#init(root, options);
+  }
+
+  #init(root, options = {}) {
     this.#initTemplates(options);
     this.#bindEvents();
   }
@@ -61,7 +59,7 @@ export class ItemList extends ItemsElm {
   #initTemplates(options) {
     const itemElementHTML =
       options.itemElementHTML ?? DEFAULT_ITEM_ELEMENT_HTML;
-    this.#itemElementTemplate = createElementByHTML(itemElementHTML);
+    this.#itemElementTemplate = this.createElementByHTML(itemElementHTML);
 
     if (options.itemElementHTML != null) {
       this.#validateItemElementTemplate(this.#itemElementTemplate);
@@ -120,9 +118,8 @@ export class ItemList extends ItemsElm {
     if (isNullOrEmpty(value)) {
       this.#value = null;
     } else {
-      validateModeValue(value, this.#valueMode);
-      validateValue(value);
-      validateValueExists(value, this.items, this.valueField);
+      assertModeValue(value, this.#valueMode, "value");
+      assertValueExists(value, this.items, this.valueField, "value");
 
       this.#value = this.#valueMode === 1 ? value : [...value];
     }
@@ -165,9 +162,8 @@ export class ItemList extends ItemsElm {
     if (isNullOrEmpty(value)) {
       this.#checkedValue = null;
     } else {
-      validateModeValue(value, this.#checkedValueMode);
-      validateValue(value);
-      validateValueExists(value, this.items, this.valueField);
+      assertModeValue(value, this.#checkedValueMode, "checkedValue");
+      assertValueExists(value, this.items, this.valueField, "checkedValue");
 
       this.#checkedValue = this.#checkedValueMode === 1 ? value : [...value];
     }
@@ -217,11 +213,26 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    const clickContentHandler = ({ value }) => {
-      this.setValue(value);
-    };
+    if (this.rootElement == null) {
+      return;
+    }
 
-    const clickCheckboxHandler = ({ value }) => {
+    this.dom.offRoot("click", this.#root_ClickHandler);
+    this.dom.onRoot("click", this.#root_ClickHandler);
+    this.dom.offRoot("dblclick", this.#root_DblclickHandler);
+    this.dom.onRoot("dblclick", this.#root_DblclickHandler);
+  }
+
+  #root_ClickHandler = (event) => {
+    const dispatcher = new EventDispatcher(event);
+
+    dispatcher.dispatch('[data-role="content"]', ({ target }) => {
+      const value = target.closest('[data-role="item"]').dataset.value;
+      this.setValue(value);
+    });
+
+    dispatcher.dispatch('[data-role="checkbox"]', ({ target }) => {
+      const value = target.closest('[data-role="item"]').dataset.value;
       const oldValue = this.#checkedValue ?? [];
 
       const newValue = oldValue.includes(value)
@@ -229,26 +240,20 @@ export class ItemList extends ItemsElm {
         : [...oldValue, value];
 
       this.setCheckedValue(newValue);
-    };
+    });
+  };
 
-    const dblclickContentHandler = ({ value }) => {
+  #root_DblclickHandler = (event) => {
+    const dispatcher = new EventDispatcher(event);
+    dispatcher.dispatch('[data-role="item"]', ({ target }) => {
+      const value = target.dataset.value;
       this.#onDblclick?.({
         target: this,
         value,
         item: this.getItemByValue(value),
       });
-    };
-
-    this.rootElement.addEventListener("click", (event) => {
-      dispatchItemEvent('[data-role="content"]', event, clickContentHandler);
-
-      dispatchItemEvent('[data-role="checkbox"]', event, clickCheckboxHandler);
     });
-
-    this.rootElement.addEventListener("dblclick", (event) => {
-      dispatchItemEvent('[data-role="item"]', event, dblclickContentHandler);
-    });
-  }
+  };
 
   // -----------------------------------------------------------------------------
   // rendering and updating the DOM
@@ -318,3 +323,137 @@ export class ItemList extends ItemsElm {
     });
   }
 }
+
+/** assert value */
+
+function assertModeValue(value, valueMode = 1, fieldName = "value") {
+  if (value == null) {
+    return;
+  }
+
+  if (valueMode === 1) {
+    if (!isNonBlankString(value)) {
+      throw new Error(`${fieldName} must be a non-blank string`);
+    }
+  } else if (valueMode === 2) {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error(`${fieldName} must be a non-empty array`);
+    }
+    for (const v of value) {
+      assertNonBlankString(v, fieldName);
+    }
+    if (value.length !== new Set(value).size) {
+      throw new Error(`${fieldName} must not contain duplicates`);
+    }
+  } else {
+    throw new Error(`invalid valueMode for ${fieldName}: ${valueMode}`);
+  }
+}
+
+function assertValueExists(value, items, valueField, fieldName = "value") {
+  const values = items.map((i) => i[valueField]);
+  const [value_values] = normalizeArray(value);
+
+  const missingValue = value_values.find((v) => !values.includes(v));
+  if (missingValue) {
+    throw new Error(`${fieldName} '${missingValue}' does not exist in items`);
+  }
+}
+
+/** assert base */
+
+function assertNonBlankString(value, fieldName = "value") {
+  if (!isNonBlankString(value)) {
+    throw new Error(`${fieldName} must be a non-blank string`);
+  }
+}
+
+function assertNonBlankStringOrArray(value, fieldName = "value") {
+  const [values, isArray] = normalizeArray(value);
+
+  if (isArray && values.length === 0) {
+    throw new Error(
+      `${fieldName} must be a non-blank string or a non-empty array of non-blank strings`,
+    );
+  }
+
+  for (const v of values) {
+    assertNonBlankString(v, fieldName);
+  }
+}
+
+// ----------------------------------------------
+// Private helper functions
+// ----------------------------------------------
+
+function isNonBlankString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function isNullOrEmpty(value) {
+  if (
+    value == null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? [value, true] : [[value], false];
+}
+
+export function isEqualValue(value1, value2) {
+  if (value1 == null || value2 == null) {
+    return value1 == null && value2 == null;
+  }
+
+  if (typeof value1 === "string" && typeof value2 === "string") {
+    return value1 === value2;
+  }
+
+  if (Array.isArray(value1) && Array.isArray(value2)) {
+    if (value1.length !== value2.length) {
+      return false;
+    }
+
+    const sortedValues1 = [...value1].sort();
+    const sortedValues2 = [...value2].sort();
+
+    return sortedValues1.every(
+      (value, index) => value === sortedValues2[index],
+    );
+  }
+
+  return false;
+}
+
+// function dispatchEvent(selector, event, handler) {
+//   const target = event.target.closest(selector);
+//   if (!target || !event.currentTarget.contains(target)) {
+//     return;
+//   }
+
+//   handler({ event, target });
+// }
+
+// function dispatchItemEvent(selector, event, handler) {
+//   const target = event.target.closest(selector);
+//   if (!target || !event.currentTarget.contains(target)) {
+//     return;
+//   }
+
+//   const itemElement = target.closest('[data-role="item"]');
+//   if (!itemElement || !event.currentTarget.contains(itemElement)) {
+//     return;
+//   }
+
+//   handler({
+//     event,
+//     target,
+//     itemElement,
+//     value: itemElement.dataset.value,
+//   });
+// }
