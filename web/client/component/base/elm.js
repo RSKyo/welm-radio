@@ -1,4 +1,4 @@
-import { ElmDom } from "./elmdom.js";
+import { ElmDom } from "./elm-dom.js";
 
 export class Elm {
   #rootClass;
@@ -7,39 +7,24 @@ export class Elm {
   #dom;
 
   constructor(root, options = {}) {
-    this.#rootClass = options.rootClass;
-    this.#dataset = options.dataset;
-    this.#rootElement = null;
-    this.#dom = null;
-
-    // If a root is provided, initialize the Elm instance with it.
-    // If no root is provided, the Elm instance will be initialized later when init() is called.
-    if (root != null) {
-      this.init(root, { throwIfRootNotFound: false });
-    }
-  }
-
-  get rootElement() {
-    return this.#rootElement;
-  }
-
-  get dom() {
-    return this.#dom;
+    this.init(root, options);
   }
 
   init(root, options = {}) {
-    const {
-      rootClass = this.#rootClass,
-      dataset = this.#dataset,
-      throwIfRootNotFound = true,
-    } = options;
-
-    if (rootClass != null) {
-      assertClassName(rootClass, "rootClass");
+    const oldRootClass = this.#rootClass;
+    if (options.rootClass != null) {
+      assertClassName(options.rootClass, "rootClass");
+      this.#rootClass = options.rootClass;
     }
 
-    if (dataset != null) {
-      assertDataset(dataset, "dataset");
+    const oldDataset = this.#dataset;
+    if (options.dataset != null) {
+      assertDataset(options.dataset, "dataset");
+      this.#dataset = options.dataset;
+    }
+
+    if (root == null) {
+      return;
     }
 
     let element = root;
@@ -52,16 +37,11 @@ export class Elm {
     }
 
     if (!element || !(element instanceof HTMLElement)) {
-      if (throwIfRootNotFound) {
-        throw new Error("root element not found or invalid");
-      }
-      return;
+      throw new Error("root element not found or invalid");
     }
 
     const oldRootElement = this.#rootElement;
     const isSameRoot = oldRootElement === element;
-    const oldRootClass = this.#rootClass;
-    const oldDataset = this.#dataset;
 
     this.#dom?.clear();
 
@@ -78,17 +58,46 @@ export class Elm {
     this.#rootElement = element;
     this.#dom = new ElmDom(element);
 
-    if (rootClass != null) {
-      this.#rootClass = rootClass;
-      this.#rootElement.classList.add(rootClass);
+    if (this.#rootClass != null) {
+      this.#rootElement.classList.add(this.#rootClass);
     }
 
-    if (dataset != null) {
-      this.#dataset = dataset;
-      for (const [key, value] of Object.entries(dataset)) {
+    if (this.#dataset != null) {
+      for (const [key, value] of Object.entries(this.#dataset)) {
         this.#rootElement.dataset[key] = value;
       }
     }
+  }
+
+  get rootElement() {
+    return this.#rootElement;
+  }
+
+  get dom() {
+    return this.#dom;
+  }
+
+  createElementByHTML(html) {
+    if (!isNonBlankString(html)) {
+      throw new Error("html must be a non-blank HTML string");
+    }
+
+    const template = document.createElement("template");
+    template.innerHTML = html.trim();
+
+    const { children } = template.content;
+
+    if (children.length !== 1) {
+      throw new Error("html must contain exactly one root element");
+    }
+
+    const element = children[0];
+
+    if (!(element instanceof HTMLElement)) {
+      throw new Error("html must create an HTMLElement");
+    }
+
+    return element;
   }
 }
 
@@ -96,13 +105,13 @@ export class Elm {
 // Private helper
 // ----------------------------------------------
 
-function assertClassName(className, fieldName) {
+function assertClassName(className, fieldName = "className") {
   if (!isNonBlankString(className) || /\s/.test(className)) {
     throw new Error(`${fieldName} must be a single non-blank CSS class name`);
   }
 }
 
-function assertDataset(dataset, fieldName) {
+function assertDataset(dataset, fieldName = "dataset") {
   if (!isPlainObject(dataset)) {
     throw new Error(`${fieldName} must be a plain object`);
   }

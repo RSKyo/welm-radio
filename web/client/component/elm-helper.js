@@ -2,122 +2,15 @@
 // element
 // -----------------------------------------------------------------------------
 
-export function createElementByHTML(html, fieldName = "html") {
-  if (!isNonBlankString(html)) {
-    throw new Error(`${fieldName} must be a non-blank HTML string`);
-  }
 
-  const template = document.createElement("template");
-  template.innerHTML = html.trim();
-
-  const { children } = template.content;
-
-  if (children.length !== 1) {
-    throw new Error(`${fieldName} must contain exactly one root element`);
-  }
-
-  const element = children[0];
-
-  if (!(element instanceof HTMLElement)) {
-    throw new Error(`${fieldName} must create an HTMLElement`);
-  }
-
-  return element;
-}
-
-// -----------------------------------------------------------------------------
-// resolve text, value, tooltip fields
-// -----------------------------------------------------------------------------
-
-const textFieldCandidates = ["text", "label", "name", "title"];
-const valueFieldCandidates = ["value", "id"];
-const tooltipFieldCandidates = [
-  "tooltip",
-  "description",
-  "text",
-  "label",
-  "name",
-  "title",
-];
-
-export function detectFields(items) {
-  return {
-    textField: detectField(textFieldCandidates, items),
-    valueField: detectField(valueFieldCandidates, items),
-    tooltipField: detectField(tooltipFieldCandidates, items),
-  };
-}
-
-function detectField(candidates, items) {
-  const defaultField = candidates[0];
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return defaultField;
-  }
-
-  for (const field of candidates) {
-    if (Object.hasOwn(items[0], field)) {
-      return field;
-    }
-  }
-
-  return defaultField;
-}
 
 // -----------------------------------------------------------------------------
 // validate item
 // -----------------------------------------------------------------------------
 
-export function validateItems(items) {
-  if (items == null) {
-    return;
-  }
 
-  if (!Array.isArray(items)) {
-    throw new Error("items must be an array");
-  }
 
-  for (const item of items) {
-    if (!isPlainObject(item)) {
-      throw new Error("item must be a plain object");
-    }
-  }
-}
 
-export function validateItemFields(input, textField, valueField) {
-  if (input == null) {
-    return;
-  }
-
-  const items = Array.isArray(input) ? input : [input];
-
-  for (const item of items) {
-    if (!isPlainObject(item)) {
-      throw new Error("item must be a plain object");
-    }
-
-    if (!Object.hasOwn(item, textField)) {
-      throw new Error(`item is missing the ${textField} field`);
-    }
-
-    if (!Object.hasOwn(item, valueField)) {
-      throw new Error(`item is missing the ${valueField} field`);
-    }
-
-    if (!isNonBlankString(item[textField])) {
-      throw new Error(`item.${textField} must be a non-blank string`);
-    }
-
-    if (!isNonBlankString(item[valueField])) {
-      throw new Error(`item.${valueField} must be a non-blank string`);
-    }
-  }
-
-  const values = new Set(items.map((item) => item[valueField]));
-  if (values.size !== items.length) {
-    throw new Error("items must not contain duplicate values");
-  }
-}
 
 // -----------------------------------------------------------------------------
 // filter value
