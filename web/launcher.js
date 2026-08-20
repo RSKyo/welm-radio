@@ -2,7 +2,7 @@
 import { fileURLToPath } from "node:url";
 import nodePath from "node:path";
 
-import { config } from "welm-cdp/common/config";
+import { config } from "welm-cdp/infra/config";
 import {
   isServerReady,
   startServer,

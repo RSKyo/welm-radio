@@ -3,8 +3,8 @@ import nodePath from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { config } from "welm-cdp/common/config";
-import { assertExistingFile } from "welm-cdp/common/assert";
+import { config } from "welm-cdp/infra/config";
+import { assertExistingFile } from "welm-cdp/infra/assert";
 import { readFileTextSync, removeFileSync } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
 

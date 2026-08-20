@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 
 import { readFileJsonSync, writeFileJsonSync } from "welm-cdp/fs";
-import { assertPlainObject, assertAbsolutePath } from "welm-cdp/common/assert";
+import { assertPlainObject, assertAbsolutePath } from "welm-cdp/infra/assert";
 
 function createDefaultMeta(options = {}) {
   return {

@@ -4,8 +4,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 
-import { config } from "welm-cdp/common/config";
-import { log } from "welm-cdp/common/log";
+import { config } from "welm-cdp/infra/config";
+import { log } from "welm-cdp/infra/log";
 import {
   scanFilesSync,
   removeFileSync,
@@ -18,7 +18,7 @@ import {
   assertAbsolutePath,
   assertExistingFile,
   assertPlainObject,
-} from "welm-cdp/common/assert";
+} from "welm-cdp/infra/assert";
 
 import { loadMeta, saveMeta } from "./meta.service.js";
 
