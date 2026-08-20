@@ -16,19 +16,7 @@
 // filter value
 // -----------------------------------------------------------------------------
 
-export function filterValue(value, items, valueField) {
-  const isArray = Array.isArray(value);
-  const values = isArray ? [...value] : [value];
-  const itemValues = items.map((item) => item[valueField]);
 
-  const filteredValues = values.filter((v) => itemValues.includes(v));
-
-  if (filteredValues.length === 0) {
-    return null;
-  }
-
-  return isArray ? filteredValues : filteredValues[0];
-}
 
 // -----------------------------------------------------------------------------
 // validate value

@@ -29,7 +29,7 @@ export class ElmDom {
     this.clear();
 
     for (const event of this.#rootEvents) {
-      this.#rootElement.removeEventListener(event.type, event.handler);
+      this.#rootElement.removeEventListener(event.type, event.wrapper);
     }
 
     this.#rootElement = null;
@@ -83,7 +83,7 @@ export class ElmDom {
 
     // Remove all event listeners from the element.
     for (const event of current.events) {
-      current.element.removeEventListener(event.type, event.handler);
+      current.element.removeEventListener(event.type, event.wrapper);
     }
 
     current.element.remove();
@@ -106,8 +106,8 @@ export class ElmDom {
     }
 
     for (const event of current.events) {
-      oldElement.removeEventListener(event.type, event.handler);
-      newElement.addEventListener(event.type, event.handler);
+      oldElement.removeEventListener(event.type, event.wrapper);
+      newElement.addEventListener(event.type, event.wrapper);
     }
 
     oldElement.replaceWith(newElement);
@@ -152,88 +152,107 @@ export class ElmDom {
 
   on(key, type, handler) {
     assertKeyExists(key, this.#elementMap);
-    assertNonBlankString(type, "type");
-    assertFunction(handler, "handler");
+    const { element, events } = this.#elementMap.get(key);
 
-    const item = this.#elementMap.get(key);
-
-    const index = item.events.findIndex(
-      (event) => event.type === type && event.handler === handler,
-    );
-
-    if (index === -1) {
-      item.element.addEventListener(type, handler);
-      item.events.push({
-        type,
-        handler,
-      });
-    }
+    this.#registerEvent(element, type, handler, events);
   }
 
   off(key, type, handler) {
     assertKeyExists(key, this.#elementMap);
-    assertNonBlankString(type, "type");
-    assertFunction(handler, "handler");
+    const { element, events } = this.#elementMap.get(key);
 
-    const item = this.#elementMap.get(key);
-
-    const index = item.events.findIndex(
-      (event) => event.type === type && event.handler === handler,
-    );
-
-    if (index === -1) {
-      return;
-    }
-
-    const event = item.events[index];
-
-    item.element.removeEventListener(event.type, event.handler);
-
-    item.events.splice(index, 1);
+    this.#unregisterEvent(element, type, handler, events);
   }
 
   onRoot(type, handler) {
-    if (this.#rootElement == null) {
-      return;
-    }
-
-    assertNonBlankString(type, "type");
-    assertFunction(handler, "handler");
-
-    const index = this.#rootEvents.findIndex(
-      (event) => event.type === type && event.handler === handler,
-    );
-
-    if (index === -1) {
-      this.#rootElement.addEventListener(type, handler);
-      this.#rootEvents.push({
-        type,
-        handler,
-      });
-    }
+    this.#registerEvent(this.#rootElement, type, handler, this.#rootEvents);
   }
 
   offRoot(type, handler) {
-    if (this.#rootElement == null) {
+    this.#unregisterEvent(this.#rootElement, type, handler, this.#rootEvents);
+  }
+
+  #registerEvent(element, eventType, handler, eventRegistry) {
+    if (element == null) {
       return;
     }
 
-    assertNonBlankString(type, "type");
+    assertHtmlElement(element, "element");
+    assertNonBlankString(eventType, "eventType");
     assertFunction(handler, "handler");
+    assertEventRegistry(eventRegistry);
 
-    const index = this.#rootEvents.findIndex(
-      (event) => event.type === type && event.handler === handler,
+    const index = eventRegistry.findIndex(
+      (event) => event.eventType === eventType && event.handler === handler,
+    );
+
+    if (index !== -1) {
+      return;
+    }
+
+    const wrapper = (event) => {
+      const targetClosest = (selector, closestHandler, notFoundHandler) => {
+        assertNonBlankString(selector, "selector");
+        if (closestHandler) {
+          assertFunction(closestHandler, "closestHandler");
+        }
+        if (notFoundHandler) {
+          assertFunction(notFoundHandler, "notFoundHandler");
+        }
+
+        const { target, currentTarget } = event;
+
+        if (
+          !(target instanceof Element) ||
+          !(currentTarget instanceof Element)
+        ) {
+          return;
+        }
+
+        const element = target.closest(selector);
+
+        if (element == null || !currentTarget.contains(element)) {
+          notFoundHandler?.({ event });
+        } else {
+          closestHandler?.({ event, target: element });
+        }
+        return element;
+      };
+      handler(event, { targetClosest });
+    };
+
+    element.addEventListener(eventType, wrapper);
+
+    eventRegistry.push({
+      eventType,
+      wrapper,
+      handler,
+    });
+  }
+
+  #unregisterEvent(element, eventType, handler, eventRegistry) {
+    if (element == null) {
+      return;
+    }
+
+    assertHtmlElement(element, "element");
+    assertNonBlankString(eventType, "eventType");
+    assertFunction(handler, "handler");
+    assertEventRegistry(eventRegistry);
+
+    const index = eventRegistry.findIndex(
+      (event) => event.eventType === eventType && event.handler === handler,
     );
 
     if (index === -1) {
       return;
     }
 
-    const event = this.#rootEvents[index];
+    const { wrapper } = eventRegistry[index];
 
-    this.#rootElement.removeEventListener(event.type, event.handler);
+    element.removeEventListener(eventType, wrapper);
 
-    this.#rootEvents.splice(index, 1);
+    eventRegistry.splice(index, 1);
   }
 }
 
@@ -275,6 +294,23 @@ function assertFunction(value, fieldName = "value") {
   }
 }
 
+function assertEventRegistry(eventRegistry) {
+  if (!Array.isArray(eventRegistry)) {
+    throw new Error("eventRegistry must be an array");
+  }
+
+  for (const event of eventRegistry) {
+    if (
+      isPlainObject(event) === false ||
+      !("eventType" in event) ||
+      !("wrapper" in event) ||
+      !("handler" in event)
+    ) {
+      throw new Error("eventRegistry must be an array of event objects");
+    }
+  }
+}
+
 function assertNonBlankString(value, fieldName = "value") {
   if (!isNonBlankString(value)) {
     throw new Error(`${fieldName} must be a non-blank string`);
@@ -283,4 +319,14 @@ function assertNonBlankString(value, fieldName = "value") {
 
 function isNonBlankString(value) {
   return typeof value === "string" && value.trim() !== "";
+}
+
+function isPlainObject(value) {
+  if (Object.prototype.toString.call(value) !== "[object Object]") {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+
+  return proto === Object.prototype || proto === null;
 }

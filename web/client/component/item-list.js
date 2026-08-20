@@ -1,10 +1,4 @@
-import {
-  validateItemFields,
-  filterValue,
-  dispatchItemEvent,
-} from "./elm-helper.js";
-import { ItemsElm } from "./base/items-elm.js";
-import { EventDispatcher } from "./base/event-dispatcher.js";
+import { ItemsElm, filterValue } from "./base/items-elm.js";
 
 const DEFAULT_ITEM_ELEMENT_HTML = `
 <div class="item-list-item" data-role="item">
@@ -217,22 +211,18 @@ export class ItemList extends ItemsElm {
       return;
     }
 
-    this.dom.offRoot("click", this.#root_ClickHandler);
     this.dom.onRoot("click", this.#root_ClickHandler);
-    this.dom.offRoot("dblclick", this.#root_DblclickHandler);
     this.dom.onRoot("dblclick", this.#root_DblclickHandler);
   }
 
-  #root_ClickHandler = (event) => {
-    const dispatcher = new EventDispatcher(event);
+  #root_ClickHandler = (event, { targetClosest }) => {
+    const value = targetClosest('[data-role="item"]')?.dataset.value;
 
-    dispatcher.dispatch('[data-role="content"]', ({ target }) => {
-      const value = target.closest('[data-role="item"]').dataset.value;
+    targetClosest('[data-role="content"]', ({ target }) => {
       this.setValue(value);
     });
 
-    dispatcher.dispatch('[data-role="checkbox"]', ({ target }) => {
-      const value = target.closest('[data-role="item"]').dataset.value;
+    targetClosest('[data-role="checkbox"]', ({ target }) => {
       const oldValue = this.#checkedValue ?? [];
 
       const newValue = oldValue.includes(value)
@@ -243,21 +233,64 @@ export class ItemList extends ItemsElm {
     });
   };
 
-  #root_DblclickHandler = (event) => {
-    const dispatcher = new EventDispatcher(event);
-    dispatcher.dispatch('[data-role="item"]', ({ target }) => {
-      const value = target.dataset.value;
+  #root_DblclickHandler = (event, { targetClosest }) => {
+    const target = targetClosest('[data-role="item"]');
+    if (target != null) {
       this.#onDblclick?.({
         target: this,
-        value,
-        item: this.getItemByValue(value),
+        value: target.dataset.value,
+        item: this.getItemByValue(target.dataset.value),
       });
-    });
+    }
   };
 
-  // -----------------------------------------------------------------------------
-  // rendering and updating the DOM
-  // -----------------------------------------------------------------------------
+  #updateSelectedState() {
+    this.eachItem(({ element, value }) => {
+      if (!element) return;
+
+      let selected = false;
+      if (this.#valueMode === 1) {
+        selected = this.#value === value;
+      } else if (this.#valueMode === 2) {
+        selected = this.#value?.includes(value) ?? false;
+      }
+
+      element.classList.toggle("is-selected", selected);
+    });
+  }
+
+  #updateCheckedState() {
+    this.eachItem(({ element, value }) => {
+      if (!element) return;
+
+      let checked = false;
+      if (this.#checkedValueMode === 1) {
+        checked = this.#checkedValue === value;
+      } else if (this.#checkedValueMode === 2) {
+        checked = this.#checkedValue?.includes(value) ?? false;
+      }
+
+      element.classList.toggle("is-checked", checked);
+
+      const checkbox = element.querySelector('[data-role="checkbox"]');
+      checkbox?.checked = checked;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // overrides
+  // ---------------------------------------------------------------------------
+
+  // Override
+  onItemsChange(items) {
+    if (isNullOrEmpty(items)) {
+      this.#value = null;
+      this.#checkedValue = null;
+    } else {
+      this.#value = filterValue(this.#value, this.itemValues);
+      this.#checkedValue = filterValue(this.#checkedValue, this.itemValues);
+    }
+  }
 
   // override
   createItemElement(item) {
@@ -275,52 +308,8 @@ export class ItemList extends ItemsElm {
 
   // override
   afterRender(items) {
-    if (isNullOrEmpty(items)) {
-      this.#value = null;
-      this.#checkedValue = null;
-    } else {
-      this.#value = filterValue(this.#value, items, this.valueField);
-      this.#checkedValue = filterValue(
-        this.#checkedValue,
-        items,
-        this.valueField,
-      );
-
-      this.#updateState();
-    }
-  }
-
-  // override
-  afterUpdateItem(newItem) {
-    this.#updateState();
-  }
-
-  #updateState() {
     this.#updateSelectedState();
     this.#updateCheckedState();
-  }
-
-  #updateSelectedState() {
-    this.root.each((key, element) => {
-      if (this.#valueMode === 1) {
-        element.classList.toggle("is-selected", this.#value === key);
-      } else if (this.#valueMode === 2) {
-        element.classList.toggle(
-          "is-selected",
-          this.#value?.includes(key) ?? false,
-        );
-      }
-    });
-  }
-
-  #updateCheckedState() {
-    this.root.each((key, element) => {
-      const checked =
-        this.#checkedValue?.includes(element.dataset.value) ?? false;
-      const checkbox = element.querySelector('[data-role="checkbox"]');
-      checkbox.checked = checked;
-      element.classList.toggle("is-checked", checked);
-    });
   }
 }
 
@@ -405,7 +394,7 @@ function normalizeArray(value) {
   return Array.isArray(value) ? [value, true] : [[value], false];
 }
 
-export function isEqualValue(value1, value2) {
+function isEqualValue(value1, value2) {
   if (value1 == null || value2 == null) {
     return value1 == null && value2 == null;
   }
@@ -430,30 +419,6 @@ export function isEqualValue(value1, value2) {
   return false;
 }
 
-// function dispatchEvent(selector, event, handler) {
-//   const target = event.target.closest(selector);
-//   if (!target || !event.currentTarget.contains(target)) {
-//     return;
-//   }
-
-//   handler({ event, target });
-// }
-
-// function dispatchItemEvent(selector, event, handler) {
-//   const target = event.target.closest(selector);
-//   if (!target || !event.currentTarget.contains(target)) {
-//     return;
-//   }
-
-//   const itemElement = target.closest('[data-role="item"]');
-//   if (!itemElement || !event.currentTarget.contains(itemElement)) {
-//     return;
-//   }
-
-//   handler({
-//     event,
-//     target,
-//     itemElement,
-//     value: itemElement.dataset.value,
-//   });
-// }
+function normalizeArray(value) {
+  return Array.isArray(value) ? [value, true] : [[value], false];
+}

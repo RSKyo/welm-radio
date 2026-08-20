@@ -81,7 +81,31 @@ export class ItemsElm extends Elm {
       this.#items = items.map((item) => ({ ...item }));
     }
 
+    this.onItemsChange(this.#items);
     this.#render(this.#items);
+    this.afterSetItems(this.#items);
+  }
+
+  onItemsChange(items) {
+    // Override this method to perform actions after items have changed.
+  }
+
+  afterSetItems(items) {
+    // Override this method to perform actions after setting items.
+  }
+
+  get itemValues() {
+    return this.#items.map((item) => item[this.#valueField]);
+  }
+
+  eachItem(callback) {
+    assertFunction(callback, "callback");
+
+    this.#items.forEach((item, index) => {
+      const value = item[this.#valueField];
+      const element = this.dom.get(value) ?? null;
+      callback({ item, index, value, element });
+    });
   }
 
   addItem(item) {
@@ -93,6 +117,7 @@ export class ItemsElm extends Elm {
       this.#items.push({ ...tmp });
     });
 
+    this.onItemsChange(this.#items);
     this.#render(this.#items);
     this.afterAddItem(item);
   }
@@ -116,6 +141,7 @@ export class ItemsElm extends Elm {
       this.#items[index] = { ...tmp };
     });
 
+    this.onItemsChange(this.#items);
     this.#render(this.#items);
     this.afterUpdateItem(item);
   }
@@ -134,6 +160,7 @@ export class ItemsElm extends Elm {
       (item) => !values.includes(item[this.#valueField]),
     );
 
+    this.onItemsChange(this.#items);
     this.#render(this.#items);
     this.afterRemoveItem(value);
   }
@@ -247,6 +274,18 @@ export class ItemsElm extends Elm {
   afterRender(items) {
     // Override this method to perform actions after rendering items.
   }
+}
+
+export function filterValue(value, itemValues) {
+  const [values,isArray] = normalizeArray(value);
+
+  const filteredValues = values.filter((v) => itemValues.includes(v));
+
+  if (filteredValues.length === 0) {
+    return null;
+  }
+
+  return isArray ? filteredValues : filteredValues[0];
 }
 
 // ----------------------------------------------
@@ -384,6 +423,13 @@ function assertNonBlankStringOrArray(value, fieldName = "value") {
 
   for (const v of values) {
     assertNonBlankString(v, fieldName);
+  }
+}
+
+
+function assertFunction(value, fieldName = "value") {
+  if (typeof value !== "function") {
+    throw new Error(`${fieldName} must be a function`);
   }
 }
 
