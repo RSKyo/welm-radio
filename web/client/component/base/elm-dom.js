@@ -44,7 +44,7 @@ export class ElmDom {
     }
 
     if (parentKey !== null) {
-      assertKeyExists(parentKey, this.#elementMap);
+      assertKeyExists(parentKey, this.#elementMap, "parentKey");
       const parent = this.#elementMap.get(parentKey);
       parent.element.appendChild(newElement);
       parent.childKeys.push(key);
@@ -66,7 +66,7 @@ export class ElmDom {
   }
 
   remove(key) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
 
     // Remove all child elements recursively.
     for (const childKey of this.childKeys(key)) {
@@ -91,7 +91,7 @@ export class ElmDom {
   }
 
   replace(key, newElement) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
     assertElementNotExists(newElement, this.#elementMap, "newElement");
     if (newElement === this.#rootElement) {
       throw new Error("newElement cannot be the root element");
@@ -119,7 +119,7 @@ export class ElmDom {
   }
 
   childKeys(key) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
 
     return [...this.#elementMap.get(key).childKeys];
   }
@@ -129,7 +129,7 @@ export class ElmDom {
   }
 
   children(key) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
 
     return this.childKeys(key).map((childKey) => this.get(childKey));
   }
@@ -151,14 +151,14 @@ export class ElmDom {
   }
 
   on(key, type, handler) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
     const { element, events } = this.#elementMap.get(key);
 
     this.#registerEvent(element, type, handler, events);
   }
 
   off(key, type, handler) {
-    assertKeyExists(key, this.#elementMap);
+    assertKeyExists(key, this.#elementMap, "key");
     const { element, events } = this.#elementMap.get(key);
 
     this.#unregisterEvent(element, type, handler, events);
@@ -256,27 +256,9 @@ export class ElmDom {
   }
 }
 
-function assertHtmlElement(element, fieldName = "element") {
-  if (!(element instanceof HTMLElement)) {
-    throw new Error(`${fieldName} must be an HTMLElement`);
-  }
-}
-
-function assertKeyExists(key, elementMap) {
-  assertNonBlankString(key, "key");
-
-  if (!elementMap.has(key)) {
-    throw new Error(`element not found: ${key}`);
-  }
-}
-
-function assertKeyNotExists(key, elementMap) {
-  assertNonBlankString(key, "key");
-
-  if (elementMap.has(key)) {
-    throw new Error(`element already exists: ${key}`);
-  }
-}
+// ---------------------------------------------------------------------------
+// assertions for ElmDom
+// ---------------------------------------------------------------------------
 
 function assertElementNotExists(element, elementMap, fieldName = "element") {
   assertHtmlElement(element, fieldName);
@@ -285,12 +267,6 @@ function assertElementNotExists(element, elementMap, fieldName = "element") {
     if (item.element === element) {
       throw new Error(`${fieldName} already exists: ${key}`);
     }
-  }
-}
-
-function assertFunction(value, fieldName = "value") {
-  if (typeof value !== "function") {
-    throw new Error(`${fieldName} must be a function`);
   }
 }
 
@@ -311,17 +287,61 @@ function assertEventRegistry(eventRegistry) {
   }
 }
 
-function assertNonBlankString(value, fieldName = "value") {
+// ---------------------------------------------------------------------------
+// assertions for common types
+// ---------------------------------------------------------------------------
+
+function assertKeyExists(key, target, fieldName = "key") {
+  assertNonBlankString(key, "key");
+
+  if (!hasKey(target, key)) {
+    throw new Error(`${fieldName} not found: ${key}`);
+  }
+}
+
+function assertKeyNotExists(key, target, fieldName = "key") {
+  assertNonBlankString(key, "key");
+
+  if (hasKey(target, key)) {
+    throw new Error(`${fieldName} already exists: ${key}`);
+  }
+}
+
+function hasKey(target, key) {
+  if (isPlainObject(target)) {
+    return Object.hasOwn(target, key);
+  }
+
+  if (isMap(target)) {
+    return target.has(key);
+  }
+
+  throw new Error("target must be a plain object or a Map");
+}
+
+export function assertHtmlElement(element, fieldName = "element") {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`${fieldName} must be an HTMLElement`);
+  }
+}
+
+export function assertFunction(value, fieldName = "value") {
+  if (typeof value !== "function") {
+    throw new Error(`${fieldName} must be a function`);
+  }
+}
+
+export function assertNonBlankString(value, fieldName = "value") {
   if (!isNonBlankString(value)) {
     throw new Error(`${fieldName} must be a non-blank string`);
   }
 }
 
-function isNonBlankString(value) {
+export function isNonBlankString(value) {
   return typeof value === "string" && value.trim() !== "";
 }
 
-function isPlainObject(value) {
+export function isPlainObject(value) {
   if (Object.prototype.toString.call(value) !== "[object Object]") {
     return false;
   }
@@ -329,4 +349,12 @@ function isPlainObject(value) {
   const proto = Object.getPrototypeOf(value);
 
   return proto === Object.prototype || proto === null;
+}
+
+export function isMap(value) {
+  return Object.prototype.toString.call(value) === "[object Map]";
+}
+
+export function isSet(value) {
+  return Object.prototype.toString.call(value) === "[object Set]";
 }
