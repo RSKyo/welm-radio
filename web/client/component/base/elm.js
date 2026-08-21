@@ -1,4 +1,12 @@
 import { ElmDom } from "./elm-dom.js";
+import {
+  isNonBlankString,
+  isHtmlElement,
+  assertSelectorOrHtmlElement,
+  assertHtmlElement,
+  assertNonBlankString,
+  assertPlainObject,
+} from "welm-cdp/infra/assert";
 
 export class Elm {
   #rootClass;
@@ -86,67 +94,63 @@ export class Elm {
   get dom() {
     return this.#dom;
   }
-
-  createElementByHTML(html) {
-    if (!isNonBlankString(html)) {
-      throw new Error("html must be a non-blank HTML string");
-    }
-
-    const template = document.createElement("template");
-    template.innerHTML = html.trim();
-
-    const { children } = template.content;
-
-    if (children.length !== 1) {
-      throw new Error("html must contain exactly one root element");
-    }
-
-    const element = children[0];
-
-    if (!(element instanceof HTMLElement)) {
-      throw new Error("html must create an HTMLElement");
-    }
-
-    return element;
-  }
 }
 
-// ----------------------------------------------
-// Private helper
-// ----------------------------------------------
-
 function assertClassName(className, fieldName = "className") {
-  if (!isNonBlankString(className) || /\s/.test(className)) {
+  assertNonBlankString(className, fieldName);
+
+  if (/\s/.test(className)) {
     throw new Error(`${fieldName} must be a single non-blank CSS class name`);
   }
 }
 
 function assertDataset(dataset, fieldName = "dataset") {
-  if (!isPlainObject(dataset)) {
-    throw new Error(`${fieldName} must be a plain object`);
-  }
+  assertPlainObject(dataset, fieldName);
 
   for (const [key, value] of Object.entries(dataset)) {
-    if (!isNonBlankString(key)) {
-      throw new Error(`${fieldName} key must be a non-blank string`);
-    }
-
     if (!isNonBlankString(value)) {
       throw new Error(`${fieldName}.${key} value must be a non-blank string`);
     }
   }
 }
 
-function isNonBlankString(value) {
-  return typeof value === "string" && value.trim() !== "";
-}
+function getElement(target) {
+  assertSelectorOrHtmlElement(target, "target");
 
-function isPlainObject(value) {
-  if (Object.prototype.toString.call(value) !== "[object Object]") {
-    return false;
+  if (isHtmlElement(target)) {
+    return target;
   }
 
-  const proto = Object.getPrototypeOf(value);
+  const element = target.startsWith("#")
+    ? document.getElementById(target.slice(1))
+    : document.querySelector(target);
 
-  return proto === Object.prototype || proto === null;
+  if (!element || !(element instanceof HTMLElement)) {
+    throw new Error("element not found or invalid");
+  }
+
+  return element;
+}
+
+function createElementByHTML(html) {
+  if (!isNonBlankString(html)) {
+    throw new Error("html must be a non-blank HTML string");
+  }
+
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+
+  const { children } = template.content;
+
+  if (children.length !== 1) {
+    throw new Error("html must contain exactly one root element");
+  }
+
+  const element = children[0];
+
+  if (!(element instanceof HTMLElement)) {
+    throw new Error("html must create an HTMLElement");
+  }
+
+  return element;
 }

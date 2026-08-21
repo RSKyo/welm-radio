@@ -1,3 +1,12 @@
+import {
+  assertPlainObjectArray,
+  assertKeyExists,
+  assertKeyNotExists,
+  assertHtmlElement,
+  assertFunction,
+  assertNonBlankString,
+} from "welm-cdp/infra/assert";
+
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
 export class ElmDom {
@@ -180,7 +189,7 @@ export class ElmDom {
     assertHtmlElement(element, "element");
     assertNonBlankString(eventType, "eventType");
     assertFunction(handler, "handler");
-    assertEventRegistry(eventRegistry);
+    assertPlainObjectArray(eventRegistry, "eventRegistry");
 
     const index = eventRegistry.findIndex(
       (event) => event.eventType === eventType && event.handler === handler,
@@ -193,10 +202,10 @@ export class ElmDom {
     const wrapper = (event) => {
       const targetClosest = (selector, closestHandler, notFoundHandler) => {
         assertNonBlankString(selector, "selector");
-        if (closestHandler) {
+        if (closestHandler != null) {
           assertFunction(closestHandler, "closestHandler");
         }
-        if (notFoundHandler) {
+        if (notFoundHandler != null) {
           assertFunction(notFoundHandler, "notFoundHandler");
         }
 
@@ -206,16 +215,17 @@ export class ElmDom {
           !(target instanceof Element) ||
           !(currentTarget instanceof Element)
         ) {
-          return;
+          return null;
         }
 
         const element = target.closest(selector);
 
         if (element == null || !currentTarget.contains(element)) {
           notFoundHandler?.({ event });
-        } else {
-          closestHandler?.({ event, target: element });
+          return null;
         }
+
+        closestHandler?.({ event, target: element });
         return element;
       };
       handler(event, { targetClosest });
@@ -238,7 +248,7 @@ export class ElmDom {
     assertHtmlElement(element, "element");
     assertNonBlankString(eventType, "eventType");
     assertFunction(handler, "handler");
-    assertEventRegistry(eventRegistry);
+    assertPlainObjectArray(eventRegistry, "eventRegistry");
 
     const index = eventRegistry.findIndex(
       (event) => event.eventType === eventType && event.handler === handler,
@@ -256,105 +266,12 @@ export class ElmDom {
   }
 }
 
-// ---------------------------------------------------------------------------
-// assertions for ElmDom
-// ---------------------------------------------------------------------------
-
 function assertElementNotExists(element, elementMap, fieldName = "element") {
   assertHtmlElement(element, fieldName);
 
-  for (const [key, item] of elementMap.entries()) {
+  for (const [key, item] of elementMap) {
     if (item.element === element) {
       throw new Error(`${fieldName} already exists: ${key}`);
     }
   }
-}
-
-function assertEventRegistry(eventRegistry) {
-  if (!Array.isArray(eventRegistry)) {
-    throw new Error("eventRegistry must be an array");
-  }
-
-  for (const event of eventRegistry) {
-    if (
-      isPlainObject(event) === false ||
-      !("eventType" in event) ||
-      !("wrapper" in event) ||
-      !("handler" in event)
-    ) {
-      throw new Error("eventRegistry must be an array of event objects");
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// assertions for common types
-// ---------------------------------------------------------------------------
-
-function assertKeyExists(key, target, fieldName = "key") {
-  assertNonBlankString(key, "key");
-
-  if (!hasKey(target, key)) {
-    throw new Error(`${fieldName} not found: ${key}`);
-  }
-}
-
-function assertKeyNotExists(key, target, fieldName = "key") {
-  assertNonBlankString(key, "key");
-
-  if (hasKey(target, key)) {
-    throw new Error(`${fieldName} already exists: ${key}`);
-  }
-}
-
-function hasKey(target, key) {
-  if (isPlainObject(target)) {
-    return Object.hasOwn(target, key);
-  }
-
-  if (isMap(target)) {
-    return target.has(key);
-  }
-
-  throw new Error("target must be a plain object or a Map");
-}
-
-export function assertHtmlElement(element, fieldName = "element") {
-  if (!(element instanceof HTMLElement)) {
-    throw new Error(`${fieldName} must be an HTMLElement`);
-  }
-}
-
-export function assertFunction(value, fieldName = "value") {
-  if (typeof value !== "function") {
-    throw new Error(`${fieldName} must be a function`);
-  }
-}
-
-export function assertNonBlankString(value, fieldName = "value") {
-  if (!isNonBlankString(value)) {
-    throw new Error(`${fieldName} must be a non-blank string`);
-  }
-}
-
-export function isNonBlankString(value) {
-  return typeof value === "string" && value.trim() !== "";
-}
-
-export function isPlainObject(value) {
-  if (Object.prototype.toString.call(value) !== "[object Object]") {
-    return false;
-  }
-
-  const proto = Object.getPrototypeOf(value);
-
-  return proto === Object.prototype || proto === null;
-}
-
-export function isMap(value) {
-  return Object.prototype.toString.call(value) === "[object Map]";
-}
-
-export function isSet(value) {
-  return Object.prototype.toString.call(value) === "[object Set]";
 }

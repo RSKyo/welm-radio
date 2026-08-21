@@ -78,23 +78,3 @@ export function assertTime(value, fieldName = "time") {
 
   return value;
 }
-
-export function assertNumber(value, fieldName = "value") {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${fieldName} must be a finite number`);
-  }
-
-  return value;
-}
-
-export function assertInteger(value, fieldName = "value") {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value) ||
-    !Number.isInteger(value)
-  ) {
-    throw new Error(`${fieldName} must be a finite integer`);
-  }
-
-  return value;
-}
