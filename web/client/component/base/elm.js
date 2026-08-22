@@ -6,6 +6,7 @@ import {
   assertHtmlElement,
   assertNonBlankString,
   assertPlainObject,
+  assertStringPlainObject,
 } from "welm-cdp/infra/assert";
 
 export class Elm {
@@ -23,15 +24,17 @@ export class Elm {
   }
 
   #init(root, options = {}) {
+    assertPlainObject(options, "options");
+
     const oldRootClass = this.#rootClass;
     if (options.rootClass != null) {
-      assertClassName(options.rootClass, "rootClass");
+      assertNonBlankString(options.rootClass, "rootClass");
       this.#rootClass = options.rootClass;
     }
 
     const oldDataset = this.#dataset;
     if (options.dataset != null) {
-      assertDataset(options.dataset, "dataset");
+      assertStringPlainObject(options.dataset, "dataset");
       this.#dataset = options.dataset;
     }
 
@@ -42,20 +45,8 @@ export class Elm {
       return;
     }
 
-    let rootElement = root;
-
-    if (isNonBlankString(root)) {
-      if (root.startsWith("#")) {
-        root = root.slice(1);
-      }
-      rootElement = document.getElementById(root);
-    }
-
-    if (!rootElement || !(rootElement instanceof HTMLElement)) {
-      throw new Error("root element not found or invalid");
-    }
-
     const oldRootElement = this.#rootElement;
+    const rootElement = this.#resolveElement(root);
     const isSameRoot = oldRootElement === rootElement;
 
     if (isSameRoot && oldRootClass != null) {
@@ -94,63 +85,46 @@ export class Elm {
   get dom() {
     return this.#dom;
   }
-}
 
-function assertClassName(className, fieldName = "className") {
-  assertNonBlankString(className, fieldName);
+  #resolveElement(target) {
+    assertSelectorOrHtmlElement(target, "target");
 
-  if (/\s/.test(className)) {
-    throw new Error(`${fieldName} must be a single non-blank CSS class name`);
-  }
-}
-
-function assertDataset(dataset, fieldName = "dataset") {
-  assertPlainObject(dataset, fieldName);
-
-  for (const [key, value] of Object.entries(dataset)) {
-    if (!isNonBlankString(value)) {
-      throw new Error(`${fieldName}.${key} value must be a non-blank string`);
+    if (isHtmlElement(target)) {
+      return target;
     }
-  }
-}
 
-function getElement(target) {
-  assertSelectorOrHtmlElement(target, "target");
+    const element = target.startsWith("#")
+      ? document.getElementById(target.slice(1))
+      : document.querySelector(target);
 
-  if (isHtmlElement(target)) {
-    return target;
-  }
+    assertHtmlElement(element, "target");
 
-  const element = target.startsWith("#")
-    ? document.getElementById(target.slice(1))
-    : document.querySelector(target);
-
-  if (!element || !(element instanceof HTMLElement)) {
-    throw new Error("element not found or invalid");
+    return element;
   }
 
-  return element;
-}
-
-function createElementByHTML(html) {
-  if (!isNonBlankString(html)) {
-    throw new Error("html must be a non-blank HTML string");
+  resolveElement(target) {
+    return this.#resolveElement(target);
   }
 
-  const template = document.createElement("template");
-  template.innerHTML = html.trim();
+  createElementByHTML(html) {
+    assertNonBlankString(html, "html");
 
-  const { children } = template.content;
+    const template = document.createElement("template");
+    template.innerHTML = html.trim();
 
-  if (children.length !== 1) {
-    throw new Error("html must contain exactly one root element");
+    const { children } = template.content;
+
+    if (children.length !== 1) {
+      throw new Error("html must contain exactly one root element");
+    }
+
+    const element = children[0];
+    assertHtmlElement(element, "html");
+
+    return element;
   }
 
-  const element = children[0];
-
-  if (!(element instanceof HTMLElement)) {
-    throw new Error("html must create an HTMLElement");
+  normalizeArray(value) {
+    return Array.isArray(value) ? [value, true] : [[value], false];
   }
-
-  return element;
 }

@@ -47,9 +47,16 @@ export class ElmDom {
 
   add(key, newElement, parentKey = null) {
     assertKeyNotExists(key, this.#elementMap);
-    assertElementNotExists(newElement, this.#elementMap, "newElement");
+    assertHtmlElement(newElement, "newElement");
+
     if (newElement === this.#rootElement) {
       throw new Error("newElement cannot be the root element");
+    }
+
+    for (const [key, item] of this.#elementMap) {
+      if (item.element === newElement) {
+        throw new Error(`newElement already exists: ${key}`);
+      }
     }
 
     if (parentKey !== null) {
@@ -69,9 +76,35 @@ export class ElmDom {
     });
   }
 
-  get(key) {
-    // Returns undefined if the key does not exist.
-    return this.#elementMap.get(key)?.element;
+  replace(key, newElement) {
+    assertKeyExists(key, this.#elementMap, "key");
+    assertHtmlElement(newElement, "newElement");
+
+    if (newElement === this.#rootElement) {
+      throw new Error("newElement cannot be the root element");
+    }
+
+    for (const [key, item] of this.#elementMap) {
+      if (item.element === newElement) {
+        throw new Error(`newElement already exists: ${key}`);
+      }
+    }
+
+    const current = this.#elementMap.get(key);
+    const oldElement = current.element;
+
+    for (const childKey of current.childKeys) {
+      const child = this.#elementMap.get(childKey);
+      newElement.appendChild(child.element);
+    }
+
+    for (const event of current.events) {
+      oldElement.removeEventListener(event.type, event.wrapper);
+      newElement.addEventListener(event.type, event.wrapper);
+    }
+
+    oldElement.replaceWith(newElement);
+    current.element = newElement;
   }
 
   remove(key) {
@@ -99,28 +132,9 @@ export class ElmDom {
     this.#elementMap.delete(key);
   }
 
-  replace(key, newElement) {
-    assertKeyExists(key, this.#elementMap, "key");
-    assertElementNotExists(newElement, this.#elementMap, "newElement");
-    if (newElement === this.#rootElement) {
-      throw new Error("newElement cannot be the root element");
-    }
-
-    const current = this.#elementMap.get(key);
-    const oldElement = current.element;
-
-    for (const childKey of current.childKeys) {
-      const child = this.#elementMap.get(childKey);
-      newElement.appendChild(child.element);
-    }
-
-    for (const event of current.events) {
-      oldElement.removeEventListener(event.type, event.wrapper);
-      newElement.addEventListener(event.type, event.wrapper);
-    }
-
-    oldElement.replaceWith(newElement);
-    current.element = newElement;
+  get(key) {
+    // Returns undefined if the key does not exist.
+    return this.#elementMap.get(key)?.element;
   }
 
   keys() {
@@ -263,15 +277,5 @@ export class ElmDom {
     element.removeEventListener(eventType, wrapper);
 
     eventRegistry.splice(index, 1);
-  }
-}
-
-function assertElementNotExists(element, elementMap, fieldName = "element") {
-  assertHtmlElement(element, fieldName);
-
-  for (const [key, item] of elementMap) {
-    if (item.element === element) {
-      throw new Error(`${fieldName} already exists: ${key}`);
-    }
   }
 }
