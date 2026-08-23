@@ -2,9 +2,11 @@ import { Elm } from "./elm.js";
 import {
   isNullishOrEmpty,
   assertNonBlankString,
+  assertNonEmptyNonBlankStringArray,
   assertNonBlankStringOrNonEmptyArray,
   assertPlainObjectArray,
   assertPlainObjectOrNonEmptyArray,
+  assertNoDuplicateValues,
   assertNoDuplicatePlainObjectValues,
   assertValueExists,
   assertValueNotExists,
@@ -23,15 +25,15 @@ export class ItemsElm extends Elm {
 
   constructor(root, options = {}) {
     super(root, options);
-    this.#init(root, options);
+    this.#init(options);
   }
 
   init(root, options = {}) {
     super.init(root, options);
-    this.#init(root, options);
+    this.#init(options);
   }
 
-  #init(root, options = {}) {
+  #init(options = {}) {
     const rootElement = this.rootElement;
     const datasetValueField = rootElement?.dataset.valueField;
     const datasetTextField = rootElement?.dataset.textField;
@@ -60,8 +62,6 @@ export class ItemsElm extends Elm {
       assertNonBlankString(tooltipField, "tooltipField");
       this.#tooltipField = tooltipField;
     }
-
-    this.#render(this.#items);
   }
   // -----------------------------------------------------------------------------
   // fields
@@ -217,6 +217,10 @@ export class ItemsElm extends Elm {
   }
 
   getItem(value) {
+    if (isNullishOrEmpty(value)) {
+      return null;
+    }
+
     assertNonBlankStringOrNonEmptyArray(value, "value");
 
     const [normalizedValues, isArray] = this.normalizeArray(value);
@@ -253,11 +257,17 @@ export class ItemsElm extends Elm {
     return this.#items.map((item) => item[this.#valueField]);
   }
 
-  filterValue(value) {
-    const [values, isArray] = this.normalizeArray(value);
+  filterExistingValue(value) {
+    if (isNullishOrEmpty(value) || isNullishOrEmpty(this.#items)) {
+      return null;
+    }
+
+    const [normalizedValues, isArray] = this.normalizeArray(value);
     const itemValues = this.itemValues;
 
-    const filteredValues = values.filter((v) => itemValues.includes(v));
+    const filteredValues = normalizedValues.filter((v) =>
+      itemValues.includes(v),
+    );
 
     if (filteredValues.length === 0) {
       return null;
@@ -266,9 +276,66 @@ export class ItemsElm extends Elm {
     return isArray ? filteredValues : filteredValues[0];
   }
 
+  validateValueExists(value) {
+    if (isNullishOrEmpty(value)) {
+      return;
+    }
+
+    const [normalizedValues] = this.normalizeArray(value);
+    for (const tmpValue of normalizedValues) {
+      assertValueExists(tmpValue, this.itemValues, "value");
+    }
+  }
+
+  validateValueByMode(value, valueMode = 1) {
+    if (![1, 2].includes(valueMode)) {
+      throw new Error(`invalid valueMode: ${valueMode}`);
+    }
+
+    if (isNullishOrEmpty(value)) {
+      return;
+    }
+
+    if (valueMode === 1) {
+      assertNonBlankString(value, "value");
+    } else if (valueMode === 2) {
+      assertNonEmptyNonBlankStringArray(value, "value");
+      assertNoDuplicateValues(value, "value");
+    }
+  }
+
+  isEqualValue(value1, value2) {
+    if (value1 == null || value2 == null) {
+      return value1 == null && value2 == null;
+    }
+
+    if (typeof value1 === "string" && typeof value2 === "string") {
+      return value1 === value2;
+    }
+
+    if (Array.isArray(value1) && Array.isArray(value2)) {
+      if (value1.length !== value2.length) {
+        return false;
+      }
+
+      const sortedValues1 = [...value1].sort();
+      const sortedValues2 = [...value2].sort();
+
+      return sortedValues1.every(
+        (value, index) => value === sortedValues2[index],
+      );
+    }
+
+    return false;
+  }
+
   // -----------------------------------------------------------------------------
   // render
   // -----------------------------------------------------------------------------
+
+  renderItems() {
+    this.#render(this.#items);
+  }
 
   #render(items) {
     if (this.dom == null) {
