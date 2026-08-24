@@ -10,7 +10,7 @@ import {
   assertStringPlainObject,
   assertNonEmptyNonBlankStringArray,
   assertNoDuplicateValues,
-} from "welm-cdp/infra/assert";
+} from "./assert.js";
 
 export class Elm {
   #rootClass;

@@ -70,12 +70,12 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on.change(audioTypeFilterElm, filterChanged);
-  on.change(audioPositionFilterElm, filterChanged);
-  on.change(audioDayPartFilterElm, filterChanged);
-  on.change(audioLanguageFilterElm, filterChanged);
-  on.change(audioCategoryFilterElm, filterChanged);
-  on.change(audioAlternateGroupFilterElm, filterChanged);
+  on.selectedChange(audioTypeFilterElm, filterChanged);
+  on.selectedChange(audioPositionFilterElm, filterChanged);
+  on.selectedChange(audioDayPartFilterElm, filterChanged);
+  on.selectedChange(audioLanguageFilterElm, filterChanged);
+  on.selectedChange(audioCategoryFilterElm, filterChanged);
+  on.selectedChange(audioAlternateGroupFilterElm, filterChanged);
 
   on.click("#set-audio-root", setAudioRoot);
 
@@ -84,9 +84,9 @@ function bindEvents() {
   on.click("#import-audios", importAudios);
   on.change("#order", orderChanged);
 
-  on.change(audiosElm, changeAudio);
-  on.dblclick(audiosElm, doubleClickAudio);
+  on.selectedChange(audiosElm, changeAudio);
   on.checkedChange(audiosElm, setSelectAllCheckedState);
+    on.doubleClick(audiosElm, doubleClickAudio);
 
   on.click("#save-meta", saveMeta);
 

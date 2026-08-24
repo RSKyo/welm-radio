@@ -1,5 +1,10 @@
 import { Toast } from "../component/toast.js";
-import { Elm } from "../component/elm.js";
+import { Elm } from "../component/base/elm.js";
+import {
+  isHtmlElement,
+  assertHtmlElement,
+  assertSelectorOrHtmlElement,
+} from "./assert.js";
 
 export const toast = new Toast();
 
@@ -72,6 +77,18 @@ export function safeHandler(handler) {
  * handler.
  */
 export const on = {
+  domEvents: [
+    "click",
+    "dblclick",
+    "change",
+    "input",
+    "focus",
+    "blur",
+    "keydown",
+    "keyup",
+    "keypress",
+  ],
+  elmEvents: ["selectedChange", "doubleClick", "checkedChange"],
   /**
    * Bind an event handler to a DOM element or `Elm` instance.
    *
@@ -88,15 +105,14 @@ export const on = {
    * Function that removes the bound handler.
    */
   bindEvent: (target, name, handler) => {
-    if (typeof target === "string" || target instanceof Element) {
-      const element =
-        target instanceof Element ? target : document.querySelector(target);
-      if (!element) {
-        throw new Error(`Element not found for selector: ${target}`);
+    const element = resolveElement(target);
+
+    if (element instanceof Element) {
+      if (!on.domEvents.includes(name)) {
+        throw new Error(`Unsupported DOM event: ${name}`);
       }
 
       const eventHandler = safeHandler(handler);
-
       element.addEventListener(name, eventHandler);
 
       return () => {
@@ -104,25 +120,31 @@ export const on = {
       };
     }
 
-    if (target instanceof Elm) {
-      const elmName = target.dataset.name ?? "object";
+    if (element instanceof Elm) {
+      if (!on.elmEvents.includes(name)) {
+        throw new Error(`Unsupported Elm event: ${name}`);
+      }
+
+      const elmName = element.dataset.name ?? "object";
       const eventName = `on${name.charAt(0).toUpperCase()}${name.slice(1)}`;
 
-      if (!(eventName in target)) {
+      if (!(eventName in element)) {
         throw new Error(`Elm ${elmName} does not have event: ${eventName}`);
       }
 
       const eventHandler = safeHandler(handler);
-
-      target[eventName] = eventHandler;
+      element[eventName] = eventHandler;
 
       return () => {
-        target[eventName] = null;
+        element[eventName] = null;
       };
     }
 
     throw new Error(`Invalid event target: ${String(target)}`);
   },
+
+  /** Dom events */
+
   click: (target, handler) => {
     return on.bindEvent(target, "click", handler);
   },
@@ -132,8 +154,50 @@ export const on = {
   change: (target, handler) => {
     return on.bindEvent(target, "change", handler);
   },
-  // elm event only
+  input: (target, handler) => {
+    return on.bindEvent(target, "input", handler);
+  },
+  focus: (target, handler) => {
+    return on.bindEvent(target, "focus", handler);
+  },
+  blur: (target, handler) => {
+    return on.bindEvent(target, "blur", handler);
+  },
+  keydown: (target, handler) => {
+    return on.bindEvent(target, "keydown", handler);
+  },
+  keyup: (target, handler) => {
+    return on.bindEvent(target, "keyup", handler);
+  },
+  keypress: (target, handler) => {
+    return on.bindEvent(target, "keypress", handler);
+  },
+
+  /** Elm events */
+
+  selectedChange: (target, handler) => {
+    return on.bindEvent(target, "selectedChange", handler);
+  },
   checkedChange: (target, handler) => {
     return on.bindEvent(target, "checkedChange", handler);
   },
+  doubleClick: (target, handler) => {
+    return on.bindEvent(target, "doubleClick", handler);
+  },
 };
+
+function resolveElement(target) {
+  assertSelectorOrHtmlElement(target, "target");
+
+  if (isHtmlElement(target)) {
+    return target;
+  }
+
+  const element = target.startsWith("#")
+    ? document.getElementById(target.slice(1))
+    : document.querySelector(target);
+
+  assertHtmlElement(element, "target");
+
+  return element;
+}

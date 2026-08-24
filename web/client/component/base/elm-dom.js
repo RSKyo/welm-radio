@@ -5,7 +5,7 @@ import {
   assertHtmlElement,
   assertFunction,
   assertNonBlankString,
-} from "welm-cdp/infra/assert";
+} from "./assert.js";
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.

@@ -1,14 +1,20 @@
 import { ItemsElm } from "./base/items-elm.js";
 import {
+  assertBoolean,
   isNullishOrEmpty,
   assertNonBlankString,
   assertFunction,
-} from "welm-cdp/infra/assert";
+  assertElementMatches,
+  assertElementContains,
+} from "./base/assert.js";
 
 const ROOT_CLASS = "item-list";
+const DEFAULT_SELECTED_VALUE_MODE = 1;
+const DEFAULT_CHECKED_VALUE_MODE = 2;
+const DEFAULT_SHOW_CHECKBOXES = true;
 const DEFAULT_ITEM_TEMPLATE_HTML = `
 <div class="item-list-item" data-role="item">
-  <div class="item-list-check">
+  <div class="item-list-check"  data-role="check">
     <input type="checkbox" class="item-list-checkbox" data-role="checkbox" tabindex="-1">
   </div>
   <div class="item-list-content" data-role="content">
@@ -23,9 +29,10 @@ export class ItemList extends ItemsElm {
   #itemTemplate;
   // state
   #selectedValue;
-  #selectedValueMode = 1;
+  #selectedValueMode;
   #checkedValue;
-  #checkedValueMode = 2;
+  #checkedValueMode;
+  #showCheckboxes;
   // event
   #onSelectedChange;
   #onCheckedChange;
@@ -48,6 +55,23 @@ export class ItemList extends ItemsElm {
   }
 
   #init(options = {}) {
+    if (this.#selectedValueMode == null) {
+      this.#selectedValueMode = DEFAULT_SELECTED_VALUE_MODE;
+    }
+
+    if (this.#checkedValueMode == null) {
+      this.#checkedValueMode = DEFAULT_CHECKED_VALUE_MODE;
+    }
+
+    if (options.showCheckboxes != null) {
+      assertBoolean(options.showCheckboxes, "options.showCheckboxes");
+      this.#showCheckboxes = options.showCheckboxes;
+    }
+
+    if (this.#showCheckboxes == null) {
+      this.#showCheckboxes = DEFAULT_SHOW_CHECKBOXES;
+    }
+
     this.#initTemplates(options);
     this.#bindEvents();
   }
@@ -56,7 +80,11 @@ export class ItemList extends ItemsElm {
   // templates
   // -----------------------------------------------------------------------------
 
-  #initTemplates(options) {
+  #initTemplates(options = {}) {
+    this.#initItemTemplate(options);
+  }
+
+  #initItemTemplate(options) {
     if (options.itemTemplateHTML != null) {
       assertNonBlankString(
         options.itemTemplateHTML,
@@ -84,29 +112,11 @@ export class ItemList extends ItemsElm {
   }
 
   #validateItemTemplate(element) {
-    // querySelector will not match the itemElement itself,
-    // so we use matches to check for the itemElement itself
-    if (!element.matches('[data-role="item"]')) {
-      throw new Error("item element must have data-role='item'");
-    }
-
-    if (!element.querySelector('[data-role="content"]')) {
-      throw new Error(
-        "item element must have a child element with data-role='content'",
-      );
-    }
-
-    if (!element.querySelector('[data-role="text"]')) {
-      throw new Error(
-        "item element must have a child element with data-role='text'",
-      );
-    }
-
-    if (!element.querySelector('[data-role="checkbox"]')) {
-      throw new Error(
-        "item element must have a child element with data-role='checkbox'",
-      );
-    }
+    assertElementMatches(element, '[data-role="item"]', "item element");
+    assertElementContains(element, '[data-role="content"]', "item element");
+    assertElementContains(element, '[data-role="text"]', "item element");
+    assertElementContains(element, '[data-role="check"]', "item element");
+    assertElementContains(element, '[data-role="checkbox"]', "item element");
   }
 
   // -----------------------------------------------------------------------------
@@ -149,7 +159,15 @@ export class ItemList extends ItemsElm {
   // checked value
   // -----------------------------------------------------------------------------
 
+  #assertCheckboxesEnabled() {
+    if (!this.#showCheckboxes) {
+      throw new Error("Checkboxes are not enabled for this item list");
+    }
+  }
+
   getCheckedValue() {
+    this.#assertCheckboxesEnabled();
+
     if (isNullishOrEmpty(this.#checkedValue)) {
       return null;
     }
@@ -159,6 +177,8 @@ export class ItemList extends ItemsElm {
   }
 
   setCheckedValue(value) {
+    this.#assertCheckboxesEnabled();
+
     this.validateValueByMode(value, this.#checkedValueMode);
 
     const oldValue = this.#checkedValue;
@@ -182,10 +202,12 @@ export class ItemList extends ItemsElm {
   }
 
   checkAll() {
+    this.#assertCheckboxesEnabled();
     this.setCheckedValue(this.itemValues);
   }
 
   uncheckAll() {
+    this.#assertCheckboxesEnabled();
     this.setCheckedValue(null);
   }
 
@@ -205,6 +227,8 @@ export class ItemList extends ItemsElm {
   }
 
   set onCheckedChange(handler) {
+    this.#assertCheckboxesEnabled();
+
     if (handler != null) {
       assertFunction(handler, "handler");
       this.#onCheckedChange = handler;
@@ -242,24 +266,39 @@ export class ItemList extends ItemsElm {
   #handleRootClick = (event, { targetClosest }) => {
     targetClosest('[data-role="content"]', ({ target }) => {
       const itemElement = target.closest('[data-role="item"]');
-      if (itemElement != null) {
-        const value = itemElement.dataset.value;
+      const value = itemElement.dataset.value;
+
+      if (this.#selectedValueMode === 1) {
         this.setSelectedValue(value);
+        return;
       }
+
+      const oldValue = this.#selectedValue ?? [];
+      const newValue = oldValue.includes(value)
+        ? oldValue.filter((v) => v !== value)
+        : [...oldValue, value];
+
+      this.setSelectedValue(newValue);
     });
 
-    targetClosest('[data-role="checkbox"]', ({ target }) => {
-      const itemElement = target.closest('[data-role="item"]');
-      if (itemElement != null) {
+    if (this.#showCheckboxes) {
+      targetClosest('[data-role="checkbox"]', ({ target }) => {
+        const itemElement = target.closest('[data-role="item"]');
         const value = itemElement.dataset.value;
+
+        if (this.#checkedValueMode === 1) {
+          this.setCheckedValue(value);
+          return;
+        }
+
         const oldValue = this.#checkedValue ?? [];
         const newValue = oldValue.includes(value)
           ? oldValue.filter((v) => v !== value)
           : [...oldValue, value];
 
         this.setCheckedValue(newValue);
-      }
-    });
+      });
+    }
   };
 
   #handleRootDoubleClick = (event, { targetClosest }) => {
@@ -273,6 +312,10 @@ export class ItemList extends ItemsElm {
       });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // update ui state
+  // ---------------------------------------------------------------------------
 
   #updateSelectedState() {
     this.eachItem(({ element, value }) => {
@@ -321,6 +364,9 @@ export class ItemList extends ItemsElm {
     itemElement.dataset.value = value;
     itemElement.querySelector("[data-role='text']").textContent = text || value;
     itemElement.title = tooltip || text || "";
+
+    itemElement.querySelector('[data-role="check"]').hidden =
+      !this.#showCheckboxes;
 
     return itemElement;
   }

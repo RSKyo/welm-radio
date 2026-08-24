@@ -13,7 +13,7 @@ import {
   assertHtmlElement,
   assertFunction,
   assertKeyExists,
-} from "welm-cdp/infra/assert";
+} from "./assert.js";
 
 const RESERVED_KEYS = ["__root__", "__empty__", "__header__", "__footer__"];
 
