@@ -36,7 +36,6 @@ app.use(express.json());
 // Server-side modules under infra, router, and service are not exposed.
 app.use("/", express.static(nodePath.join(__dirname, "client")));
 app.use("/assets", express.static(nodePath.join(__dirname, "assets")));
-app.use("/welm-cdp/infra/assert.js", express.static(nodePath.resolve("node_modules/welm-cdp")));
 
 // Health-check endpoint used by the launcher to verify that the server
 // has started and is ready to accept requests.
