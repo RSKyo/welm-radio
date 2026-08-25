@@ -1,4 +1,4 @@
-import { toast, safeRun, safeHandler, on } from "./helper.js";
+import { toast, safeRun, on } from "./helper.js";
 import { sleep, isEqualValue, formatTime } from "./util.js";
 
 import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
@@ -39,9 +39,7 @@ const audiosElm = new ItemList("#audios");
 const audioTypeElm = new SoloChipGroup("#audio-type");
 const audioLanguageElm = new SoloChipGroup("#audio-language");
 const audioPositionElm = new SoloChipGroup("#audio-position");
-const audioDayPartElm = new MultiChipGroup("#audio-day-part", {
-  showSelectActions: true,
-});
+const audioDayPartElm = new MultiChipGroup("#audio-day-part");
 
 // -----------------------------------------------------------------------------
 // State
@@ -85,8 +83,8 @@ function bindEvents() {
   on.change("#order", orderChanged);
 
   on.selectedChange(audiosElm, changeAudio);
-  on.checkedChange(audiosElm, setSelectAllCheckedState);
-    on.doubleClick(audiosElm, doubleClickAudio);
+  on.checkedChange(audiosElm, updateCheckedStateForSelectAll);
+  on.doubleClick(audiosElm, doubleClickAudio);
 
   on.click("#save-meta", saveMeta);
 
@@ -208,7 +206,7 @@ async function orderChanged(event) {
 
   const audios = audiosElm.getItems();
   orderAudios(audios);
-  await audiosElm.setItems(audios);
+  audiosElm.setItems(audios);
 }
 
 async function changeAudio({ item }) {
@@ -221,22 +219,21 @@ async function doubleClickAudio({ item }) {
   audioPlayerEl.play();
 }
 
-async function setSelectAllCheckedState({ value }) {
-  selectAllChk.checked = value.length === audiosElm.getItems().length;
+async function updateCheckedStateForSelectAll({ value }) {
+  selectAllChk.checked =
+    value == null ? false : value.length === audiosElm.getItems().length;
 }
 
 async function setAudiosCheckedState(event) {
-  const isChecked = event.target.checked;
-
-  if (isChecked) {
-    await audiosElm.checkAll();
+  if (event.target.checked) {
+    audiosElm.checkAll();
   } else {
-    await audiosElm.uncheckAll();
+    audiosElm.uncheckAll();
   }
 }
 
 async function saveMeta() {
-  const item = audiosElm.getItemByValue(audiosElm.getValue());
+  const item = audiosElm.getItem(audiosElm.getSelectedValue());
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -254,25 +251,25 @@ async function saveMeta() {
     meta: savedMeta,
   };
 
-  await audiosElm.updateItem(updatedItem);
+  audiosElm.updateItem(updatedItem);
 
   // if the category has changed, refresh the category filter
   if (!isEqualValue(item.meta.category, savedMeta.category)) {
     const categories = await audioApi.listAudioCategories();
-    await audioCategoryFilterElm.setItems(categories);
+    audioCategoryFilterElm.setItems(categories);
   }
 
   // if the alternateGroup has changed, refresh the alternateGroup filter
   if (item.meta.alternateGroup !== savedMeta.alternateGroup) {
     const alternateGroups = await audioApi.listAudioAlternateGroups();
-    await audioAlternateGroupFilterElm.setItems(alternateGroups);
+    audioAlternateGroupFilterElm.setItems(alternateGroups);
   }
 
   toast.show("已保存音频元数据");
 }
 
 async function startTranscription() {
-  const item = audiosElm.getItemByValue(audiosElm.getValue());
+  const item = audiosElm.getItem(audiosElm.getSelectedValue());
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -293,7 +290,7 @@ async function startTranscription() {
   let savedMeta = null;
   try {
     const audioPath = item.audioPath;
-    const language = audioLanguageElm.getValue() || "zh";
+    const language = audioLanguageElm.getSelectedValue() || "zh";
 
     savedMeta = await whisperApi.startTranscription(audioPath, language);
   } catch (error) {
@@ -312,10 +309,10 @@ async function startTranscription() {
     meta: savedMeta,
   };
 
-  await audiosElm.updateItem(updatedItem);
+  audiosElm.updateItem(updatedItem);
 
   // if current selected item is the same as the one we just transcribed, update the form meta
-  const currentItem = audiosElm.getItemByValue(audiosElm.getValue());
+  const currentItem = audiosElm.getItem(audiosElm.getSelectedValue());
   if (currentItem && currentItem.audioPath === item.audioPath) {
     setFormMeta(savedMeta);
   }
@@ -346,7 +343,7 @@ async function selectVadModel() {
 }
 
 async function detectDuration() {
-  const item = audiosElm.getItemByValue(audiosElm.getValue());
+  const item = audiosElm.getItem(audiosElm.getSelectedValue());
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -398,7 +395,7 @@ async function listAudios() {
 
   audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
-  const item = audiosElm.getItemByValue(audiosElm.getValue());
+  const item = audiosElm.getItem(audiosElm.getSelectedValue());
   if (item) {
     setFormMeta(item.meta);
     setAudioPlayer(item.audioPath);
@@ -486,10 +483,10 @@ function setFormMeta(meta = {}) {
   metaFields.createdAt.value = meta.createdAt ?? "";
   metaFields.updatedAt.value = meta.updatedAt ?? "";
 
-  audioTypeElm.setValue(meta.type ?? "");
-  audioLanguageElm.setValue(meta.language ?? "");
-  audioPositionElm.setValue(meta.position ?? "");
-  audioDayPartElm.setValue(meta.dayPart ?? []);
+  audioTypeElm.setSelectedValue(meta.type ?? "");
+  audioLanguageElm.setSelectedValue(meta.language ?? "");
+  audioPositionElm.setSelectedValue(meta.position ?? "");
+  audioDayPartElm.setSelectedValue(meta.dayPart ?? []);
 }
 
 function getFormMeta() {
@@ -521,10 +518,10 @@ function getFormMeta() {
     createdAt: metaFields.createdAt.value.trim() || null,
     updatedAt: metaFields.updatedAt.value.trim() || null,
 
-    type: audioTypeElm.getValue(),
-    language: audioLanguageElm.getValue(),
-    position: audioPositionElm.getValue(),
-    dayPart: audioDayPartElm.getValue(),
+    type: audioTypeElm.getSelectedValue(),
+    language: audioLanguageElm.getSelectedValue(),
+    position: audioPositionElm.getSelectedValue(),
+    dayPart: audioDayPartElm.getSelectedValue(),
   };
 }
 

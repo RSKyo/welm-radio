@@ -1,15 +1,11 @@
 import { ElmDom } from "./elm-dom.js";
 import {
-  isNullish,
-  isNonBlankString,
   isHtmlElement,
   assertSelectorOrHtmlElement,
   assertHtmlElement,
   assertNonBlankString,
   assertPlainObject,
   assertStringPlainObject,
-  assertNonEmptyNonBlankStringArray,
-  assertNoDuplicateValues,
 } from "./assert.js";
 
 export class Elm {

@@ -10,12 +10,133 @@
     <link rel="stylesheet" href="./css/global.css" />
 
     <link rel="stylesheet" href="./component/toast.css" />
-    <link rel="stylesheet" href="./component/timeline.css" />
-
+    <link rel="stylesheet" href="./component/chip-group.css" />
+    <link rel="stylesheet" href="./component/item-list.css" />
   </head>
 
   <body>
-   <div id="audio-studio"></div>
+    <div class="vbox h-100 w-100">
+      <!-- header -->
+      <div class="p-12-8 hbox a-center">
+        <div class="grow">
+          <h1 class="ib" style="color: var(--color-primary)">Audio Library</h1>
+        </div>
+      </div>
+
+      <!-- main -->
+      <div class="grow hbox">
+        <!-- filter -->
+        <div
+          class="p-12-8 m-0-8 scroll vbox gap-20"
+          style="
+            width: 240px;
+            min-width: 120px;
+            background-color: var(--color-surface-raised);
+          "
+        >
+          <div class="shrink vbox gap-8">
+            <label class="label">音频类型</label>
+            <div id="audio-type-filter" data-name="audio-type-filter"></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频位置</label>
+            <div
+              id="audio-position-filter"
+              data-name="audio-position-filter"
+            ></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频日段</label>
+            <div
+              id="audio-day-part-filter"
+              data-name="audio-day-part-filter"
+            ></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频语言</label>
+            <div
+              id="audio-language-filter"
+              data-name="audio-language-filter"
+            ></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频分类</label>
+            <div
+              id="audio-category-filter"
+              data-name="audio-category-filter"
+            ></div>
+          </div>
+
+          <div class="shrink vbox gap-8">
+            <label class="label">音频备选组</label>
+            <div
+              id="audio-alternate-group-filter"
+              data-name="audio-alternate-group-filter"
+            ></div>
+          </div>
+        </div>
+
+        <!-- audio -->
+        <div
+          class="p-12-8 grow vbox gap-4"
+          style="min-width: 360px; background-color: var(--color-surface)"
+        >
+          <div class="toolbar" style="padding-left: 0; gap: 0">
+            <div class="hbox a-center j-center" style="width: 36px">
+              <input id="select-all" type="checkbox" />
+            </div>
+            <div class="grow toolbar" style="padding: 0">
+              <button id="remove-audios" type="button">删除</button>
+              <button id="import-audios" type="button">添加</button>
+              <button id="set-audio-root" type="button">选择音频目录</button>
+
+              <select id="order" style="min-height: 24px">
+                <option value="default">默认</option>
+                <option value="createdAt-desc">创建时间（新到旧）</option>
+                <option value="createdAt-asc">创建时间（旧到新）</option>
+                <option value="updatedAt-desc">更新时间（新到旧）</option>
+                <option value="updatedAt-asc">更新时间（旧到新）</option>
+              </select>
+            </div>
+            <div class="hbox a-center j-center p-0-8">
+              共有音频：
+              <span id="audio-count">0</span>
+            </div>
+          </div>
+          <div id="audios" class="grow scroll"></div>
+          <div
+            class="hbox a-center"
+            style="
+              border-radius: 4px;
+              background-color: var(--color-surface-sunken);
+            "
+          >
+            <audio id="audio-player" controls></audio>
+          </div>
+        </div>
+
+        <!-- timeline -->
+        <div
+          class="p-12-8 m-0-8 vbox"
+          style="
+            width: 640px;
+            min-width: 480px;
+            background-color: var(--color-surface);
+          "
+        >
+          <div class="toolbar">
+            <button id="save-timeline" type="button">保存</button>
+          </div>
+          <div class="p-12-8 grow scroll vbox gap-20">
+            <div id="timeline" class="timeline"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Scripts -->
     <script src="/assets/vendor/split/split.min.js"></script>

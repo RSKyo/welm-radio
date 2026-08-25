@@ -179,21 +179,6 @@ export function formatTime(seconds) {
 // Private Helper
 // -----------------------------------------------------------------------------
 
-function isNonBlankString(value) {
-  return typeof value === "string" && value.trim() !== "";
-}
-
-function isNullOrEmpty(value) {
-  if (
-    value == null ||
-    (typeof value === "string" && value.trim() === "") ||
-    (Array.isArray(value) && value.length === 0)
-  ) {
-    return true;
-  }
-  return false;
-}
-
 function isPlainObject(value) {
   if (Object.prototype.toString.call(value) !== "[object Object]") {
     return false;

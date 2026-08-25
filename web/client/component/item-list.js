@@ -148,7 +148,7 @@ export class ItemList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        target: this,
+        target: this.rootElement,
         value: this.getSelectedValue(),
         item: this.getItem(newValue),
       });
@@ -194,7 +194,7 @@ export class ItemList extends ItemsElm {
       this.#updateCheckedState();
 
       this.#onCheckedChange?.({
-        target: this,
+        target: this.rootElement,
         value: this.getCheckedValue(),
         item: this.getItem(newValue),
       });
@@ -306,7 +306,7 @@ export class ItemList extends ItemsElm {
     if (itemElement != null) {
       const value = itemElement.dataset.value;
       this.#onDoubleClick?.({
-        target: this,
+        target: this.rootElement,
         value: value,
         item: this.getItem(value),
       });
@@ -346,7 +346,9 @@ export class ItemList extends ItemsElm {
       element.classList.toggle("is-checked", checked);
 
       const checkbox = element.querySelector('[data-role="checkbox"]');
-      checkbox?.checked = checked;
+      if (checkbox) {
+        checkbox.checked = checked;
+      }
     });
   }
 

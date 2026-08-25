@@ -38,7 +38,7 @@ export class ElmDom {
     this.clear();
 
     for (const event of this.#rootEvents) {
-      this.#rootElement.removeEventListener(event.type, event.wrapper);
+      this.#rootElement.removeEventListener(event.eventType, event.wrapper);
     }
 
     this.#rootElement = null;
@@ -99,8 +99,8 @@ export class ElmDom {
     }
 
     for (const event of current.events) {
-      oldElement.removeEventListener(event.type, event.wrapper);
-      newElement.addEventListener(event.type, event.wrapper);
+      oldElement.removeEventListener(event.eventType, event.wrapper);
+      newElement.addEventListener(event.eventType, event.wrapper);
     }
 
     oldElement.replaceWith(newElement);
@@ -125,7 +125,7 @@ export class ElmDom {
 
     // Remove all event listeners from the element.
     for (const event of current.events) {
-      current.element.removeEventListener(event.type, event.wrapper);
+      current.element.removeEventListener(event.eventType, event.wrapper);
     }
 
     current.element.remove();
