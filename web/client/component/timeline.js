@@ -144,8 +144,8 @@ export class Timeline extends Elm{
     this.dom.add("body", bodyElement);
     this.dom.add("trackList", trackListElement, "body");
 
-    // this.#trackListElm = new TimelineTrackList(trackListElement);
-    // this.#trackListElm.addItem({text:"111",value:"aaa"});
+    this.#trackListElm = new TimelineTrackList(trackListElement);
+    this.#trackListElm.addItem({text:"111",value:"aaa"});
   }
 
   // -----------------------------------------------------------------------------
