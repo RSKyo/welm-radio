@@ -82,18 +82,11 @@
 
         <!-- audio -->
         <div
-          class="p-12-8 grow vbox gap-4"
-          style="min-width: 360px; background-color: var(--color-surface)"
+          class="p-12-8 vbox gap-4"
+          style="min-width: 320px; background-color: var(--color-surface)"
         >
           <div class="toolbar" style="padding-left: 0; gap: 0">
-            <div class="hbox a-center j-center" style="width: 36px">
-              <input id="select-all" type="checkbox" />
-            </div>
-            <div class="grow toolbar" style="padding: 0">
-              <button id="remove-audios" type="button">删除</button>
-              <button id="import-audios" type="button">添加</button>
-              <button id="set-audio-root" type="button">选择音频目录</button>
-
+            <div class="grow" style="padding: 0">
               <select id="order" style="min-height: 24px">
                 <option value="default">默认</option>
                 <option value="createdAt-desc">创建时间（新到旧）</option>
@@ -121,12 +114,8 @@
 
         <!-- timeline -->
         <div
-          class="p-12-8 m-0-8 vbox"
-          style="
-            width: 640px;
-            min-width: 480px;
-            background-color: var(--color-surface);
-          "
+          class="p-12-8 m-0-8 grow vbox"
+          style="background-color: var(--color-surface)"
         >
           <div class="toolbar">
             <button id="save-timeline" type="button">保存</button>

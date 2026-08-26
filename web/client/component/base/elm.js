@@ -1,7 +1,7 @@
 import { ElmDom } from "./elm-dom.js";
 import {
   isHtmlElement,
-  assertSelectorOrHtmlElement,
+  assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
   assertNonBlankString,
   assertPlainObject,
@@ -9,72 +9,30 @@ import {
 } from "./assert.js";
 
 export class Elm {
-  #rootClass;
-  #dataset;
   #rootElement;
   #dom;
+  #dataset = {};
 
   constructor(root, options = {}) {
-    this.#init(root, options);
-  }
+    this.#rootElement = this.#resolveElement(root);
 
-  init(root, options = {}) {
-    this.#init(root, options);
-  }
-
-  #init(root, options = {}) {
     assertPlainObject(options, "options");
+    this.#dom = new ElmDom(this.#rootElement);
 
-    const oldRootClass = this.#rootClass;
     if (options.rootClass != null) {
       assertNonBlankString(options.rootClass, "rootClass");
-      this.#rootClass = options.rootClass;
+      this.#rootElement.classList.add(options.rootClass);
     }
 
-    const oldDataset = this.#dataset;
     if (options.dataset != null) {
       assertStringPlainObject(options.dataset, "dataset");
-      this.#dataset = options.dataset;
-    }
 
-    if (root == null) {
-      this.#dom?.destroy();
-      this.#rootElement = null;
-      this.#dom = null;
-      return;
-    }
-
-    const oldRootElement = this.#rootElement;
-    const rootElement = this.#resolveElement(root);
-    const isSameRoot = oldRootElement === rootElement;
-
-    if (isSameRoot && oldRootClass != null) {
-      oldRootElement.classList.remove(oldRootClass);
-    }
-
-    if (isSameRoot && oldDataset != null) {
-      for (const key of Object.keys(oldDataset)) {
-        delete oldRootElement.dataset[key];
-      }
-    }
-
-    if (isSameRoot) {
-      this.#dom?.clear();
-    } else {
-      this.#dom = new ElmDom(rootElement);
-    }
-
-    this.#rootElement = rootElement;
-
-    if (this.#rootClass != null) {
-      this.#rootElement.classList.add(this.#rootClass);
-    }
-
-    if (this.#dataset != null) {
-      for (const [key, value] of Object.entries(this.#dataset)) {
+      for (const [key, value] of Object.entries(options.dataset)) {
         this.#rootElement.dataset[key] = value;
       }
     }
+
+    this.#dataset = { ...this.#rootElement.dataset };
   }
 
   get rootElement() {
@@ -85,28 +43,44 @@ export class Elm {
     return this.#dom;
   }
 
-  #resolveElement(target) {
-    assertSelectorOrHtmlElement(target, "target");
+  get dataset() {
+    return { ...this.#dataset };
+  }
+
+  #resolveElement(target, fieldName = "target") {
+    assertNonBlankStringOrHtmlElement(target, fieldName);
 
     if (isHtmlElement(target)) {
       return target;
     }
 
-    const element = target.startsWith("#")
-      ? document.getElementById(target.slice(1))
-      : document.querySelector(target);
+    target = target.trim();
 
-    assertHtmlElement(element, "target");
+    let element;
+
+    if (target.startsWith("<") && target.endsWith(">")) {
+      element = this.#createElementByHTML(target);
+    } else if (target.startsWith("#")) {
+      element = document.getElementById(target.slice(1));
+    } else {
+      try {
+        element = document.querySelector(target);
+      } catch {
+        throw new Error(`${fieldName} must be a valid CSS selector: ${target}`);
+      }
+    }
+
+    assertHtmlElement(element, fieldName);
 
     return element;
   }
 
-  resolveElement(target) {
-    return this.#resolveElement(target);
+  resolveElement(target, fieldName = "target") {
+    return this.#resolveElement(target, fieldName);
   }
 
-  createElementByHTML(html) {
-    assertNonBlankString(html, "html");
+  #createElementByHTML(html, fieldName = "html") {
+    assertNonBlankString(html, fieldName);
 
     const template = document.createElement("template");
     template.innerHTML = html.trim();
@@ -118,9 +92,13 @@ export class Elm {
     }
 
     const element = children[0];
-    assertHtmlElement(element, "html");
+    assertHtmlElement(element, fieldName);
 
     return element;
+  }
+
+  createElementByHTML(html, fieldName = "html") {
+    return this.#createElementByHTML(html, fieldName);
   }
 
   normalizeArray(value) {

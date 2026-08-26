@@ -56,6 +56,10 @@
   cursor: pointer;
 }
 
+.item-list-item.no-check .item-list-check {
+  display: none;
+}
+
 .item-list .item-list-content {
   display: flex;
   align-items: center;
@@ -65,6 +69,10 @@
   min-height: 36px;
 
   padding: 6px 10px 6px 36px;
+}
+
+.item-list-item.no-check .item-list-content {
+  padding-left: 6px;
 }
 
 .item-list .item-list-text {

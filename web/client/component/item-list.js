@@ -6,13 +6,11 @@ import {
   assertFunction,
   assertElementMatches,
   assertElementContains,
+  assertValueIn,
 } from "./base/assert.js";
 
 const ROOT_CLASS = "item-list";
-const DEFAULT_SELECTED_VALUE_MODE = 1;
-const DEFAULT_CHECKED_VALUE_MODE = 2;
-const DEFAULT_SHOW_CHECKBOXES = true;
-const DEFAULT_ITEM_TEMPLATE_HTML = `
+const ITEM_TEMPLATE = `
 <div class="item-list-item" data-role="item">
   <div class="item-list-check"  data-role="check">
     <input type="checkbox" class="item-list-checkbox" data-role="checkbox" tabindex="-1">
@@ -25,14 +23,13 @@ const DEFAULT_ITEM_TEMPLATE_HTML = `
 
 export class ItemList extends ItemsElm {
   // templates
-  #itemTemplateHTML;
   #itemTemplate;
   // state
   #selectedValue;
-  #selectedValueMode;
+  #selectedValueMode = 1;
   #checkedValue;
-  #checkedValueMode;
-  #showCheckboxes;
+  #checkedValueMode = 2;
+  #showCheckboxes = true;
   // event
   #onSelectedChange;
   #onCheckedChange;
@@ -43,24 +40,23 @@ export class ItemList extends ItemsElm {
       ...options,
       rootClass: ROOT_CLASS,
     });
-    this.#init(options);
-  }
 
-  init(root, options = {}) {
-    super.init(root, {
-      ...options,
-      rootClass: ROOT_CLASS,
-    });
-    this.#init(options);
-  }
-
-  #init(options = {}) {
-    if (this.#selectedValueMode == null) {
-      this.#selectedValueMode = DEFAULT_SELECTED_VALUE_MODE;
+    if (options.selectedValueMode != null) {
+      assertValueIn(
+        options.selectedValueMode,
+        [1, 2],
+        "options.selectedValueMode",
+      );
+      this.#selectedValueMode = options.selectedValueMode;
     }
 
-    if (this.#checkedValueMode == null) {
-      this.#checkedValueMode = DEFAULT_CHECKED_VALUE_MODE;
+    if (options.checkedValueMode != null) {
+      assertValueIn(
+        options.checkedValueMode,
+        [1, 2],
+        "options.checkedValueMode",
+      );
+      this.#checkedValueMode = options.checkedValueMode;
     }
 
     if (options.showCheckboxes != null) {
@@ -68,11 +64,8 @@ export class ItemList extends ItemsElm {
       this.#showCheckboxes = options.showCheckboxes;
     }
 
-    if (this.#showCheckboxes == null) {
-      this.#showCheckboxes = DEFAULT_SHOW_CHECKBOXES;
-    }
+    this.#initItemTemplate(options.itemTemplate);
 
-    this.#initTemplates(options);
     this.#bindEvents();
   }
 
@@ -80,43 +73,25 @@ export class ItemList extends ItemsElm {
   // templates
   // -----------------------------------------------------------------------------
 
-  #initTemplates(options = {}) {
-    this.#initItemTemplate(options);
-  }
-
-  #initItemTemplate(options) {
-    if (options.itemTemplateHTML != null) {
-      assertNonBlankString(
-        options.itemTemplateHTML,
-        "options.itemTemplateHTML",
+  #initItemTemplate(target) {
+    if (target == null) {
+      this.#itemTemplate = this.createElementByHTML(
+        ITEM_TEMPLATE,
+        "ITEM_TEMPLATE",
       );
-
-      if (this.#itemTemplateHTML === options.itemTemplateHTML) {
-        return;
-      }
-
-      const itemTemplateHTML = options.itemTemplateHTML;
-      const itemTemplate = this.createElementByHTML(itemTemplateHTML);
-      this.#validateItemTemplate(itemTemplate);
-
-      this.#itemTemplateHTML = itemTemplateHTML;
-      this.#itemTemplate = itemTemplate;
       return;
     }
 
-    if (this.#itemTemplate == null) {
-      const itemTemplate = this.createElementByHTML(DEFAULT_ITEM_TEMPLATE_HTML);
-      this.#itemTemplateHTML = DEFAULT_ITEM_TEMPLATE_HTML;
-      this.#itemTemplate = itemTemplate;
-    }
-  }
+    const fieldName = "options.itemTemplate";
+    assertNonBlankString(target, fieldName);
+    const itemTemplate = this.resolveElement(target, fieldName);
+    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
+    assertElementContains(itemTemplate, '[data-role="content"]', fieldName);
+    assertElementContains(itemTemplate, '[data-role="text"]', fieldName);
+    assertElementContains(itemTemplate, '[data-role="check"]', fieldName);
+    assertElementContains(itemTemplate, '[data-role="checkbox"]', fieldName);
 
-  #validateItemTemplate(element) {
-    assertElementMatches(element, '[data-role="item"]', "item element");
-    assertElementContains(element, '[data-role="content"]', "item element");
-    assertElementContains(element, '[data-role="text"]', "item element");
-    assertElementContains(element, '[data-role="check"]', "item element");
-    assertElementContains(element, '[data-role="checkbox"]', "item element");
+    this.#itemTemplate = itemTemplate;
   }
 
   // -----------------------------------------------------------------------------
@@ -255,10 +230,6 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    if (this.rootElement == null) {
-      return;
-    }
-
     this.dom.onRoot("click", this.#handleRootClick);
     this.dom.onRoot("dblclick", this.#handleRootDoubleClick);
   }
@@ -356,8 +327,14 @@ export class ItemList extends ItemsElm {
   // overrides
   // ---------------------------------------------------------------------------
 
+  // Override
+  onItemsChange(items) {
+    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
+    this.#checkedValue = this.filterExistingValue(this.#checkedValue);
+  }
+
   // override
-  createItemElement(item) {
+  renderItem(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
@@ -367,16 +344,9 @@ export class ItemList extends ItemsElm {
     itemElement.querySelector("[data-role='text']").textContent = text || value;
     itemElement.title = tooltip || text || "";
 
-    itemElement.querySelector('[data-role="check"]').hidden =
-      !this.#showCheckboxes;
+    itemElement.classList.toggle("no-check", !this.#showCheckboxes);
 
-    return itemElement;
-  }
-
-  // Override
-  onItemsChange(items) {
-    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
-    this.#checkedValue = this.filterExistingValue(this.#checkedValue);
+    this.dom.add(value, itemElement);
   }
 
   // override

@@ -1,6 +1,11 @@
 import { Elm } from "./base/elm.js";
+import { TimelineTrackList } from "./timeline-track-list.js";
 import {
   assertInteger,
+  isHtmlElement,
+  assertHtmlElement,
+  assertTimeInSeconds,
+  assertNumber,
   isNullishOrEmpty,
   assertBoolean,
   assertNonBlankString,
@@ -18,38 +23,28 @@ const BASE_PIXELS_PER_SECOND = 50;
 const MIN_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MIN_ZOOM) / BASE_ZOOM;
 const MAX_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MAX_ZOOM) / BASE_ZOOM;
 
-const HEADER_HTML = `
-<div class="timeline-header"></div>
+const HEADER_TEMPLATE = `
+<div class="timeline-header">
+  <div class="timeline-ruler" data-role="timeline-ruler"></div>
+</div>
 `;
-const BODY_HTML = `
-<div class="timeline-body"></div>
-`;
-const RULER_HTML = `
-<div class="timeline-ruler" data-role="timeline-ruler"></div>
+const BODY_TEMPLATE = `
+<div class="timeline-body">
+  <div class="timeline-track-list" data-role="timeline-track-list"></div>
+</div>
 `;
 
-export class Timeline extends Elm {
+export class Timeline extends Elm{
   // state
   #duration = 0;
   #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
+  #trackListElm;
 
   constructor(root, options = {}) {
     super(root, {
-      ...options,
       rootClass: ROOT_CLASS,
     });
-    this.#init(options);
-  }
 
-  init(root, options = {}) {
-    super.init(root, {
-      ...options,
-      rootClass: ROOT_CLASS,
-    });
-    this.#init(options);
-  }
-
-  #init(options = {}) {
     this.#render();
     this.#bindEvents();
   }
@@ -65,7 +60,7 @@ export class Timeline extends Elm {
   }
 
   set duration(seconds) {
-    assertTime(seconds, "duration");
+    assertTimeInSeconds(seconds, "duration");
 
     this.#duration = seconds;
     this.#render();
@@ -135,18 +130,22 @@ export class Timeline extends Elm {
   // ---------------------------------------------------------------------------
 
   #render() {
-    if (this.dom == null) {
-      return;
-    }
     this.dom.clear();
 
-    const headerElement = this.createElementByHTML(HEADER_HTML);
-    const bodyElement = this.createElementByHTML(BODY_HTML);
-    const rulerElement = this.createElementByHTML(RULER_HTML);
+    const headerElement= this.createElementByHTML(HEADER_TEMPLATE);
+    const bodyElement = this.createElementByHTML(BODY_TEMPLATE);
+
+
+    const rulerElement = headerElement.querySelector('[data-role="timeline-ruler"]');
+    const trackListElement = bodyElement.querySelector('[data-role="timeline-track-list"]');
 
     this.dom.add("header", headerElement);
-    this.dom.add("body", bodyElement);
     this.dom.add("ruler", rulerElement, "header");
+    this.dom.add("body", bodyElement);
+    this.dom.add("trackList", trackListElement, "body");
+
+    // this.#trackListElm = new TimelineTrackList(trackListElement);
+    // this.#trackListElm.addItem({text:"111",value:"aaa"});
   }
 
   // -----------------------------------------------------------------------------
@@ -154,10 +153,6 @@ export class Timeline extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    if (this.dom == null) {
-      return;
-    }
-
     const headerElement = this.dom.get("header");
     const bodyElement = this.dom.get("body");
 
@@ -166,3 +161,4 @@ export class Timeline extends Elm {
     });
   }
 }
+

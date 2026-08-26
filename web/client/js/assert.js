@@ -422,19 +422,19 @@ export function assertElementNode(value, fieldName = "value") {
 }
 
 // Assertions related to selectors and HTML elements
-export function assertSelectorOrHtmlElement(value, fieldName = "value") {
+export function assertNonBlankStringOrHtmlElement(value, fieldName = "value") {
   if (!is.isNonBlankString(value) && !is.isHtmlElement(value)) {
     throw new Error(
-      `${fieldName} must be a non-blank selector string or an HTML element`,
+      `${fieldName} must be a non-blank string or an HTML element`,
     );
   }
 }
 
 // Assertions related to selectors and element nodes
-export function assertSelectorOrElementNode(value, fieldName = "value") {
+export function assertNonBlankStringOrElementNode(value, fieldName = "value") {
   if (!is.isNonBlankString(value) && !is.isElementNode(value)) {
     throw new Error(
-      `${fieldName} must be a non-blank selector string or an element node`,
+      `${fieldName} must be a non-blank string or an element node`,
     );
   }
 }

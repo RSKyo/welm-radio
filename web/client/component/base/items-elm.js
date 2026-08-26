@@ -15,54 +15,25 @@ import {
   assertKeyExists,
 } from "./assert.js";
 
-const RESERVED_KEYS = ["__root__", "__empty__", "__header__", "__footer__"];
-
 export class ItemsElm extends Elm {
-  #textField = "text";
-  #valueField = "value";
-  #tooltipField = "tooltip";
+  #valueField;
+  #textField;
+  #tooltipField;
   #items = [];
 
   constructor(root, options = {}) {
     super(root, options);
-    this.#init(options);
+
+    this.#valueField = options.valueField ?? this.dataset.valueField ?? "value";
+    this.#textField = options.textField ?? this.dataset.textField ?? "text";
+    this.#tooltipField =
+      options.tooltipField ?? this.dataset.tooltipField ?? "tooltip";
+
+    assertNonBlankString(this.#valueField, "valueField");
+    assertNonBlankString(this.#textField, "textField");
+    assertNonBlankString(this.#tooltipField, "tooltipField");
   }
 
-  init(root, options = {}) {
-    super.init(root, options);
-    this.#init(options);
-  }
-
-  #init(options = {}) {
-    const rootElement = this.rootElement;
-    const datasetValueField = rootElement?.dataset.valueField;
-    const datasetTextField = rootElement?.dataset.textField;
-    const datasetTooltipField = rootElement?.dataset.tooltipField;
-
-    // Initialize value field
-    const valueField = options.valueField ?? datasetValueField ?? null;
-    if (valueField != null) {
-      assertNonBlankString(valueField, "valueField");
-      if (this.#items.length > 0) {
-        assertKeyExists(valueField, this.#items[0], "valueField");
-      }
-      this.#valueField = valueField;
-    }
-
-    // Initialize text field
-    const textField = options.textField ?? datasetTextField ?? null;
-    if (textField != null) {
-      assertNonBlankString(textField, "textField");
-      this.#textField = textField;
-    }
-
-    // Initialize tooltip field
-    const tooltipField = options.tooltipField ?? datasetTooltipField ?? null;
-    if (tooltipField != null) {
-      assertNonBlankString(tooltipField, "tooltipField");
-      this.#tooltipField = tooltipField;
-    }
-  }
   // -----------------------------------------------------------------------------
   // fields
   // -----------------------------------------------------------------------------
@@ -98,10 +69,12 @@ export class ItemsElm extends Elm {
     } else {
       assertPlainObjectArray(items, "items", this.#valueField);
       assertNoDuplicatePlainObjectValues(items, this.#valueField, "items");
+
       for (const item of items) {
-        const value = item[this.#valueField];
-        assertNonBlankString(value, `the value of field "${this.#valueField}"`);
-        assertValueNotExists(value, RESERVED_KEYS, "reserved key");
+        assertNonBlankString(
+          item[this.#valueField],
+          `the value of field "${this.#valueField}"`,
+        );
       }
 
       this.#items = items.map((item) => ({ ...item }));
@@ -113,7 +86,7 @@ export class ItemsElm extends Elm {
   }
 
   onItemsChange(items) {
-    // Override this method to perform actions after items have changed.
+    // Override this method to normalize component state before rendering items.
   }
 
   afterSetItems(items) {
@@ -132,7 +105,6 @@ export class ItemsElm extends Elm {
         this.itemValues,
         `the value of field "${this.#valueField}"`,
       );
-      assertValueNotExists(value, RESERVED_KEYS, "reserved key");
     }
 
     assertNoDuplicatePlainObjectValues(
@@ -244,7 +216,7 @@ export class ItemsElm extends Elm {
 
     this.#items.forEach((item, index) => {
       const value = item[this.#valueField];
-      const element = this.dom?.get(value) ?? null;
+      const element = this.dom.get(value) ?? null;
       callback({ item, index, value, element });
     });
   }
@@ -332,15 +304,7 @@ export class ItemsElm extends Elm {
   // -----------------------------------------------------------------------------
   // render
   // -----------------------------------------------------------------------------
-
-  renderItems() {
-    this.#render(this.#items);
-  }
-
   #render(items) {
-    if (this.dom == null) {
-      return;
-    }
     this.dom.clear();
 
     this.beforeRender(items);
@@ -352,62 +316,21 @@ export class ItemsElm extends Elm {
       return;
     }
 
-    this.#renderHeader();
-
     for (const item of items) {
-      this.#renderItem(item);
+      this.beforeRenderItem(item);
+      this.renderItem(item);
+      this.afterRenderItem(item);
     }
-
-    this.#renderFooter();
 
     this.afterRender(items);
   }
 
-  #renderHeader() {
-    const headerElement = this.createHeaderElement();
-    if (headerElement != null) {
-      assertHtmlElement(headerElement, "headerElement");
-      this.dom.add("__header__", headerElement);
-    }
-  }
-
-  #renderItem(item) {
-    this.beforeRenderItem(item);
-    const itemElement = this.createItemElement(item);
-    assertHtmlElement(itemElement, "itemElement");
-    this.dom.add(item[this.#valueField], itemElement);
-    this.afterRenderItem(item);
-  }
-
-  #renderFooter() {
-    const footerElement = this.createFooterElement();
-    if (footerElement != null) {
-      assertHtmlElement(footerElement, "footerElement");
-      this.dom.add("__footer__", footerElement);
-    }
-  }
-
   createEmptyElement() {
-    const name = this.rootElement.dataset.name ?? "";
+    const name = this.dataset.name ?? "";
     const defaultEmptyHTML = `<div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No ${name} items</div>`;
     const template = document.createElement("template");
     template.innerHTML = defaultEmptyHTML.trim();
     return template.content.firstChild;
-  }
-
-  createHeaderElement() {
-    // Override this method to create a header element. Return null if no header is needed.
-    return null;
-  }
-
-  createItemElement(item) {
-    // must override this method to create an item element.
-    throw new Error("createItemElement must be implemented");
-  }
-
-  createFooterElement() {
-    // Override this method to create a footer element. Return null if no footer is needed.
-    return null;
   }
 
   beforeRender(items) {
@@ -416,6 +339,11 @@ export class ItemsElm extends Elm {
 
   beforeRenderItem(item) {
     // Override this method to perform actions before rendering an item.
+  }
+
+  renderItem(item) {
+    // must override this method to render an item.
+    throw new Error("renderItem must be implemented");
   }
 
   afterRenderItem(item) {

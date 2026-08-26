@@ -6,19 +6,17 @@ import {
   assertFunction,
   assertPositiveInteger,
   assertValueIn,
+  assertElementMatches,
+  assertElementContains,
 } from "./base/assert.js";
 
 const ROOT_CLASS = "chip-group";
-const DEFAULT_MODE = "multiple";
-const DEFAULT_SELECTED_VALUE_MODE = 2;
-const DEFAULT_SHOW_ACTIONS = true;
-const DEFAULT_SHOW_ACTIONS_MIN_COUNT = 3;
-const DEFAULT_ITEM_TEMPLATE_HTML = `
+const ITEM_TEMPLATE = `
 <div class="chip-group-item" data-role="item">
   <span class="chip-group-text" data-role="text"></span>
 </div>
 `;
-const DEFAULT_ACTIONS_TEMPLATE_HTML = `
+const ACTIONS_TEMPLATE = `
 <div class="chip-group-actions" data-role="actions">
   <button type="button" class="chip-group-action" data-role="action" data-action="select-all">全选</button>
   <button type="button" class="chip-group-action" data-role="action" data-action="unselect">取消</button>
@@ -27,16 +25,14 @@ const DEFAULT_ACTIONS_TEMPLATE_HTML = `
 
 export class ChipGroup extends ItemsElm {
   // templates
-  #itemTemplateHTML;
   #itemTemplate;
-  #actionsTemplateHTML;
   #actionsTemplate;
   // state
-  #mode;
+  #mode = "multiple";
   #selectedValue;
-  #selectedValueMode;
-  #showActions;
-  #showActionsMinCount;
+  #selectedValueMode = 2;
+  #showActions = true;
+  #showActionsMinCount = 3;
   // event
   #onSelectedChange;
 
@@ -45,26 +41,12 @@ export class ChipGroup extends ItemsElm {
       ...options,
       rootClass: ROOT_CLASS,
     });
-    this.#init(options);
-  }
 
-  init(root, options = {}) {
-    super.init(root, {
-      ...options,
-      rootClass: ROOT_CLASS,
-    });
-    this.#init(options);
-  }
-
-  #init(options = {}) {
     if (options.mode != null) {
       assertValueIn(options.mode, ["multiple", "single"], "options.mode");
 
-      // Only allow setting mode if it hasn't been set before
-      if (this.#mode == null) {
-        this.#mode = options.mode;
-        this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
-      }
+      this.#mode = options.mode;
+      this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
     }
 
     if (options.showActions != null) {
@@ -80,20 +62,9 @@ export class ChipGroup extends ItemsElm {
       this.#showActionsMinCount = options.showActionsMinCount;
     }
 
-    if (this.#mode == null) {
-      this.#mode = DEFAULT_MODE;
-      this.#selectedValueMode = DEFAULT_SELECTED_VALUE_MODE;
-    }
+    this.#initItemTemplate(options.itemTemplate);
+    this.#initActionsTemplate(options.actionsTemplate);
 
-    if (this.#showActions == null) {
-      this.#showActions = DEFAULT_SHOW_ACTIONS;
-    }
-
-    if (this.#showActionsMinCount == null) {
-      this.#showActionsMinCount = DEFAULT_SHOW_ACTIONS_MIN_COUNT;
-    }
-
-    this.#initTemplates(options);
     this.#bindEvents();
   }
 
@@ -101,84 +72,49 @@ export class ChipGroup extends ItemsElm {
   // templates
   // -----------------------------------------------------------------------------
 
-  #initTemplates(options = {}) {
-    this.#initItemTemplate(options);
-    this.#initActionsTemplate(options);
-  }
-
-  #initItemTemplate(options) {
-    if (options.itemTemplateHTML != null) {
-      assertNonBlankString(
-        options.itemTemplateHTML,
-        "options.itemTemplateHTML",
+  #initItemTemplate(target) {
+    if (target == null) {
+      this.#itemTemplate = this.createElementByHTML(
+        ITEM_TEMPLATE,
+        "ITEM_TEMPLATE",
       );
-
-      if (this.#itemTemplateHTML === options.itemTemplateHTML) {
-        return;
-      }
-
-      const itemTemplateHTML = options.itemTemplateHTML;
-      const itemTemplate = this.createElementByHTML(itemTemplateHTML);
-      this.#validateItemTemplate(itemTemplate);
-
-      this.#itemTemplateHTML = itemTemplateHTML;
-      this.#itemTemplate = itemTemplate;
       return;
     }
 
-    if (this.#itemTemplate == null) {
-      const itemTemplate = this.createElementByHTML(DEFAULT_ITEM_TEMPLATE_HTML);
-      this.#itemTemplateHTML = DEFAULT_ITEM_TEMPLATE_HTML;
-      this.#itemTemplate = itemTemplate;
-    }
+    const fieldName = "options.itemTemplate";
+    assertNonBlankString(target, fieldName);
+    const itemTemplate = this.resolveElement(target, fieldName);
+    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
+    assertElementContains(itemTemplate, '[data-role="text"]', fieldName);
+
+    this.#itemTemplate = itemTemplate;
   }
 
-  #initActionsTemplate(options) {
-    if (options.actionsTemplateHTML != null) {
-      assertNonBlankString(
-        options.actionsTemplateHTML,
-        "options.actionsTemplateHTML",
+  #initActionsTemplate(target) {
+    if (target == null) {
+      this.#actionsTemplate = this.createElementByHTML(
+        ACTIONS_TEMPLATE,
+        "ACTIONS_TEMPLATE",
       );
-
-      if (this.#actionsTemplateHTML === options.actionsTemplateHTML) {
-        return;
-      }
-
-      const actionsTemplateHTML = options.actionsTemplateHTML;
-      const actionsTemplate = this.createElementByHTML(actionsTemplateHTML);
-      this.#validateActionsTemplate(actionsTemplate);
-
-      this.#actionsTemplateHTML = actionsTemplateHTML;
-      this.#actionsTemplate = actionsTemplate;
       return;
     }
 
-    if (this.#actionsTemplate == null) {
-      const actionsTemplate = this.createElementByHTML(
-        DEFAULT_ACTIONS_TEMPLATE_HTML,
-      );
-      this.#actionsTemplateHTML = DEFAULT_ACTIONS_TEMPLATE_HTML;
-      this.#actionsTemplate = actionsTemplate;
-    }
-  }
-
-  #validateItemTemplate(element) {
-    assertElementMatches(element, '[data-role="item"]', "item element");
-    assertElementContains(element, '[data-role="text"]', "item element");
-  }
-
-  #validateActionsTemplate(element) {
-    assertElementMatches(element, '[data-role="actions"]', "actions element");
+    const fieldName = "options.actionsTemplate";
+    assertNonBlankString(target, fieldName);
+    const actionsTemplate = this.resolveElement(target, fieldName);
+    assertElementMatches(actionsTemplate, '[data-role="actions"]', fieldName);
     assertElementContains(
-      element,
+      actionsTemplate,
       '[data-role="action"][data-action="select-all"]',
-      "actions element",
+      fieldName,
     );
     assertElementContains(
-      element,
+      actionsTemplate,
       '[data-role="action"][data-action="unselect"]',
-      "actions element",
+      fieldName,
     );
+
+    this.#actionsTemplate = actionsTemplate;
   }
 
   // -----------------------------------------------------------------------------
@@ -253,10 +189,6 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    if (this.rootElement == null) {
-      return;
-    }
-
     this.dom.onRoot("click", this.#handleRootClick);
   }
 
@@ -309,7 +241,7 @@ export class ChipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  createItemElement(item) {
+  renderItem(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
@@ -319,17 +251,18 @@ export class ChipGroup extends ItemsElm {
     itemElement.querySelector("[data-role='text']").textContent = text || value;
     itemElement.title = tooltip || text || "";
 
-    return itemElement;
+    this.dom.add(value, itemElement);
   }
 
-  createFooterElement() {
+  // override
+  afterRender(items) {
     if (
       this.#selectedValueMode === 2 &&
       this.#showActions &&
-      this.items.length >= this.#showActionsMinCount
+      items.length >= this.#showActionsMinCount
     ) {
       const actionsElement = this.#actionsTemplate.cloneNode(true);
-      return actionsElement;
+      this.dom.add("__actions__", actionsElement);
     }
   }
 
@@ -344,6 +277,9 @@ export class ChipGroup extends ItemsElm {
   }
 }
 
+// ---------------------------------------------------------------------------
+// SoloChipGroup
+// ---------------------------------------------------------------------------
 export class SoloChipGroup extends ChipGroup {
   constructor(root, options = {}) {
     super(root, {
@@ -360,6 +296,9 @@ export class SoloChipGroup extends ChipGroup {
   }
 }
 
+// ---------------------------------------------------------------------------
+// MultiChipGroup
+// ---------------------------------------------------------------------------
 export class MultiChipGroup extends ChipGroup {
   constructor(root, options = {}) {
     super(root, {

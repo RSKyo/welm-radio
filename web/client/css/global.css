@@ -53,6 +53,10 @@ body {
   background-color: var(--color-page);
 }
 
+[hidden] {
+  display: none !important;
+}
+
 /* Form controls */
 
 input:not([type="checkbox"]):not([type="radio"]),
