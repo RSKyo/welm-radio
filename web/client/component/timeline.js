@@ -15,9 +15,33 @@ import {
   assertPositive,
 } from "./base/assert.js";
 
+const TARGET_RULER_INTERVAL_PX = 100;
+const RULER_INTERVALS = [
+  0.5,
+  1,
+  1.5,
+  2,
+  2.5,
+  3,
+  3.5,
+  4,
+  4.5,
+  5,
+  5.5,
+  6,
+  6.5,
+  7,
+  7.5,
+  8,
+  8.5,
+  9,
+  9.5,
+  10,
+];
+
 const ROOT_CLASS = "timeline";
 const BASE_ZOOM = 100;
-const MIN_ZOOM = 10;
+const MIN_ZOOM = 20;
 const MAX_ZOOM = 500;
 const BASE_PIXELS_PER_SECOND = 50;
 const MIN_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MIN_ZOOM) / BASE_ZOOM;
@@ -38,7 +62,7 @@ export class Timeline extends Elm{
   // state
   #duration = 0;
   #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
-  #trackListElm;
+  #trackList;
 
   constructor(root, options = {}) {
     super(root, {
@@ -125,6 +149,35 @@ export class Timeline extends Elm{
     return x / this.#pixelsPerSecond;
   }
 
+  #getRulerInterval() {
+  const pixelsPerSecond = this.#pixelsPerSecond;
+
+  let intervalSeconds = RULER_INTERVALS[0];
+  let intervalPixels = intervalSeconds * pixelsPerSecond;
+  let minDiff = Math.abs(intervalPixels - TARGET_RULER_INTERVAL_PX);
+
+  for (const seconds of RULER_INTERVALS.slice(1)) {
+    const pixels = seconds * pixelsPerSecond;
+    const diff = Math.abs(pixels - TARGET_RULER_INTERVAL_PX);
+
+    if (diff < minDiff) {
+      intervalSeconds = seconds;
+      intervalPixels = pixels;
+      minDiff = diff;
+    }
+  }
+
+  return {
+    pixelsPerSecond,
+    intervalSeconds,
+    intervalPixels,
+  };
+}
+
+  get trackList() {
+    return this.#trackList;
+  }
+
   // ---------------------------------------------------------------------------
   // render
   // ---------------------------------------------------------------------------
@@ -144,8 +197,8 @@ export class Timeline extends Elm{
     this.dom.add("body", bodyElement);
     this.dom.add("trackList", trackListElement, "body");
 
-    this.#trackListElm = new TimelineTrackList(trackListElement);
-    this.#trackListElm.addItem({text:"111",value:"aaa"});
+    this.#trackList = new TimelineTrackList(trackListElement);
+    this.#trackList.addItem({text:"111",value:"aaa"});
   }
 
   // -----------------------------------------------------------------------------
