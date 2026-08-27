@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="./css/theme-blue.css" />
     <link rel="stylesheet" href="./css/global.css" />
 
+    <link rel="stylesheet" href="./css/studio.css" />
     <link rel="stylesheet" href="./component/timeline-ruler.css" />
   </head>
 
@@ -37,26 +38,21 @@
         <!-- right -->
         <div class="grow vbox" style="background-color: var(--color-surface)">
           <div class="toolbar rt-4">
+            <div class="timeline-zoom">
+              <button class="timeline-zoom-out" type="button">−</button>
 
-              <button type="button" data-role="zoom-out" title="Zoom out">
-                −
-              </button>
-
-              <div class="timeline-zoom-value">
+              <div class="timeline-zoom-input-wrap">
                 <input
+                  class="timeline-zoom-input"
                   type="number"
-                  data-role="zoom"
                   value="100"
                   min="20"
                   max="500"
-                  step="10"
                 />
-                <span>%</span>
-     
+                <span class="timeline-zoom-percent">%</span>
+              </div>
 
-              <button type="button" data-role="zoom-in" title="Zoom in">
-                +
-              </button>
+              <button class="timeline-zoom-in" type="button">+</button>
             </div>
           </div>
           <div class="grow vbox p-0-8">

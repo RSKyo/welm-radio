@@ -326,13 +326,13 @@ button.primary:not(:disabled):active {
   padding: 4px 8px;
   background-color: var(--color-surface-toolbar);
 }
-.toolbar input:not([type="checkbox"]):not([type="radio"]),
+/* .toolbar input:not([type="checkbox"]):not([type="radio"]),
 .toolbar button,
 .toolbar select {
   min-height: 24px;
   padding: 2px 8px;
   border-radius: 4px;
-}
+} */
 
 /* form */
 
