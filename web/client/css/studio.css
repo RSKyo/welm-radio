@@ -1,0 +1,27 @@
+.timeline-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-zoom button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.timeline-zoom-value {
+  display: flex;
+  align-items: center;
+}
+
+.timeline-zoom-value input {
+  width: 56px;
+  height: 28px;
+  padding: 0 4px;
+  text-align: right;
+}
+
+.timeline-zoom-value span {
+  margin-left: 2px;
+}
