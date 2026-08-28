@@ -165,7 +165,6 @@ export class TimelineRuler extends Elm {
     this.dom.clear();
 
     const width = this.width;
-    console.log(width);
     this.rootElement.style.width = `${width}px`;
 
     this.#renderTicks();

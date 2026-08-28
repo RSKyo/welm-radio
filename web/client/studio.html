@@ -38,20 +38,16 @@
         <!-- right -->
         <div class="grow vbox" style="background-color: var(--color-surface)">
           <div class="toolbar rt-4">
-            <div class="timeline-zoom">
-              <button type="button">−</button>
-
-              <div class="timeline-zoom-input-wrap">
-                <input
-                  type="number"
-                  value="100"
-                  min="20"
-                  max="500"
-                />
-                <span class="timeline-zoom-percent">%</span>
-              </div>
-
-              <button type="button">+</button>
+            <div class="volume-control">
+              <input
+                class="volume-slider"
+                type="range"
+                min="0"
+                max="100"
+                step="10"
+                value="80"
+                data-role="volume"
+              />
             </div>
           </div>
           <div class="grow vbox p-0-8">

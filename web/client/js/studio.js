@@ -48,3 +48,16 @@ async function initData() {
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
+
+
+const volumeSlider =
+  document.querySelector('[data-role="volume"]');
+
+let lastVolume = Number(volumeSlider.value);
+
+volumeSlider.addEventListener("input", () => {
+  const volume = Number(volumeSlider.value);
+
+
+  console.log("volume:", volume);
+});
