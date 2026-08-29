@@ -1,0 +1,129 @@
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  height: 28px;
+}
+
+.slider [type="button"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1;
+
+  transform: translateY(-1px);
+
+  cursor: pointer;
+}
+
+.slider [type="button"]:hover {
+  color: var(--color-text);
+}
+
+.slider [type="range"] {
+  flex: 1;
+  min-width: 0;
+
+  height: 2px;
+
+  appearance: none;
+
+  background: var(--color-border-strong);
+  border-radius: 1px;
+
+  cursor: pointer;
+}
+
+/* Chrome / Safari */
+
+.slider [type="range"]::-webkit-slider-thumb {
+  appearance: none;
+
+  width: 12px;
+  height: 12px;
+
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+
+  background: var(--color-surface-raised);
+
+  cursor: pointer;
+}
+
+/* Firefox */
+
+.slider [type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+
+  background: var(--color-surface-raised);
+
+  cursor: pointer;
+}
+
+/* text field */
+.slider-text-field {
+  position: relative;
+
+  width: 64px;
+  height: 24px;
+}
+
+.slider-text-field input {
+  width: 100%;
+  height: 100%;
+
+  box-sizing: border-box;
+
+  padding: 0 22px 0 6px;
+
+  border: 1px solid var(--color-input-border);
+  border-radius: 3px;
+
+  background: var(--color-input-background);
+  color: var(--color-input-text);
+
+  font-size: 13px;
+  text-align: right;
+}
+
+.slider-text-field input:hover {
+  border-color: var(--color-input-border-hover);
+}
+
+.slider-text-field input:focus {
+  outline: none;
+  border-color: var(--color-input-border-focus);
+}
+
+.slider-text-field span {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+
+  transform: translateY(-50%);
+
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1;
+
+  pointer-events: none;
+}
+
+.slider-text-field[hidden] {
+  display: none !important;
+}

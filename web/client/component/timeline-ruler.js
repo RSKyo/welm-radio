@@ -16,14 +16,11 @@ import {
 } from "./base/assert.js";
 
 const PIXELS_PER_INTERVAL = 100;
-const INTERVALS = [
-  0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5,
-  10,
-];
+const MIN_TIME_UNIT = 0.005;
 
 const ROOT_CLASS = "timeline-ruler";
 const BASE_ZOOM = 100;
-const MIN_ZOOM = 20;
+const MIN_ZOOM = 10;
 const MAX_ZOOM = 500;
 const BASE_PIXELS_PER_SECOND = 50;
 const MIN_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MIN_ZOOM) / BASE_ZOOM;
@@ -40,14 +37,18 @@ export class TimelineRuler extends Elm {
   // state
   #duration = 0;
   #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
+  #width=0;
   #resizeObserver;
   #trackList;
+  // event
+  #onMousemove;
 
   constructor(root, options = {}) {
     super(root, {
       rootClass: ROOT_CLASS,
     });
 
+    this.#width = this.#calculateWidth();
     this.#render();
     this.#bindEvents();
   }
@@ -66,6 +67,8 @@ export class TimelineRuler extends Elm {
     assertTimeInSeconds(seconds, "duration");
 
     this.#duration = seconds;
+    this.#width = this.#calculateWidth();
+
     this.#render();
   }
 
@@ -83,6 +86,7 @@ export class TimelineRuler extends Elm {
       MAX_PIXELS_PER_SECOND,
     );
     this.#pixelsPerSecond = pixelsPerSecond;
+    this.#width = this.#calculateWidth();
 
     this.#render();
   }
@@ -109,6 +113,10 @@ export class TimelineRuler extends Elm {
   /** width in pixels */
 
   get width() {
+    return this.#width;
+  }
+
+  #calculateWidth() {
     const containerWidth = this.rootElement.parentElement?.clientWidth ?? 0;
     const timelineWidth = this.#duration * this.#pixelsPerSecond;
 
@@ -118,38 +126,38 @@ export class TimelineRuler extends Elm {
   /** time to x coordinate conversion */
 
   timeToX(seconds) {
-    assertTime(seconds, "seconds");
+    assertTimeInSeconds(seconds, "seconds");
 
-    return seconds * this.#pixelsPerSecond;
+    return Number((seconds * this.#pixelsPerSecond).toFixed(2));
   }
 
   /** x coordinate to time conversion */
 
   xToTime(x) {
     assertNumber(x, "x");
-
-    return x / this.#pixelsPerSecond;
+    return Number((x / this.#pixelsPerSecond).toFixed(3));
   }
 
   #getRulerInterval() {
-    let intervalSeconds = INTERVALS[0];
-    let intervalPixels = intervalSeconds * this.#pixelsPerSecond;
-    let minDiff = Math.abs(intervalPixels - PIXELS_PER_INTERVAL);
-
-    for (const seconds of INTERVALS.slice(1)) {
-      const pixels = seconds * this.#pixelsPerSecond;
-      const diff = Math.abs(pixels - PIXELS_PER_INTERVAL);
-
-      if (diff < minDiff) {
-        intervalSeconds = seconds;
-        intervalPixels = pixels;
-        minDiff = diff;
+    let intervalSeconds = PIXELS_PER_INTERVAL / this.#pixelsPerSecond;
+    
+    if (intervalSeconds <= MIN_TIME_UNIT) {
+      intervalSeconds = MIN_TIME_UNIT;
+    } else {
+      const remainder = intervalSeconds % MIN_TIME_UNIT;
+      if (remainder !== 0) {
+        intervalSeconds = intervalSeconds - remainder;
+        if (remainder >= MIN_TIME_UNIT / 2) {
+          intervalSeconds += MIN_TIME_UNIT;
+        }
       }
     }
 
+    let intervalPixels = intervalSeconds * this.#pixelsPerSecond;
+
     return {
-      intervalSeconds,
-      intervalPixels,
+      intervalSeconds: Number(intervalSeconds.toFixed(3)),
+      intervalPixels: Number(intervalPixels.toFixed(2)),
     };
   }
 
@@ -164,16 +172,13 @@ export class TimelineRuler extends Elm {
   #render() {
     this.dom.clear();
 
-    const width = this.width;
-    this.rootElement.style.width = `${width}px`;
-
-    this.#renderTicks();
+    this.rootElement.style.width = `${ this.#width}px`;
+    this.#renderTicks( this.#width);
   }
 
-  #renderTicks() {
+  #renderTicks(width) {
     const { intervalSeconds, intervalPixels } = this.#getRulerInterval();
 
-    const width = this.width;
     const tickCount = Math.floor(width / intervalPixels);
 
     const subdivisionCount = 10;
@@ -226,13 +231,21 @@ export class TimelineRuler extends Elm {
   // bind events
   // -----------------------------------------------------------------------------
 
-  #bindEvents() {
-    this.#observeResize();
+   set onMousemove(handler) {
+    if (handler != null) {
+      assertFunction(handler, "handler");
+      this.#onMousemove = handler;
+      return;
+    }
+
+    this.#onMousemove = null;
   }
 
-  #unobserveResize() {
-    this.#resizeObserver?.disconnect();
-    this.#resizeObserver = null;
+  #bindEvents() {
+    this.#observeResize();
+    this.dom.onRoot("mousemove", (event) => {
+      this.#onMousemove?.(event);
+    });
   }
 
   #observeResize() {
@@ -245,6 +258,7 @@ export class TimelineRuler extends Elm {
     this.#resizeObserver?.disconnect();
 
     this.#resizeObserver = new ResizeObserver(() => {
+      this.#width = this.#calculateWidth();
       this.#render();
     });
 

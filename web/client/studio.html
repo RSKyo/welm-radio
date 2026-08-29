@@ -11,6 +11,7 @@
 
     <link rel="stylesheet" href="./css/studio.css" />
     <link rel="stylesheet" href="./component/timeline-ruler.css" />
+    <link rel="stylesheet" href="./component/slider.css" />
   </head>
 
   <body>
@@ -38,24 +39,17 @@
         <!-- right -->
         <div class="grow vbox" style="background-color: var(--color-surface)">
           <div class="toolbar rt-4">
-            <div class="volume-control">
-              <input
-                class="volume-slider"
-                type="range"
-                min="0"
-                max="100"
-                step="10"
-                value="80"
-                data-role="volume"
-              />
-            </div>
+            <div id="timeline-zoom"></div>
           </div>
-          <div class="grow vbox p-0-8">
-            <div style="height: 40px; overflow: hidden">
+          <div class="timeline">
+            <div class="timeline-header">
               <div id="timeline-ruler"></div>
             </div>
-            <div class="grow" style="position: relative; overflow: auto">
+            <div class="timeline-body">
               <div id="timeline-track-list"></div>
+            </div>
+            <div class="timeline-cursor">
+              <div class="timeline-cursor-label"></div>
             </div>
           </div>
         </div>

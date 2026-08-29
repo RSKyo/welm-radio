@@ -173,16 +173,27 @@ export class ElmDom {
     }
   }
 
-  on(key, type, handler) {
+  on(key, type, handler, selector) {
     assertKeyExists(key, this.#elementMap, "key");
     const { element, events } = this.#elementMap.get(key);
 
-    this.#registerEvent(element, type, handler, events);
+    let targetElement = element;
+    if (selector != null) {
+      assertNonBlankString(selector, "selector");
+      targetElement = element.querySelector(selector);
+    }
+
+    this.#registerEvent(targetElement, type, handler, events);
   }
 
-  off(key, type, handler) {
+  off(key, type, handler, selector) {
     assertKeyExists(key, this.#elementMap, "key");
-    const { element, events } = this.#elementMap.get(key);
+    let { element, events } = this.#elementMap.get(key);
+
+    if (selector != null) {
+      assertNonBlankString(selector, "selector");
+      element = element.querySelector(selector);
+    }
 
     this.#unregisterEvent(element, type, handler, events);
   }
@@ -248,6 +259,7 @@ export class ElmDom {
     element.addEventListener(eventType, wrapper);
 
     eventRegistry.push({
+      element,
       eventType,
       wrapper,
       handler,
@@ -265,7 +277,10 @@ export class ElmDom {
     assertPlainObjectArray(eventRegistry, "eventRegistry");
 
     const index = eventRegistry.findIndex(
-      (event) => event.eventType === eventType && event.handler === handler,
+      (event) =>
+        event.element === element &&
+        event.eventType === eventType &&
+        event.handler === handler,
     );
 
     if (index === -1) {

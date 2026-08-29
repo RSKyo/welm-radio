@@ -71,8 +71,12 @@ const DOM_EVENT_NAMES = [
   "keydown",
   "keyup",
   "keypress",
+  "mousemove",
+  "mousedown",
+  "mouseup",
+  "mouseenter",
+  "mouseleave",
 ];
-const ELM_EVENT_NAMES = ["selectedChange", "doubleClick", "checkedChange"];
 
 export const on = {
   /** Dom events */
@@ -103,6 +107,21 @@ export const on = {
   },
   keypress: (target, handler) => {
     return bindEvent(target, "keypress", handler);
+  },
+  mousemove: (target, handler) => {
+    return bindEvent(target, "mousemove", handler);
+  },
+  mousedown: (target, handler) => {
+    return bindEvent(target, "mousedown", handler);
+  },
+  mouseup: (target, handler) => {
+    return bindEvent(target, "mouseup", handler);
+  },
+  mouseenter: (target, handler) => {
+    return bindEvent(target, "mouseenter", handler);
+  },
+  mouseleave: (target, handler) => {
+    return bindEvent(target, "mouseleave", handler);
   },
 
   /** Elm events */
@@ -156,10 +175,6 @@ function bindDomEvent(element, eventName, handler) {
 
 function bindElmEvent(elm, eventName, handler) {
   assertElmObject(elm);
-
-  if (!ELM_EVENT_NAMES.includes(eventName)) {
-    throw new Error(`Unsupported Elm event: ${eventName}`);
-  }
 
   const elmName = elm.rootElement?.dataset?.name ?? "object";
   const eventProp = `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
