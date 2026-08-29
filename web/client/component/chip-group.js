@@ -152,7 +152,6 @@ export class ChipGroup extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        target: this.rootElement,
         value: this.getSelectedValue(),
         item: this.getItem(newValue),
       });

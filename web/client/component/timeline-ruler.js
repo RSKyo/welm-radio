@@ -34,10 +34,12 @@ const TICK_TEMPLATE = `
 `;
 
 export class TimelineRuler extends Elm {
+  // templates
+  #tickTemplate;
   // state
   #duration = 0;
   #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
-  #width=0;
+  #width = 0;
   #resizeObserver;
   #trackList;
   // event
@@ -48,9 +50,17 @@ export class TimelineRuler extends Elm {
       rootClass: ROOT_CLASS,
     });
 
+    this.#initTickTemplate();
     this.#width = this.#calculateWidth();
     this.#render();
     this.#bindEvents();
+  }
+
+  #initTickTemplate(target) {
+    this.#tickTemplate = this.createElementByHTML(
+      TICK_TEMPLATE,
+      "TICK_TEMPLATE",
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -140,7 +150,7 @@ export class TimelineRuler extends Elm {
 
   #getRulerInterval() {
     let intervalSeconds = PIXELS_PER_INTERVAL / this.#pixelsPerSecond;
-    
+
     if (intervalSeconds <= MIN_TIME_UNIT) {
       intervalSeconds = MIN_TIME_UNIT;
     } else {
@@ -172,8 +182,8 @@ export class TimelineRuler extends Elm {
   #render() {
     this.dom.clear();
 
-    this.rootElement.style.width = `${ this.#width}px`;
-    this.#renderTicks( this.#width);
+    this.rootElement.style.width = `${this.#width}px`;
+    this.#renderTicks(this.#width);
   }
 
   #renderTicks(width) {
@@ -189,7 +199,7 @@ export class TimelineRuler extends Elm {
       const x = index * intervalPixels;
 
       // major tick
-      const tickElement = this.createElementByHTML(TICK_TEMPLATE);
+      const tickElement = this.#tickTemplate.cloneNode(true);
       tickElement.style.left = `${x}px`;
       tickElement.classList.add("is-major");
 
@@ -207,7 +217,7 @@ export class TimelineRuler extends Elm {
           break;
         }
 
-        const minorTickElement = this.createElementByHTML(TICK_TEMPLATE);
+        const minorTickElement = this.#tickTemplate.cloneNode(true);
 
         minorTickElement.style.left = `${minorX}px`;
         if (minorIndex === subdivisionCount / 2) {
@@ -231,7 +241,7 @@ export class TimelineRuler extends Elm {
   // bind events
   // -----------------------------------------------------------------------------
 
-   set onMousemove(handler) {
+  set onMousemove(handler) {
     if (handler != null) {
       assertFunction(handler, "handler");
       this.#onMousemove = handler;

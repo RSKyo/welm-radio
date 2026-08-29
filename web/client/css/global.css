@@ -273,6 +273,18 @@ button.primary:not(:disabled):active {
 .m-12-0 {
   margin: 12px 0;
 }
+.mt-12 {
+  margin-top: 12px;
+}
+.mb-12 {
+  margin-bottom: 12px;
+}
+.ml-8 {
+  margin-left: 8px;
+}
+.mr-8 {
+  margin-right: 8px;
+}
 
 .p-0 {
   padding: 0;
@@ -285,6 +297,18 @@ button.primary:not(:disabled):active {
 }
 .p-12-0 {
   padding: 12px 0;
+}
+.pt-12 {
+  padding-top: 12px;
+}
+.pb-12 {
+  padding-bottom: 12px;
+}
+.pl-8 {
+  padding-left: 8px;
+}
+.pr-8 {
+  padding-right: 8px;
 }
 
 .b-t {

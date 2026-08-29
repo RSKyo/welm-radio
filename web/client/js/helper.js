@@ -3,6 +3,7 @@ import { Elm } from "../component/base/elm.js";
 import {
   isNonBlankString,
   isHtmlElement,
+  assertNonBlankString,
   assertHtmlElement,
 } from "./assert.js";
 
@@ -60,6 +61,10 @@ export function safeHandler(handler) {
 
   return (...args) => safeRun(handler, ...args);
 }
+
+// -----------------------------------------------------------------------------
+// binding events
+// -----------------------------------------------------------------------------
 
 const DOM_EVENT_NAMES = [
   "click",
@@ -198,4 +203,19 @@ function assertElmObject(target, fieldName = "target") {
 
 function isElmObject(target) {
   return target instanceof Elm;
+}
+
+// -----------------------------------------------------------------------------
+// Elements
+// -----------------------------------------------------------------------------
+
+export function getElement(selector) {
+  assertNonBlankString(selector, "selector");
+
+  const element = selector.startsWith("#")
+    ? document.getElementById(selector.slice(1))
+    : document.querySelector(selector);
+
+  assertHtmlElement(element, "selector");
+  return element;
 }

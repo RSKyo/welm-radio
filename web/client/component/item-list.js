@@ -123,7 +123,6 @@ export class ItemList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        target: this.rootElement,
         value: this.getSelectedValue(),
         item: this.getItem(newValue),
       });
@@ -169,7 +168,6 @@ export class ItemList extends ItemsElm {
       this.#updateCheckedState();
 
       this.#onCheckedChange?.({
-        target: this.rootElement,
         value: this.getCheckedValue(),
         item: this.getItem(newValue),
       });
@@ -277,7 +275,6 @@ export class ItemList extends ItemsElm {
     if (itemElement != null) {
       const value = itemElement.dataset.value;
       this.#onDoubleClick?.({
-        target: this.rootElement,
         value: value,
         item: this.getItem(value),
       });

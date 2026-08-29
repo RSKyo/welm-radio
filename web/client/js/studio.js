@@ -1,17 +1,18 @@
-import { toast, safeRun, on } from "./helper.js";
+import { toast, safeRun, on, getElement } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline-ruler.js";
+import { TimelineTrackList } from "../component/timeline-track-list.js";
 
 // -----------------------------------------------------------------------------
 // Elements
 // -----------------------------------------------------------------------------
 
-const timelineBodyEl = document.querySelector(".timeline-body");
-const timelineCursorEl = document.querySelector(".timeline-cursor");
-const timelineCursorLabelEl = timelineCursorEl.querySelector(
-  ".timeline-cursor-label",
-);
+const addTrackBtn = getElement("#add-track");
+
+const timelineEl = getElement(".timeline");
+const timelineCursorEl = getElement(".timeline-cursor");
+const timelineCursorLabelEl = getElement(".timeline-cursor-label");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -26,6 +27,7 @@ const timelineZoomSlider = new Slider("#timeline-zoom", {
 });
 // const timelineZoomSlider = new Slider("#timeline-zoom",{suffix: "px"});
 const timelineRulerElm = new TimelineRuler("#timeline-ruler");
+const timelineTrackListElm = new TimelineTrackList("#timeline-track-list");
 
 // -----------------------------------------------------------------------------
 // State
@@ -43,9 +45,9 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on.change(timelineZoomSlider, ({ value }) => {
-    timelineRulerElm.pixelsPerSecond = value;
-  });
+  on.click(addTrackBtn, addTrack);
+  on.mousemove(timelineEl, updateTimelineCursor);
+  on.change(timelineZoomSlider, zoomRuler);
 }
 
 async function initData() {}
@@ -53,21 +55,30 @@ async function initData() {}
 // -----------------------------------------------------------------------------
 // Event Handlers
 // -----------------------------------------------------------------------------
-on.mousemove(timelineRulerElm.rootElement, updateTimelineCursor);
-on.mousemove(timelineBodyEl, updateTimelineCursor);
 
+function addTrack() {
+  const trackName = `Track ${timelineTrackListElm.items.length + 1}`;
+  timelineTrackListElm.addItem({
+    text: trackName,
+    value: trackName,
+  });
+}
+
+function updateTimelineCursor(event) {
+  const timelineRect = timelineEl.getBoundingClientRect();
+
+  let x = event.clientX - timelineRect.left;
+  x = Math.max(x, 0);
+
+  timelineCursorEl.style.left = `${Math.round(x)}px`;
+  const seconds = timelineRulerElm.xToTime(x);
+  timelineCursorLabelEl.textContent = `${seconds}s`;
+}
+
+function zoomRuler({ value }) {
+  timelineRulerElm.pixelsPerSecond = value;
+}
 
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
-
-function updateTimelineCursor(event) {
-  const rect = timelineBodyEl.getBoundingClientRect();
-
-  let x = event.clientX - rect.left + timelineBodyEl.scrollLeft;
-  x = Math.max(x, 0);
-  
-  timelineCursorEl.style.left = `${x}px`;
-  const seconds = timelineRulerElm.xToTime(x);
-  timelineCursorLabelEl.textContent = `${seconds}s`;
-}

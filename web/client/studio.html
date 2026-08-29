@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="./css/global.css" />
 
     <link rel="stylesheet" href="./css/studio.css" />
-    <link rel="stylesheet" href="./component/timeline-ruler.css" />
     <link rel="stylesheet" href="./component/slider.css" />
+    <link rel="stylesheet" href="./component/timeline-ruler.css" />
+    <link rel="stylesheet" href="./component/timeline-track-list.css" />
   </head>
 
   <body>
@@ -24,16 +25,19 @@
       </div>
 
       <!-- main -->
-      <div class="grow hbox">
+      <div class="grow hbox gap-4">
         <!-- left -->
         <div
-          class="p-12-8 m-0-8 scroll vbox gap-20"
+          class="scroll vbox"
           style="
             width: 240px;
             min-width: 120px;
             background-color: var(--color-surface);
           "
         >
+          <div class="toolbar rt-4">
+            <button id="add-track" type="button">添加音轨</button>
+          </div>
           left
         </div>
         <!-- right -->
@@ -41,15 +45,17 @@
           <div class="toolbar rt-4">
             <div id="timeline-zoom"></div>
           </div>
-          <div class="timeline">
-            <div class="timeline-header">
-              <div id="timeline-ruler"></div>
-            </div>
-            <div class="timeline-body">
-              <div id="timeline-track-list"></div>
-            </div>
-            <div class="timeline-cursor">
-              <div class="timeline-cursor-label"></div>
+          <div class="grow vbox p-0-8" style="position: relative">
+            <div class="timeline">
+              <div class="timeline-header">
+                <div id="timeline-ruler"></div>
+              </div>
+              <div class="timeline-body">
+                <div id="timeline-track-list"></div>
+              </div>
+              <div class="timeline-cursor">
+                <div class="timeline-cursor-label"></div>
+              </div>
             </div>
           </div>
         </div>

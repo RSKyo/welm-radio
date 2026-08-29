@@ -125,7 +125,6 @@ export class Slider extends Elm {
     this.#updateState();
 
     this.#onChange?.({
-      target: this,
       percent: this.#percent,
       value: this.#value,
     });
@@ -156,7 +155,6 @@ export class Slider extends Elm {
     this.#updateState();
 
     this.#onChange?.({
-      target: this,
       percent: this.#percent,
       value: this.#value,
     });
