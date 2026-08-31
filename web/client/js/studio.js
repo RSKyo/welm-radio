@@ -11,13 +11,15 @@ import { TimelineTrackList } from "../component/timeline-track-list.js";
 const addTrackBtn = getElement("#add-track");
 
 const timelineEl = getElement(".timeline");
+const timelineHeaderEl = getElement(".timeline-header");
+const timelineBodyEl = getElement(".timeline-body");
 const timelineCursorEl = getElement(".timeline-cursor");
 const timelineCursorLabelEl = getElement(".timeline-cursor-label");
 
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
-const timelineZoomSlider = new Slider("#timeline-zoom", {
+const sliderElm = new Slider("#timeline-zoom", {
   suffix: "px",
   base: 50,
   min: 5,
@@ -27,7 +29,9 @@ const timelineZoomSlider = new Slider("#timeline-zoom", {
 });
 // const timelineZoomSlider = new Slider("#timeline-zoom",{suffix: "px"});
 const timelineRulerElm = new TimelineRuler("#timeline-ruler");
-const timelineTrackListElm = new TimelineTrackList("#timeline-track-list");
+const timelineTrackListElm = new TimelineTrackList("#timeline-track-list",{
+  timelineRuler: timelineRulerElm,
+});
 
 // -----------------------------------------------------------------------------
 // State
@@ -45,26 +49,34 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on.click(addTrackBtn, addTrack);
-  on.mousemove(timelineEl, updateTimelineCursor);
-  on.change(timelineZoomSlider, zoomRuler);
+  on(sliderElm, "change", sliderChange);
+
+  on(timelineEl, "resize", timelineResize);
+  on(timelineEl, "mousemove", timelineMousemove);
+  on(timelineBodyEl, "scroll", timelineBodyScroll);
+  on(timelineRulerElm, "widthChange", timelineRulerWidthChange);
+  
+  on(addTrackBtn, "click", addTrack);
+
 }
 
-async function initData() {}
+async function initData() {
+  timelineTrackListElm.timelineRuler = timelineRulerElm;
+}
 
 // -----------------------------------------------------------------------------
 // Event Handlers
 // -----------------------------------------------------------------------------
 
-function addTrack() {
-  const trackName = `Track ${timelineTrackListElm.items.length + 1}`;
-  timelineTrackListElm.addItem({
-    text: trackName,
-    value: trackName,
-  });
+function sliderChange({ value }) {
+  timelineRulerElm.pixelsPerSecond = value;
 }
 
-function updateTimelineCursor(event) {
+function timelineResize() {
+  timelineRulerElm.width = timelineEl.clientWidth;
+}
+
+function timelineMousemove(event) {
   const timelineRect = timelineEl.getBoundingClientRect();
 
   let x = event.clientX - timelineRect.left;
@@ -75,9 +87,23 @@ function updateTimelineCursor(event) {
   timelineCursorLabelEl.textContent = `${seconds}s`;
 }
 
-function zoomRuler({ value }) {
-  timelineRulerElm.pixelsPerSecond = value;
+function timelineBodyScroll() {
+  timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
+
+function timelineRulerWidthChange({ width }) {
+  timelineTrackListElm.updateWidth(width);
+}
+
+function addTrack() {
+  const trackName = `Track ${timelineTrackListElm.items.length + 1}`;
+  timelineTrackListElm.addItem({
+    text: trackName,
+    value: trackName,
+  });
+}
+
+
 
 // -----------------------------------------------------------------------------
 // Page Logic

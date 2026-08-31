@@ -73,6 +73,8 @@ const DOM_EVENT_NAMES = [
   "input",
   "focus",
   "blur",
+  "resize",
+  "scroll",
   "keydown",
   "keyup",
   "keypress",
@@ -81,68 +83,69 @@ const DOM_EVENT_NAMES = [
   "mouseup",
   "mouseenter",
   "mouseleave",
+  
 ];
 
-export const on = {
-  /** Dom events */
+// export const on = {
+//   /** Dom events */
 
-  click: (target, handler) => {
-    return bindEvent(target, "click", handler);
-  },
-  dblclick: (target, handler) => {
-    return bindEvent(target, "dblclick", handler);
-  },
-  change: (target, handler) => {
-    return bindEvent(target, "change", handler);
-  },
-  input: (target, handler) => {
-    return bindEvent(target, "input", handler);
-  },
-  focus: (target, handler) => {
-    return bindEvent(target, "focus", handler);
-  },
-  blur: (target, handler) => {
-    return bindEvent(target, "blur", handler);
-  },
-  keydown: (target, handler) => {
-    return bindEvent(target, "keydown", handler);
-  },
-  keyup: (target, handler) => {
-    return bindEvent(target, "keyup", handler);
-  },
-  keypress: (target, handler) => {
-    return bindEvent(target, "keypress", handler);
-  },
-  mousemove: (target, handler) => {
-    return bindEvent(target, "mousemove", handler);
-  },
-  mousedown: (target, handler) => {
-    return bindEvent(target, "mousedown", handler);
-  },
-  mouseup: (target, handler) => {
-    return bindEvent(target, "mouseup", handler);
-  },
-  mouseenter: (target, handler) => {
-    return bindEvent(target, "mouseenter", handler);
-  },
-  mouseleave: (target, handler) => {
-    return bindEvent(target, "mouseleave", handler);
-  },
+//   click: (target, handler) => {
+//     return bindEvent(target, "click", handler);
+//   },
+//   dblclick: (target, handler) => {
+//     return bindEvent(target, "dblclick", handler);
+//   },
+//   change: (target, handler) => {
+//     return bindEvent(target, "change", handler);
+//   },
+//   input: (target, handler) => {
+//     return bindEvent(target, "input", handler);
+//   },
+//   focus: (target, handler) => {
+//     return bindEvent(target, "focus", handler);
+//   },
+//   blur: (target, handler) => {
+//     return bindEvent(target, "blur", handler);
+//   },
+//   keydown: (target, handler) => {
+//     return bindEvent(target, "keydown", handler);
+//   },
+//   keyup: (target, handler) => {
+//     return bindEvent(target, "keyup", handler);
+//   },
+//   keypress: (target, handler) => {
+//     return bindEvent(target, "keypress", handler);
+//   },
+//   mousemove: (target, handler) => {
+//     return bindEvent(target, "mousemove", handler);
+//   },
+//   mousedown: (target, handler) => {
+//     return bindEvent(target, "mousedown", handler);
+//   },
+//   mouseup: (target, handler) => {
+//     return bindEvent(target, "mouseup", handler);
+//   },
+//   mouseenter: (target, handler) => {
+//     return bindEvent(target, "mouseenter", handler);
+//   },
+//   mouseleave: (target, handler) => {
+//     return bindEvent(target, "mouseleave", handler);
+//   },
 
-  /** Elm events */
+//   /** Elm events */
 
-  selectedChange: (target, handler) => {
-    return bindEvent(target, "selectedChange", handler);
-  },
-  checkedChange: (target, handler) => {
-    return bindEvent(target, "checkedChange", handler);
-  },
-  doubleClick: (target, handler) => {
-    return bindEvent(target, "doubleClick", handler);
-  },
-};
+//   selectedChange: (target, handler) => {
+//     return bindEvent(target, "selectedChange", handler);
+//   },
+//   checkedChange: (target, handler) => {
+//     return bindEvent(target, "checkedChange", handler);
+//   },
+//   doubleClick: (target, handler) => {
+//     return bindEvent(target, "doubleClick", handler);
+//   },
+// };
 
-function bindEvent(target, eventName, handler) {
+export function on(target, eventName, handler) {
   if (isNonBlankString(target)) {
     const element = target.startsWith("#")
       ? document.getElementById(target.slice(1))
@@ -164,23 +167,28 @@ function bindEvent(target, eventName, handler) {
 }
 
 function bindDomEvent(element, eventName, handler) {
-  assertHtmlElement(element, "element");
-
   if (!DOM_EVENT_NAMES.includes(eventName)) {
     throw new Error(`Unsupported DOM event: ${eventName}`);
   }
 
   const eventHandler = safeHandler(handler);
-  element.addEventListener(eventName, eventHandler);
+  if (eventName === "resize") {
+    const resizeObserver = new ResizeObserver(() => {
+      eventHandler();
+    });
+    resizeObserver.observe(element);
+    return () => {
+      resizeObserver.unobserve(element);
+    };
+  }
 
+  element.addEventListener(eventName, eventHandler);
   return () => {
     element.removeEventListener(eventName, eventHandler);
   };
 }
 
 function bindElmEvent(elm, eventName, handler) {
-  assertElmObject(elm);
-
   const elmName = elm.rootElement?.dataset?.name ?? "object";
   const eventProp = `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
 

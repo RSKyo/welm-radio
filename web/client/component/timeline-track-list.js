@@ -6,6 +6,7 @@ import {
   assertFunction,
   assertPositiveInteger,
   assertValueIn,
+  assertElementMatches,
 } from "./base/assert.js";
 
 const ROOT_CLASS = "timeline-track-list";
@@ -21,6 +22,8 @@ export class TimelineTrackList extends ItemsElm {
   // state
   #selectedValue;
   #selectedValueMode = 1;
+  // ruler
+  #timelineRuler;
   // event
   #onSelectedChange;
 
@@ -30,9 +33,21 @@ export class TimelineTrackList extends ItemsElm {
       rootClass: ROOT_CLASS,
     });
 
+    this.#initOptions(options);
     this.#initItemTemplate(options.itemTemplate);
     this.#bindEvents();
   }
+
+  // -----------------------------------------------------------------------------
+    // options
+    // -----------------------------------------------------------------------------
+  
+    #initOptions(options) {
+      if(options.timelineRuler == null) {
+        throw new Error("timelineRuler is required");
+      }
+      this.#timelineRuler = options.timelineRuler;
+    }
 
   // -----------------------------------------------------------------------------
   // templates
@@ -150,18 +165,30 @@ export class TimelineTrackList extends ItemsElm {
     });
   }
 
+  updateWidth(width) {
+    // const width = this.#timelineRuler.width; 
+    this.eachItem(({ element }) => {
+      if (!element) return;
+      element.style.width = `${width}px`;
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // overrides
   // ---------------------------------------------------------------------------
 
   // override
   renderItem(item) {
+
+    
+    const width = this.#timelineRuler.width;
     const value = item[this.valueField];
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
 
     const itemElement = this.#itemTemplate.cloneNode(true);
     itemElement.dataset.value = value;
+    itemElement.style.width = `${width}px`;
 
     this.dom.add(value, itemElement);
   }

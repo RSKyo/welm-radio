@@ -13,6 +13,7 @@ import {
   assertPositiveInteger,
   assertValueIn,
   assertPositive,
+  assertNonNegative,
 } from "./base/assert.js";
 
 const PIXELS_PER_INTERVAL = 100;
@@ -39,11 +40,11 @@ export class TimelineRuler extends Elm {
   // state
   #duration = 0;
   #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
-  #width = 0;
-  #resizeObserver;
+  #width;
   #trackList;
   // event
-  #onMousemove;
+  #onPixelsPerSecondChange;
+  #onWidthChange;
 
   constructor(root, options = {}) {
     super(root, {
@@ -73,13 +74,26 @@ export class TimelineRuler extends Elm {
     return this.#duration;
   }
 
-  set duration(seconds) {
-    assertTimeInSeconds(seconds, "duration");
+  set duration(value) {
+    assertTimeInSeconds(value, "duration");
 
-    this.#duration = seconds;
-    this.#width = this.#calculateWidth();
+    if (value === this.#duration) {
+      return;
+    }
 
-    this.#render();
+    this.#duration = value;
+
+    const calculatedWidth = this.#calculateWidth();
+    if (calculatedWidth !== this.#width) {
+      this.#width = calculatedWidth;
+      this.#render();
+
+      this.#onWidthChange?.({
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
+    }
   }
 
   /** pixels per second */
@@ -89,35 +103,35 @@ export class TimelineRuler extends Elm {
   }
 
   set pixelsPerSecond(value) {
-    assertPositive(value, "pixelsPerSecond");
+    assertNonNegative(value, "pixelsPerSecond");
 
+    if (this.#pixelsPerSecond === value) {
+      return;
+    }
+    // clamp the value within the allowed range
     const pixelsPerSecond = Math.min(
       Math.max(value, MIN_PIXELS_PER_SECOND),
       MAX_PIXELS_PER_SECOND,
     );
     this.#pixelsPerSecond = pixelsPerSecond;
-    this.#width = this.#calculateWidth();
 
+    const calculatedWidth = this.#calculateWidth();
+    if (calculatedWidth !== this.#width) {
+      this.#width = calculatedWidth;
+
+      this.#onWidthChange?.({
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
+    }
     this.#render();
-  }
 
-  /** zoom level in percent */
-
-  get zoom() {
-    return Math.round(
-      (this.#pixelsPerSecond * BASE_ZOOM) / BASE_PIXELS_PER_SECOND,
-    );
-  }
-
-  set zoom(value) {
-    assertInteger(value, "zoom");
-
-    const zoom = Math.min(Math.max(value, MIN_ZOOM), MAX_ZOOM);
-    this.#pixelsPerSecond = Number(
-      ((zoom * BASE_PIXELS_PER_SECOND) / BASE_ZOOM).toFixed(2),
-    );
-
-    this.#render();
+    this.#onPixelsPerSecondChange?.({
+      duration: this.#duration,
+      pixelsPerSecond: this.#pixelsPerSecond,
+      width: this.#width,
+    });
   }
 
   /** width in pixels */
@@ -126,11 +140,27 @@ export class TimelineRuler extends Elm {
     return this.#width;
   }
 
-  #calculateWidth() {
-    const containerWidth = this.rootElement.parentElement?.clientWidth ?? 0;
-    const timelineWidth = this.#duration * this.#pixelsPerSecond;
+  set width(value) {
+    assertNonNegative(value, "width");
 
-    return Math.max(containerWidth, timelineWidth);
+    const calculatedWidth = this.#calculateWidth();
+    if (calculatedWidth !== this.#width) {
+      this.#width = calculatedWidth;
+      this.#render();
+
+      this.#onWidthChange?.({
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
+    }
+  }
+
+  #calculateWidth(width) {
+    width = width ?? this.rootElement.parentElement?.clientWidth ?? 0;
+    const durationWidth = this.#duration * this.#pixelsPerSecond;
+
+    return Number(Math.max(width, durationWidth).toFixed(2));
   }
 
   /** time to x coordinate conversion */
@@ -238,42 +268,30 @@ export class TimelineRuler extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // bind events
+  // events
   // -----------------------------------------------------------------------------
 
-  set onMousemove(handler) {
+  set onPixelsPerSecondChange(handler) {
     if (handler != null) {
       assertFunction(handler, "handler");
-      this.#onMousemove = handler;
+      this.#onPixelsPerSecondChange = handler;
       return;
     }
 
-    this.#onMousemove = null;
+    this.#onPixelsPerSecondChange = null;
   }
 
-  #bindEvents() {
-    this.#observeResize();
-    this.dom.onRoot("mousemove", (event) => {
-      this.#onMousemove?.(event);
-    });
-  }
-
-  #observeResize() {
-    const container = this.rootElement.parentElement;
-
-    if (!container) {
+  set onWidthChange(handler) {
+    if (handler != null) {
+      assertFunction(handler, "handler");
+      this.#onWidthChange = handler;
       return;
     }
 
-    this.#resizeObserver?.disconnect();
-
-    this.#resizeObserver = new ResizeObserver(() => {
-      this.#width = this.#calculateWidth();
-      this.#render();
-    });
-
-    this.#resizeObserver.observe(container);
+    this.#onWidthChange = null;
   }
+
+  #bindEvents() {}
 }
 
 function formatTime(seconds) {
