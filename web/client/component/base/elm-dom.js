@@ -132,9 +132,14 @@ export class ElmDom {
     this.#elementMap.delete(key);
   }
 
-  get(key) {
+  get(key,selector) {
     // Returns undefined if the key does not exist.
-    return this.#elementMap.get(key)?.element;
+    const element = this.#elementMap.get(key)?.element;
+    if (selector != null) {
+      assertNonBlankString(selector, "selector");
+      return element?.querySelector(selector);
+    }
+    return element;
   }
 
   keys() {

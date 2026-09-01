@@ -1,7 +1,9 @@
 import { toast, safeRun, on, getElement } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
+import { TimelineComboBox } from "../component/timeline-combo-box.js";
 import { TimelineRuler } from "../component/timeline-ruler.js";
+import { TimelineTrackHeaderList } from "../component/timeline-track-header-list.js";
 import { TimelineTrackList } from "../component/timeline-track-list.js";
 
 // -----------------------------------------------------------------------------
@@ -29,7 +31,12 @@ const sliderElm = new Slider("#timeline-zoom", {
 });
 // const timelineZoomSlider = new Slider("#timeline-zoom",{suffix: "px"});
 const timelineRulerElm = new TimelineRuler("#timeline-ruler");
-const timelineTrackListElm = new TimelineTrackList("#timeline-track-list",{
+
+const timelineTrackHeaderListElm = new TimelineTrackHeaderList("#timeline-track-header-list", {
+  valueField: "id",
+});
+const timelineTrackListElm = new TimelineTrackList("#timeline-track-list", {
+  valueField: "id",
   timelineRuler: timelineRulerElm,
 });
 
@@ -55,9 +62,8 @@ function bindEvents() {
   on(timelineEl, "mousemove", timelineMousemove);
   on(timelineBodyEl, "scroll", timelineBodyScroll);
   on(timelineRulerElm, "widthChange", timelineRulerWidthChange);
-  
-  on(addTrackBtn, "click", addTrack);
 
+  on(addTrackBtn, "click", addTrack);
 }
 
 async function initData() {
@@ -96,15 +102,22 @@ function timelineRulerWidthChange({ width }) {
 }
 
 function addTrack() {
-  const trackName = `Track ${timelineTrackListElm.items.length + 1}`;
-  timelineTrackListElm.addItem({
-    text: trackName,
-    value: trackName,
-  });
+  const newTrack = createDefaultTrack();
+  timelineTrackListElm.addItem(newTrack);
+  timelineTrackHeaderListElm.addItem(newTrack);
 }
-
-
 
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
+function createDefaultTrack(options = {}) {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    gain: 1,
+    muted: false,
+    pan: 0,
+    locked: false,
+    description: "",
+  };
+}

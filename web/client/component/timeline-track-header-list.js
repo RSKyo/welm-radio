@@ -1,4 +1,6 @@
 import { ItemsElm } from "./base/items-elm.js";
+import { TimelineComboBox } from "./timeline-combo-box.js";
+import { Slider } from "./slider.js";
 import {
   isNullishOrEmpty,
   assertBoolean,
@@ -9,16 +11,18 @@ import {
   assertElementMatches,
 } from "./base/assert.js";
 
-const ROOT_CLASS = "timeline-track-list";
-const ITEM_TEMPLATE = `
-<div class="timeline-track" data-role="item">
+const ROOT_CLASS = "timeline-track-header-list";
+const TRACK_HEADER_TEMPLATE = `
+<div class="timeline-track-header">
+  <div data-role="timeline-track-header-name"></div>
+  <div data-role="timeline-track-header-gain"></div>
 </div>
 `;
 
-export class TimelineTrackList extends ItemsElm {
-  // templates
-  #itemTemplate;
+export class TimelineTrackHeaderList extends ItemsElm {
   // state
+  #nameElms = [];
+  #gainElms = [];
   #selectedValue;
   #selectedValueMode = 1;
   // ruler
@@ -33,7 +37,6 @@ export class TimelineTrackList extends ItemsElm {
     });
 
     this.#initOptions(options);
-    this.#initItemTemplate(options.itemTemplate);
     this.#bindEvents();
   }
 
@@ -41,33 +44,7 @@ export class TimelineTrackList extends ItemsElm {
   // options
   // -----------------------------------------------------------------------------
 
-  #initOptions(options) {
-    if (options.timelineRuler == null) {
-      throw new Error("timelineRuler is required");
-    }
-    this.#timelineRuler = options.timelineRuler;
-  }
-
-  // -----------------------------------------------------------------------------
-  // templates
-  // -----------------------------------------------------------------------------
-
-  #initItemTemplate(target) {
-    if (target == null) {
-      this.#itemTemplate = this.createElementByHTML(
-        ITEM_TEMPLATE,
-        "ITEM_TEMPLATE",
-      );
-      return;
-    }
-
-    const fieldName = "options.itemTemplate";
-    assertNonBlankString(target, fieldName);
-    const itemTemplate = this.resolveElement(target, fieldName);
-    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
-
-    this.#itemTemplate = itemTemplate;
-  }
+  #initOptions(options) {}
 
   // -----------------------------------------------------------------------------
   // selected value
@@ -128,7 +105,7 @@ export class TimelineTrackList extends ItemsElm {
   }
 
   #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="item"]', ({ target }) => {
+    targetClosest('[data-role="timeline-track-header"]', ({ target }) => {
       const value = target.dataset.value;
 
       if (this.#selectedValueMode === 1) {
@@ -164,31 +141,45 @@ export class TimelineTrackList extends ItemsElm {
     });
   }
 
-  updateWidth(width) {
-    // const width = this.#timelineRuler.width;
-    this.eachItem(({ element }) => {
-      if (!element) return;
-      element.style.width = `${width}px`;
-    });
-  }
-
   // ---------------------------------------------------------------------------
   // overrides
   // ---------------------------------------------------------------------------
 
   // override
   renderItem(item) {
-    const width = this.#timelineRuler.width;
     const value = item[this.valueField];
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
 
-    const itemElement = this.#itemTemplate.cloneNode(true);
-    itemElement.dataset.value = value;
-    itemElement.style.width = `${width}px`;
-    itemElement.textContent = value;
+    const trackHeaderEl = this.createElementByHTML(
+      TRACK_HEADER_TEMPLATE,
+      "TRACK_HEADER_TEMPLATE",
+    );
 
-    this.dom.add(value, itemElement);
+    const nameEl = trackHeaderEl.querySelector(
+      '[data-role="timeline-track-header-name"]',
+    );
+    const gainEl = trackHeaderEl.querySelector(
+      '[data-role="timeline-track-header-gain"]',
+    );
+
+    const nameComboBox = new TimelineComboBox(nameEl);
+    nameComboBox.items = getTrackNames();
+    this.#nameElms.push(nameComboBox);
+
+    const gainSlider = new Slider(gainEl, {
+      base: 100,
+      min: 0,
+      max: 200,
+      step: 1,
+      value: 100,
+      suffix: "%",
+      showPercent: true,
+      showValue: false,
+    });
+    this.#gainElms.push(gainSlider);
+
+    this.dom.add(value, trackHeaderEl);
   }
 
   // Override
@@ -200,4 +191,6 @@ export class TimelineTrackList extends ItemsElm {
   }
 }
 
-
+function getTrackNames() {
+  return ["主持人", "嘉宾", "背景音乐", "环境音", "音效", "标识音"];
+}

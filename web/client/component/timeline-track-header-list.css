@@ -1,23 +1,23 @@
-.timeline-track-list {
+.timeline-track-header-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.timeline-track {
+.timeline-track-header {
   position: relative;
   min-height: 100px;
   height: 100px;
-  padding: 4px 0;
+  padding: 4px 8px;
   border: 0;
   border-radius: 4px;
   cursor: pointer;
   background: var(--color-surface);
 }
 
-.timeline-track:nth-child(even) {
+.timeline-track-header:nth-child(even) {
   background: var(--color-surface-sunken);
 }
-.timeline-track.is-selected {
+.timeline-track-header.is-selected {
   background: var(--color-selected);
 }

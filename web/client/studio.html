@@ -10,8 +10,11 @@
     <link rel="stylesheet" href="./css/global.css" />
 
     <link rel="stylesheet" href="./css/studio.css" />
+    <link rel="stylesheet" href="./component/toast.css" />
+    <link rel="stylesheet" href="./component/timeline-combo-box.css" />
     <link rel="stylesheet" href="./component/slider.css" />
     <link rel="stylesheet" href="./component/timeline-ruler.css" />
+     <link rel="stylesheet" href="./component/timeline-track-header-list.css" />
     <link rel="stylesheet" href="./component/timeline-track-list.css" />
   </head>
 
@@ -38,7 +41,10 @@
           <div class="toolbar rt-4">
             <button id="add-track" type="button">添加音轨</button>
           </div>
-          left
+          <div style="height: 32px"></div>
+          <div class="grow vbox p-0-8" style="position: relative">
+            <div id="timeline-track-header-list"></div>
+          </div>
         </div>
         <!-- right -->
         <div class="grow vbox" style="background-color: var(--color-surface)">
