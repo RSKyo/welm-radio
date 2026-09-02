@@ -203,9 +203,9 @@ function bindElmEvent(elm, eventName, handler) {
   };
 }
 
-function assertElmObject(target, fieldName = "target") {
+function assertElmObject(target, assertionSubject = "target") {
   if (!isElmObject(target)) {
-    throw new Error(`${fieldName} must be an Elm object`);
+    throw new Error(`${assertionSubject} must be an Elm object`);
   }
 }
 

@@ -63,6 +63,9 @@ function bindEvents() {
   on(timelineBodyEl, "scroll", timelineBodyScroll);
   on(timelineRulerElm, "widthChange", timelineRulerWidthChange);
 
+  on(timelineTrackHeaderListElm, "selectedChange", timelineTrackHeaderListSelectedChange);
+  on(timelineTrackListElm, "selectedChange", timelineTrackListSelectedChange);
+
   on(addTrackBtn, "click", addTrack);
 }
 
@@ -99,6 +102,14 @@ function timelineBodyScroll() {
 
 function timelineRulerWidthChange({ width }) {
   timelineTrackListElm.updateWidth(width);
+}
+
+function timelineTrackHeaderListSelectedChange({value}){
+  timelineTrackListElm.selectedValue = value;
+}
+
+function timelineTrackListSelectedChange({value}) {
+  timelineTrackHeaderListElm.selectedValue = value;
 }
 
 function addTrack() {

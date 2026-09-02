@@ -47,8 +47,8 @@ export class Elm {
     return { ...this.#dataset };
   }
 
-  #resolveElement(target, fieldName = "target") {
-    assertNonBlankStringOrHtmlElement(target, fieldName);
+  #resolveElement(target, assertionSubject = "target") {
+    assertNonBlankStringOrHtmlElement(target, assertionSubject);
 
     if (isHtmlElement(target)) {
       return target;
@@ -59,49 +59,64 @@ export class Elm {
     let element;
 
     if (target.startsWith("<") && target.endsWith(">")) {
-      element = this.#createElementByHTML(target);
+      element = createElementByHTML(target);
     } else if (target.startsWith("#")) {
       element = document.getElementById(target.slice(1));
     } else {
       try {
         element = document.querySelector(target);
       } catch {
-        throw new Error(`${fieldName} must be a valid CSS selector: ${target}`);
+        throw new Error(
+          `${assertionSubject} must be a valid CSS selector: ${target}`,
+        );
       }
     }
 
-    assertHtmlElement(element, fieldName);
+    assertHtmlElement(element, assertionSubject);
 
     return element;
   }
 
-  resolveElement(target, fieldName = "target") {
-    return this.#resolveElement(target, fieldName);
+  resolveElement(target, assertionSubject = "target") {
+    return this.#resolveElement(target, assertionSubject);
   }
 
-  #createElementByHTML(html, fieldName = "html") {
-    assertNonBlankString(html, fieldName);
-
-    const template = document.createElement("template");
-    template.innerHTML = html.trim();
-
-    const { children } = template.content;
-
-    if (children.length !== 1) {
-      throw new Error("html must contain exactly one root element");
-    }
-
-    const element = children[0];
-    assertHtmlElement(element, fieldName);
-
-    return element;
+  createElementByHTML(html, assertionSubject = "html") {
+    return createElementByHTML(html, assertionSubject);
   }
 
-  createElementByHTML(html, fieldName = "html") {
-    return this.#createElementByHTML(html, fieldName);
+  createElementsByHTML(html, assertionSubject = "html") {
+    return createElementsByHTML(html, assertionSubject);
   }
 
   normalizeArray(value) {
     return Array.isArray(value) ? [value, true] : [[value], false];
   }
+}
+
+function createElementByHTML(html, assertionSubject = "html") {
+  const elements = createElementsByHTML(html, assertionSubject);
+
+  if (elements.length !== 1) {
+    throw new Error(
+      `${assertionSubject} must contain exactly one root element`,
+    );
+  }
+
+  return elements[0];
+}
+
+function createElementsByHTML(html, assertionSubject = "html") {
+  assertNonBlankString(html, assertionSubject);
+
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+
+  const elements = [...template.content.children];
+
+  for (const element of elements) {
+    assertHtmlElement(element, assertionSubject);
+  }
+
+  return elements;
 }

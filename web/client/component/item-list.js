@@ -82,14 +82,14 @@ export class ItemList extends ItemsElm {
       return;
     }
 
-    const fieldName = "options.itemTemplate";
-    assertNonBlankString(target, fieldName);
-    const itemTemplate = this.resolveElement(target, fieldName);
-    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
-    assertElementContains(itemTemplate, '[data-role="content"]', fieldName);
-    assertElementContains(itemTemplate, '[data-role="text"]', fieldName);
-    assertElementContains(itemTemplate, '[data-role="check"]', fieldName);
-    assertElementContains(itemTemplate, '[data-role="checkbox"]', fieldName);
+    const assertionSubject = "options.itemTemplate";
+    assertNonBlankString(target, assertionSubject);
+    const itemTemplate = this.resolveElement(target, assertionSubject);
+    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
+    assertElementContains(itemTemplate, '[data-role="content"]', assertionSubject);
+    assertElementContains(itemTemplate, '[data-role="text"]', assertionSubject);
+    assertElementContains(itemTemplate, '[data-role="check"]', assertionSubject);
+    assertElementContains(itemTemplate, '[data-role="checkbox"]', assertionSubject);
 
     this.#itemTemplate = itemTemplate;
   }

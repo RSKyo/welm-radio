@@ -61,10 +61,10 @@ export class TimelineTrackList extends ItemsElm {
       return;
     }
 
-    const fieldName = "options.itemTemplate";
-    assertNonBlankString(target, fieldName);
-    const itemTemplate = this.resolveElement(target, fieldName);
-    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
+    const assertionSubject = "options.itemTemplate";
+    assertNonBlankString(target, assertionSubject);
+    const itemTemplate = this.resolveElement(target, assertionSubject);
+    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
 
     this.#itemTemplate = itemTemplate;
   }
@@ -73,7 +73,7 @@ export class TimelineTrackList extends ItemsElm {
   // selected value
   // -----------------------------------------------------------------------------
 
-  getSelectedValue() {
+  get selectedValue() {
     if (isNullishOrEmpty(this.#selectedValue)) {
       return null;
     }
@@ -82,7 +82,7 @@ export class TimelineTrackList extends ItemsElm {
       : this.#selectedValue;
   }
 
-  setSelectedValue(value) {
+  set selectedValue(value) {
     this.validateValueByMode(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
@@ -98,7 +98,7 @@ export class TimelineTrackList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.getSelectedValue(),
+        value: this.selectedValue,
         item: this.getItem(newValue),
       });
     }
@@ -132,7 +132,7 @@ export class TimelineTrackList extends ItemsElm {
       const value = target.dataset.value;
 
       if (this.#selectedValueMode === 1) {
-        this.setSelectedValue(value);
+        this.selectedValue = value;
         return;
       }
 
@@ -141,7 +141,7 @@ export class TimelineTrackList extends ItemsElm {
         ? oldValue.filter((v) => v !== value)
         : [...oldValue, value];
 
-      this.setSelectedValue(newValue);
+      this.selectedValue = newValue;
     });
   };
 

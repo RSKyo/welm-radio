@@ -81,11 +81,11 @@ export class ChipGroup extends ItemsElm {
       return;
     }
 
-    const fieldName = "options.itemTemplate";
-    assertNonBlankString(target, fieldName);
-    const itemTemplate = this.resolveElement(target, fieldName);
-    assertElementMatches(itemTemplate, '[data-role="item"]', fieldName);
-    assertElementContains(itemTemplate, '[data-role="text"]', fieldName);
+    const assertionSubject = "options.itemTemplate";
+    assertNonBlankString(target, assertionSubject);
+    const itemTemplate = this.resolveElement(target, assertionSubject);
+    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
+    assertElementContains(itemTemplate, '[data-role="text"]', assertionSubject);
 
     this.#itemTemplate = itemTemplate;
   }
@@ -99,19 +99,19 @@ export class ChipGroup extends ItemsElm {
       return;
     }
 
-    const fieldName = "options.actionsTemplate";
-    assertNonBlankString(target, fieldName);
-    const actionsTemplate = this.resolveElement(target, fieldName);
-    assertElementMatches(actionsTemplate, '[data-role="actions"]', fieldName);
+    const assertionSubject = "options.actionsTemplate";
+    assertNonBlankString(target, assertionSubject);
+    const actionsTemplate = this.resolveElement(target, assertionSubject);
+    assertElementMatches(actionsTemplate, '[data-role="actions"]', assertionSubject);
     assertElementContains(
       actionsTemplate,
       '[data-role="action"][data-action="select-all"]',
-      fieldName,
+      assertionSubject,
     );
     assertElementContains(
       actionsTemplate,
       '[data-role="action"][data-action="unselect"]',
-      fieldName,
+      assertionSubject,
     );
 
     this.#actionsTemplate = actionsTemplate;

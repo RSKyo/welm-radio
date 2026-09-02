@@ -101,9 +101,9 @@ export async function startWebServerAndPage(url, options = {}) {
 // Private helpers
 // -----------------------------------------------------------------------------
 
-function assertNonBlankString(value, fieldName) {
+function assertNonBlankString(value, assertionSubject) {
   if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`${fieldName} must be a non-empty string`);
+    throw new Error(`${assertionSubject} must be a non-empty string`);
   }
 }
 

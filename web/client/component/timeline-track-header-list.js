@@ -1,6 +1,6 @@
 import { ItemsElm } from "./base/items-elm.js";
 import { TimelineComboBox } from "./timeline-combo-box.js";
-import { Slider } from "./slider.js";
+import { TimelineSlider } from "./timeline-slider.js";
 import {
   isNullishOrEmpty,
   assertBoolean,
@@ -12,8 +12,8 @@ import {
 } from "./base/assert.js";
 
 const ROOT_CLASS = "timeline-track-header-list";
-const TRACK_HEADER_TEMPLATE = `
-<div class="timeline-track-header">
+const ITEM_TEMPLATE = `
+<div class="timeline-track-header" data-role="item">
   <div data-role="timeline-track-header-name"></div>
   <div data-role="timeline-track-header-gain"></div>
 </div>
@@ -50,7 +50,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
   // selected value
   // -----------------------------------------------------------------------------
 
-  getSelectedValue() {
+  get selectedValue() {
     if (isNullishOrEmpty(this.#selectedValue)) {
       return null;
     }
@@ -59,7 +59,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
       : this.#selectedValue;
   }
 
-  setSelectedValue(value) {
+  set selectedValue(value) {
     this.validateValueByMode(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
@@ -75,7 +75,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.getSelectedValue(),
+        value: this.selectedValue,
         item: this.getItem(newValue),
       });
     }
@@ -105,11 +105,11 @@ export class TimelineTrackHeaderList extends ItemsElm {
   }
 
   #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="timeline-track-header"]', ({ target }) => {
+    targetClosest('[data-role="item"]', ({ target }) => {
       const value = target.dataset.value;
 
       if (this.#selectedValueMode === 1) {
-        this.setSelectedValue(value);
+        this.selectedValue = value;
         return;
       }
 
@@ -118,7 +118,8 @@ export class TimelineTrackHeaderList extends ItemsElm {
         ? oldValue.filter((v) => v !== value)
         : [...oldValue, value];
 
-      this.setSelectedValue(newValue);
+      this.selectedValue = newValue;
+      
     });
   };
 
@@ -152,9 +153,10 @@ export class TimelineTrackHeaderList extends ItemsElm {
     const tooltip = item[this.tooltipField];
 
     const trackHeaderEl = this.createElementByHTML(
-      TRACK_HEADER_TEMPLATE,
-      "TRACK_HEADER_TEMPLATE",
+      ITEM_TEMPLATE,
+      "ITEM_TEMPLATE",
     );
+    trackHeaderEl.dataset.value = value;
 
     const nameEl = trackHeaderEl.querySelector(
       '[data-role="timeline-track-header-name"]',
@@ -167,15 +169,12 @@ export class TimelineTrackHeaderList extends ItemsElm {
     nameComboBox.items = getTrackNames();
     this.#nameElms.push(nameComboBox);
 
-    const gainSlider = new Slider(gainEl, {
+    const gainSlider = new TimelineSlider(gainEl, {
       base: 100,
       min: 0,
       max: 200,
       step: 1,
       value: 100,
-      suffix: "%",
-      showPercent: true,
-      showValue: false,
     });
     this.#gainElms.push(gainSlider);
 
