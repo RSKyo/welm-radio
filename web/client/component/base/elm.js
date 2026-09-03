@@ -12,9 +12,11 @@ export class Elm {
   #rootElement;
   #dom;
   #dataset = {};
+  // event
+  #rootElementResizeObserver;
 
   constructor(root, options = {}) {
-    this.#rootElement = this.#resolveElement(root);
+    this.#rootElement = resolveElement(root);
 
     assertPlainObject(options, "options");
     this.#dom = new ElmDom(this.#rootElement);
@@ -33,6 +35,8 @@ export class Elm {
     }
 
     this.#dataset = { ...this.#rootElement.dataset };
+
+    this.#observeRootElementResize();
   }
 
   get rootElement() {
@@ -47,38 +51,22 @@ export class Elm {
     return { ...this.#dataset };
   }
 
-  #resolveElement(target, assertionSubject = "target") {
-    assertNonBlankStringOrHtmlElement(target, assertionSubject);
+  #observeRootElementResize() {
+    this.#rootElementResizeObserver?.disconnect();
 
-    if (isHtmlElement(target)) {
-      return target;
-    }
+    this.#rootElementResizeObserver = new ResizeObserver(() => {
+      this.rootElementResize();
+    });
 
-    target = target.trim();
+    this.#rootElementResizeObserver.observe(this.rootElement);
+  }
 
-    let element;
-
-    if (target.startsWith("<") && target.endsWith(">")) {
-      element = createElementByHTML(target);
-    } else if (target.startsWith("#")) {
-      element = document.getElementById(target.slice(1));
-    } else {
-      try {
-        element = document.querySelector(target);
-      } catch {
-        throw new Error(
-          `${assertionSubject} must be a valid CSS selector: ${target}`,
-        );
-      }
-    }
-
-    assertHtmlElement(element, assertionSubject);
-
-    return element;
+  rootElementResize() {
+    // Override this method to handle root element resize events
   }
 
   resolveElement(target, assertionSubject = "target") {
-    return this.#resolveElement(target, assertionSubject);
+    return resolveElement(target, assertionSubject);
   }
 
   createElementByHTML(html, assertionSubject = "html") {
@@ -92,6 +80,36 @@ export class Elm {
   normalizeArray(value) {
     return Array.isArray(value) ? [value, true] : [[value], false];
   }
+}
+
+function resolveElement(target, assertionSubject = "target") {
+  assertNonBlankStringOrHtmlElement(target, assertionSubject);
+
+  if (isHtmlElement(target)) {
+    return target;
+  }
+
+  target = target.trim();
+
+  let element;
+
+  if (target.startsWith("<") && target.endsWith(">")) {
+    element = createElementByHTML(target);
+  } else if (target.startsWith("#")) {
+    element = document.getElementById(target.slice(1));
+  } else {
+    try {
+      element = document.querySelector(target);
+    } catch {
+      throw new Error(
+        `${assertionSubject} must be a valid CSS selector: ${target}`,
+      );
+    }
+  }
+
+  assertHtmlElement(element, assertionSubject);
+
+  return element;
 }
 
 function createElementByHTML(html, assertionSubject = "html") {

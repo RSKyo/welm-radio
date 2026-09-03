@@ -1,10 +1,10 @@
 import { Elm } from "./base/elm.js";
 import {
+  isNullishOrEmpty,
   assertNumber,
-  assertPositive,
   assertNonBlankString,
   assertFunction,
-  assertBoolean,
+  isNonBlankString,
 } from "./base/assert.js";
 
 const ROOT_CLASS = "timeline-slider";
@@ -27,24 +27,24 @@ const INNERHTML = `
     data-role="range"
 >
 <div
-    class="timeline-slider-percent"
-    data-role="percent"
+    class="timeline-slider-value"
+    data-role="value"
 >
 </div>
 `;
-const MIN_PERCENT_LEFT = 12;
-const MAX_PERCENT_LEFT = 85;
 
 export class TimelineSlider extends Elm {
   // state
   #prevText = "-";
   #nextText = "+";
-  #base = 100;
+  #suffix = "%";
+  #minValueText;
+  #maxValueText;
+  #percentBase = 100;
   #min = 0;
   #max = 100;
   #step = 1;
   #value = 0;
-  #percent = 0;
 
   // event
   #onChange;
@@ -58,7 +58,6 @@ export class TimelineSlider extends Elm {
     this.#initOptions(options);
     this.#render();
     this.#bindEvents();
-    this.#updateState();
   }
 
   // -----------------------------------------------------------------------------
@@ -70,7 +69,17 @@ export class TimelineSlider extends Elm {
       options.prevText ?? this.dataset.prevText ?? this.#prevText;
     this.#nextText =
       options.nextText ?? this.dataset.nextText ?? this.#nextText;
-    this.#base = options.base ?? this.dataset.base ?? this.#base;
+    this.#suffix = options.suffix ?? this.dataset.suffix ?? this.#suffix;
+    this.#minValueText =
+      options.minValueText ?? this.dataset.minValueText ?? this.#minValueText;
+    this.#maxValueText =
+      options.maxValueText ?? this.dataset.maxValueText ?? this.#maxValueText;
+    // percentBase can be null
+    if (Object.hasOwn(options, "percentBase")) {
+      this.#percentBase = options.percentBase;
+    } else if (this.dataset.percentBase != null) {
+      this.#percentBase = this.dataset.percentBase;
+    }
     this.#min = options.min ?? this.dataset.min ?? this.#min;
     this.#max = options.max ?? this.dataset.max ?? this.#max;
     this.#step = options.step ?? this.dataset.step ?? this.#step;
@@ -78,10 +87,16 @@ export class TimelineSlider extends Elm {
 
     assertNonBlankString(this.#prevText, "prevText");
     assertNonBlankString(this.#nextText, "nextText");
-    assertNumber(this.#base, "base");
+    if (this.#percentBase != null) {
+      assertNumber(this.#percentBase, "percentBase");
+
+      if (this.#percentBase === 0) {
+        throw new Error("percentBase must not be 0");
+      }
+    }
     assertNumber(this.#min, "min");
     assertNumber(this.#max, "max");
-    assertPositive(this.#step, "step");
+    assertNumber(this.#step, "step");
     assertNumber(this.#value, "value");
 
     if (this.#max <= this.#min) {
@@ -91,16 +106,6 @@ export class TimelineSlider extends Elm {
     if (this.#value < this.#min || this.#value > this.#max) {
       throw new Error("value must be between min and max");
     }
-
-    this.#percent = Number((this.#value / this.#base).toFixed(2));
-  }
-
-  // -----------------------------------------------------------------------------
-  // percent
-  // -----------------------------------------------------------------------------
-
-  get percent() {
-    return this.#percent;
   }
 
   // -----------------------------------------------------------------------------
@@ -122,15 +127,10 @@ export class TimelineSlider extends Elm {
     }
 
     const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
-
-    this.#percent = Number((normalizedValue / this.#base).toFixed(2));
     this.#value = Number(normalizedValue.toFixed(2));
     this.#updateState();
 
-    this.#onChange?.({
-      percent: this.#percent,
-      value: this.#value,
-    });
+    this.#onChange?.(this.#value);
   }
 
   // -----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ export class TimelineSlider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    const [prevEl, nextEl, rangeEl, percentEl] =
+    const [prevEl, nextEl, rangeEl, valueEl] =
       this.createElementsByHTML(INNERHTML);
 
     prevEl.textContent = this.#prevText;
@@ -152,29 +152,65 @@ export class TimelineSlider extends Elm {
     this.dom.add("prev", prevEl);
     this.dom.add("next", nextEl);
     this.dom.add("range", rangeEl);
-    this.dom.add("percent", percentEl);
+    this.dom.add("value", valueEl);
 
     this.#updateState();
   }
 
   #updateState() {
-    const percentEl = this.dom.get("percent");
-
-    const percent = Number((this.#percent * 100).toFixed(2));
-    percentEl.textContent = `${percent}%`;
+    const rangeEl = this.dom.get("range");
+    rangeEl.min = this.#min;
+    rangeEl.max = this.#max;
+    rangeEl.step = this.#step;
+    rangeEl.value = this.#value;
 
     const ratio = (this.#value - this.#min) / (this.#max - this.#min);
+    const progress = Number((ratio * 100).toFixed(2));
+    rangeEl.style.setProperty("--range-progress", `${progress}%`);
 
-    const left =
-      MIN_PERCENT_LEFT + ratio * (MAX_PERCENT_LEFT - MIN_PERCENT_LEFT);
+    const valueEl = this.dom.get("value");
+    if (this.#value === this.#min && isNonBlankString(this.#minValueText)) {
+      valueEl.textContent = this.#minValueText;
+    } else if (
+      this.#value === this.#max &&
+      isNonBlankString(this.#maxValueText)
+    ) {
+      valueEl.textContent = this.#maxValueText;
+    } else {
+      if (isNullishOrEmpty(this.#percentBase)) {
+        valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
+      } else {
+        const percent = Number(
+          ((this.#value / this.#percentBase) * 100).toFixed(2),
+        );
+        valueEl.textContent = `${percent}%`;
+      }
+    }
 
-    percentEl.style.left = `${left}%`;
-    percentEl.style.transform = "translateX(-50%)";
+    const rootElWidth = this.rootElement.clientWidth;
+    const prevElWidth = this.dom.get("prev").offsetWidth;
+    const nextElWidth = this.dom.get("next").offsetWidth;
+
+    const rawLeft = ratio * rootElWidth;
+    const valueElWidth = valueEl.offsetWidth;
+    const minLeft = prevElWidth + valueElWidth / 2;
+    const maxLeft = rootElWidth - nextElWidth - valueElWidth / 2;
+
+    const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
+
+    valueEl.style.left = `${left}px`;
+    valueEl.style.transform = "translateX(-50%)";
   }
 
   // -----------------------------------------------------------------------------
   // events
   // -----------------------------------------------------------------------------
+
+  // override
+  rootElementResize() {
+    console.log("rootElementResize", this.rootElement.clientWidth);
+    this.#updateState();
+  }
 
   set onChange(handler) {
     if (handler != null) {
@@ -207,4 +243,63 @@ export class TimelineSlider extends Elm {
     value = value > this.#max ? this.#max : value;
     this.#setValue(value);
   };
+}
+
+/**
+ * -60 dB ≈ gain 0.001
+ * 0 dB = gain 1
+ * +12 dB ≈ gain 3.98
+ */
+const MIN_DB = -60;
+const MAX_DB = 12;
+const DEFAULT_STEP = 0.5;
+const DEFAULT_VALUE = 0;
+export class TimelineGainSlider extends TimelineSlider {
+  constructor(root, options = {}) {
+    timelineGainSliderValidateOptions(options);
+
+    super(root, {
+      step: DEFAULT_STEP,
+      value: DEFAULT_VALUE,
+      ...options,
+      min: MIN_DB,
+      max: MAX_DB,
+      percentBase: null,
+      suffix: "dB",
+      minValueText: "-∞",
+    });
+  }
+
+  get gain() {
+    if (this.value === MIN_DB) {
+      return 0;
+    }
+
+    return this.dbToGain(this.value);
+  }
+
+  dbToGain(db) {
+    return 10 ** (db / 20);
+  }
+
+  gainToDb(gain) {
+    return Math.max(20 * Math.log10(gain), MIN_DB);
+  }
+}
+
+function timelineGainSliderValidateOptions(options) {
+  const step = options.step ?? DEFAULT_STEP;
+  const value = options.value ?? DEFAULT_VALUE;
+
+  if (step <= 0 || step > MAX_DB - MIN_DB) {
+    throw new Error(
+      `step must be greater than 0 and less than or equal to ${
+        MAX_DB - MIN_DB
+      }`,
+    );
+  }
+
+  if (value < MIN_DB || value > MAX_DB) {
+    throw new Error(`value must be between ${MIN_DB} and ${MAX_DB}`);
+  }
 }

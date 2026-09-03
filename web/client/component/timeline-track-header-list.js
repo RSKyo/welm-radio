@@ -1,6 +1,6 @@
 import { ItemsElm } from "./base/items-elm.js";
 import { TimelineComboBox } from "./timeline-combo-box.js";
-import { TimelineSlider } from "./timeline-slider.js";
+import { TimelineGainSlider } from "./timeline-slider.js";
 import {
   isNullishOrEmpty,
   assertBoolean,
@@ -169,13 +169,8 @@ export class TimelineTrackHeaderList extends ItemsElm {
     nameComboBox.items = getTrackNames();
     this.#nameElms.push(nameComboBox);
 
-    const gainSlider = new TimelineSlider(gainEl, {
-      base: 100,
-      min: 0,
-      max: 200,
-      step: 1,
-      value: 100,
-    });
+    const gainSlider = new TimelineGainSlider(gainEl);
+
     this.#gainElms.push(gainSlider);
 
     this.dom.add(value, trackHeaderEl);

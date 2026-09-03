@@ -324,7 +324,7 @@ export class ItemList extends ItemsElm {
   // overrides
   // ---------------------------------------------------------------------------
 
-  // Override
+  // override
   onItemsChange(items) {
     this.#selectedValue = this.filterExistingValue(this.#selectedValue);
     this.#checkedValue = this.filterExistingValue(this.#checkedValue);
