@@ -2,6 +2,7 @@ import { Elm } from "./elm.js";
 import {
   isNullishOrEmpty,
   assertNonBlankString,
+  assertPlainObject,
   assertNonEmptyNonBlankStringArray,
   assertNonBlankStringOrNonEmptyArray,
   assertPlainObjectArray,
@@ -14,6 +15,11 @@ import {
   assertFunction,
   assertKeyExists,
 } from "./assert.js";
+
+const EMPTY_KEY = "__empty__";
+const EMPTY_TEMPLATE = `
+<div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No items</div>
+`;
 
 export class ItemsElm extends Elm {
   #valueField;
@@ -51,6 +57,30 @@ export class ItemsElm extends Elm {
   }
 
   // -----------------------------------------------------------------------------
+  // empty element
+  // -----------------------------------------------------------------------------
+
+  #updateEmptyElement() {
+    const show = this.#items.length === 0;
+    const exists = this.dom.has(EMPTY_KEY);
+
+    if (show === exists) {
+      return;
+    }
+
+    if (show) {
+      this.dom.add(EMPTY_KEY, this.createEmptyElement());
+    } else {
+      this.dom.remove(EMPTY_KEY);
+    }
+  }
+
+  // Override this method to customize the empty state element.
+  createEmptyElement() {
+    return this.createElementByHTML(EMPTY_TEMPLATE);
+  }
+
+  // -----------------------------------------------------------------------------
   // items
   // -----------------------------------------------------------------------------
 
@@ -64,9 +94,8 @@ export class ItemsElm extends Elm {
   }
 
   setItems(items) {
-    if (isNullishOrEmpty(items)) {
-      this.#items = [];
-    } else {
+    // check
+    if (!isNullishOrEmpty(items)) {
       assertPlainObjectArray(items, "items", this.#valueField);
       assertNoDuplicatePlainObjectValues(items, this.#valueField, "items");
 
@@ -76,139 +105,201 @@ export class ItemsElm extends Elm {
           `the value of field "${this.#valueField}"`,
         );
       }
-
-      this.#items = items.map((item) => ({ ...item }));
     }
 
-    this.onItemsChange(this.#items);
-    this.#render(this.#items);
-    this.afterSetItems(this.#items);
+    // set items
+    const newItems = this.#setItems(items);
+
+    // render items
+    this.#setItemsRender(newItems);
   }
 
-  onItemsChange(items) {
-    // Override this method to normalize component state before rendering items.
+  #setItems(items) {
+    let newItems;
+
+    if (isNullishOrEmpty(items)) {
+      newItems = [];
+    } else {
+      newItems = items.map((item) => ({ ...item }));
+    }
+    this.#items = newItems;
+    this.afterSetItems(newItems);
+
+    return newItems;
+  }
+
+  #setItemsRender(items) {
+    this.dom.clear();
+    this.#updateEmptyElement();
+    if (items.length === 0) {
+      return;
+    }
+
+    for (const item of items) {
+      this.renderItem(item);
+    }
+    this.afterRenderItems(items);
   }
 
   afterSetItems(items) {
     // Override this method to perform actions after setting items.
   }
 
+  afterRenderItems(items) {
+    // Override this method to perform actions after rendering items.
+  }
+
+  // -----------------------------------------------------------------------------
+  // add item
+  // -----------------------------------------------------------------------------
+
   addItem(item) {
-    assertPlainObjectOrNonEmptyArray(item, "item", this.#valueField);
+    // check
+    assertPlainObject(item, "item", this.#valueField);
 
-    const [normalizedItems] = this.normalizeArray(item);
-    for (const tmpItem of normalizedItems) {
-      const value = tmpItem[this.#valueField];
-      assertNonBlankString(value, `the value of field "${this.#valueField}"`);
-      assertValueNotExists(
-        value,
-        this.itemValues,
-        `the value of field "${this.#valueField}"`,
-      );
-    }
+    const assertionSubject = `item."${this.#valueField}"`;
+    const value = item[this.#valueField];
 
-    assertNoDuplicatePlainObjectValues(
-      normalizedItems,
-      this.#valueField,
-      "item",
-    );
+    assertNonBlankString(value, assertionSubject);
+    assertValueNotExists(value, this.itemValues, assertionSubject);
 
-    for (const tmpItem of normalizedItems) {
-      this.#items.push({ ...tmpItem });
-    }
+    // add item
+    const addedItem = this.#addItem(item);
 
-    this.onItemsChange(this.#items);
-    this.#render(this.#items);
-    this.afterAddItem(item);
+    // render the added item
+    this.#addItemRender(addedItem);
   }
 
-  afterAddItem(item) {
-    // Override this method to perform actions after adding items.
+  // Add a single item to the internal list.
+  #addItem(item) {
+    const addedItem = { ...item };
+    this.#items.push(addedItem);
+    this.afterAddItem(addedItem);
+
+    return addedItem;
   }
+
+  // Render a single added item.
+  #addItemRender(addedItem) {
+    this.#updateEmptyElement();
+    this.renderItem(addedItem);
+  }
+
+  afterAddItem(addedItem) {
+    // Override this method to perform actions after adding an item.
+  }
+
+  // Render a single item. Must be implemented by subclass.
+  renderItem(addedItem) {
+    throw new Error("renderItem method must be implemented by subclass.");
+  }
+
+  // -----------------------------------------------------------------------------
+  // update item
+  // -----------------------------------------------------------------------------
 
   updateItem(item) {
-    assertPlainObjectOrNonEmptyArray(item, "item", this.#valueField);
+    // check
+    assertPlainObject(item, "item", this.#valueField);
 
-    const [normalizedItems] = this.normalizeArray(item);
-    for (const tmpItem of normalizedItems) {
-      const value = tmpItem[this.#valueField];
-      assertValueExists(
-        value,
-        this.itemValues,
-        `the value of field "${this.#valueField}"`,
-      );
-    }
+    const assertionSubject = `item."${this.#valueField}"`;
+    const value = item[this.#valueField];
 
-    assertNoDuplicatePlainObjectValues(
-      normalizedItems,
-      this.#valueField,
-      "item",
+    assertNonBlankString(value, assertionSubject);
+    assertValueExists(value, this.itemValues, assertionSubject);
+
+    // update item
+    const updatedItem = this.#updateItem(item);
+
+    // render the updated item
+    this.#updateItemRender(updatedItem);
+  }
+
+  // Update the item in the internal list.
+  #updateItem(item) {
+    const updatedItem = { ...item };
+    const index = this.#items.findIndex(
+      (findItem) => findItem[this.#valueField] === item[this.#valueField],
     );
 
-    for (const tmpItem of normalizedItems) {
-      const index = this.#items.findIndex(
-        (find_item) =>
-          find_item[this.#valueField] === tmpItem[this.#valueField],
-      );
+    this.#items[index] = updatedItem;
+    this.afterUpdateItem(updatedItem);
 
-      this.#items[index] = { ...tmpItem };
-    }
-
-    this.onItemsChange(this.#items);
-    this.#render(this.#items);
-    this.afterUpdateItem(item);
+    return updatedItem;
   }
 
-  afterUpdateItem(item) {
-    // Override this method to perform actions after updating items.
+  // render the updated item
+  #updateItemRender(updatedItem) {
+    this.renderUpdatedItem(updatedItem);
   }
+
+  afterUpdateItem(updatedItem) {
+    // Override this method to perform actions after updating an item.
+  }
+
+  renderUpdatedItem(updatedItem) {
+    throw new Error(
+      "renderUpdatedItem method must be implemented by subclass.",
+    );
+  }
+
+  // -----------------------------------------------------------------------------
+  // remove item
+  // -----------------------------------------------------------------------------
 
   removeItem(value) {
-    assertNonBlankStringOrNonEmptyArray(value, "value");
+    const assertionSubject = this.#valueField;
+    assertNonBlankString(value, assertionSubject);
+    assertValueExists(value, this.itemValues, assertionSubject);
 
-    const [normalizedValues] = this.normalizeArray(value);
-    for (const tmpValue of normalizedValues) {
-      assertValueExists(
-        tmpValue,
-        this.itemValues,
-        `the value of field "${this.#valueField}"`,
-      );
-    }
+    // remove item
+    const removedItem = this.#removeItem(value);
 
-    this.#items = this.#items.filter(
-      (item) => !normalizedValues.includes(item[this.#valueField]),
-    );
-
-    this.onItemsChange(this.#items);
-    this.#render(this.#items);
-    this.afterRemoveItem(value);
+    // render the removed item
+    this.#removeItemRender(value);
   }
 
-  afterRemoveItem(value) {
-    // Override this method to perform actions after removing items.
+  // Remove the item from the internal list by its value.
+  #removeItem(value) {
+    let removedItem = null;
+    this.#items = this.#items.filter((item) => {
+      if (item[this.#valueField] === value) {
+        removedItem = item;
+        return false;
+      }
+      return true;
+    });
+    this.afterRemoveItem(removedItem);
+
+    return removedItem;
   }
+
+  #removeItemRender(value) {
+    this.dom.remove(value);
+    this.#updateEmptyElement();
+  }
+
+  afterRemoveItem(removedItem) {
+    // Override this method to perform actions after removing an item.
+  }
+
+  // -----------------------------------------------------------------------------
+  // get item
+  // -----------------------------------------------------------------------------
 
   getItem(value) {
     if (isNullishOrEmpty(value)) {
       return null;
     }
 
-    assertNonBlankStringOrNonEmptyArray(value, "value");
+    const assertionSubject = this.#valueField;
 
-    const [normalizedValues, isArray] = this.normalizeArray(value);
-    for (const tmpValue of normalizedValues) {
-      assertValueExists(
-        tmpValue,
-        this.itemValues,
-        `the value of field "${this.#valueField}"`,
-      );
-    }
+    assertNonBlankString(value, assertionSubject);
+    assertValueExists(value, this.itemValues, assertionSubject);
 
-    const items = this.#items.filter((item) =>
-      normalizedValues.includes(item[this.#valueField]),
-    );
+    const item = this.#items.find((item) => item[this.#valueField] === value);
 
-    return isArray ? items.map((item) => ({ ...item })) : { ...items[0] };
+    return { ...item };
   }
 
   eachItem(callback) {
@@ -299,58 +390,5 @@ export class ItemsElm extends Elm {
     }
 
     return false;
-  }
-
-  // -----------------------------------------------------------------------------
-  // render
-  // -----------------------------------------------------------------------------
-  #render(items) {
-    this.dom.clear();
-
-    this.beforeRender(items);
-
-    if (items.length === 0) {
-      const emptyElement = this.createEmptyElement();
-      this.dom.add("__empty__", emptyElement);
-      this.afterRender(items);
-      return;
-    }
-
-    for (const item of items) {
-      this.beforeRenderItem(item);
-      this.renderItem(item);
-      this.afterRenderItem(item);
-    }
-
-    this.afterRender(items);
-  }
-
-  createEmptyElement() {
-    const name = this.dataset.name ?? "";
-    const defaultEmptyHTML = `<div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No ${name} items</div>`;
-    const template = document.createElement("template");
-    template.innerHTML = defaultEmptyHTML.trim();
-    return template.content.firstChild;
-  }
-
-  beforeRender(items) {
-    // Override this method to perform actions before rendering items.
-  }
-
-  beforeRenderItem(item) {
-    // Override this method to perform actions before rendering an item.
-  }
-
-  renderItem(item) {
-    // must override this method to render an item.
-    throw new Error("renderItem must be implemented");
-  }
-
-  afterRenderItem(item) {
-    // Override this method to perform actions after rendering an item.
-  }
-
-  afterRender(items) {
-    // Override this method to perform actions after rendering items.
   }
 }
