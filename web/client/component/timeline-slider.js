@@ -130,7 +130,10 @@ export class TimelineSlider extends Elm {
     this.#value = Number(normalizedValue.toFixed(2));
     this.#updateState();
 
-    this.#onChange?.(this.#value);
+    this.#onChange?.({
+      elm: this,
+      value: this.#value,
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -138,8 +141,7 @@ export class TimelineSlider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    const [prevEl, nextEl, rangeEl, valueEl] =
-      this.htmlElements(INNERHTML);
+    const [prevEl, nextEl, rangeEl, valueEl] = this.htmlElements(INNERHTML);
 
     prevEl.textContent = this.#prevText;
     nextEl.textContent = this.#nextText;

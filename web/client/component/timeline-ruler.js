@@ -58,10 +58,7 @@ export class TimelineRuler extends Elm {
   }
 
   #initTickTemplate(target) {
-    this.#tickTemplate = this.resolveElement(
-      TICK_TEMPLATE,
-      "TICK_TEMPLATE",
-    );
+    this.#tickTemplate = this.resolveElement(TICK_TEMPLATE, "TICK_TEMPLATE");
   }
 
   // -----------------------------------------------------------------------------
@@ -87,12 +84,6 @@ export class TimelineRuler extends Elm {
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
       this.#render();
-
-      this.#onWidthChange?.({
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
     }
   }
 
@@ -105,7 +96,7 @@ export class TimelineRuler extends Elm {
   set pixelsPerSecond(value) {
     assertNonNegative(value, "pixelsPerSecond");
 
-    if (this.#pixelsPerSecond === value) {
+    if (value === this.#pixelsPerSecond) {
       return;
     }
     // clamp the value within the allowed range
@@ -118,16 +109,11 @@ export class TimelineRuler extends Elm {
     const calculatedWidth = this.#calculateWidth();
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
-
-      this.#onWidthChange?.({
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
     }
     this.#render();
 
     this.#onPixelsPerSecondChange?.({
+      elm: this,
       duration: this.#duration,
       pixelsPerSecond: this.#pixelsPerSecond,
       width: this.#width,
@@ -143,24 +129,19 @@ export class TimelineRuler extends Elm {
   set width(value) {
     assertNonNegative(value, "width");
 
-    const calculatedWidth = this.#calculateWidth();
+    const calculatedWidth = this.#calculateWidth(value);
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
       this.#render();
-
-      this.#onWidthChange?.({
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
     }
   }
 
   #calculateWidth(width) {
-    width = width ?? this.rootElement.parentElement?.clientWidth ?? 0;
+    const containerWidth =
+      width ?? this.rootElement.parentElement?.clientWidth ?? 0;
     const durationWidth = this.#duration * this.#pixelsPerSecond;
 
-    return Number(Math.max(width, durationWidth).toFixed(2));
+    return Number(Math.max(containerWidth, durationWidth).toFixed(2));
   }
 
   /** time to x coordinate conversion */
@@ -279,16 +260,6 @@ export class TimelineRuler extends Elm {
     }
 
     this.#onPixelsPerSecondChange = null;
-  }
-
-  set onWidthChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onWidthChange = handler;
-      return;
-    }
-
-    this.#onWidthChange = null;
   }
 
   #bindEvents() {}

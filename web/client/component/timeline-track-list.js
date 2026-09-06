@@ -98,8 +98,8 @@ export class TimelineTrackList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.selectedValue,
-        item: this.getItem(newValue),
+        elm: this,
+        value: newValue,
       });
     }
   }

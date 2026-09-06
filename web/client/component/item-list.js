@@ -117,8 +117,8 @@ export class ItemList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.selectedValue,
-        item: this.getItem(newValue),
+        elm: this,
+        value: newValue,
       });
     }
   }
@@ -162,8 +162,8 @@ export class ItemList extends ItemsElm {
       this.#updateCheckedState();
 
       this.#onCheckedChange?.({
-        value: this.checkedValue,
-        item: this.getItem(newValue),
+        elm: this,
+        value: newValue,
       });
     }
   }

@@ -125,6 +125,7 @@ export class Slider extends Elm {
     this.#updateState();
 
     this.#onChange?.({
+      elm: this,
       percent: this.#percent,
       value: this.#value,
     });

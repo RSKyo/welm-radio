@@ -77,7 +77,7 @@ export class ItemsElm extends Elm {
 
   // Override this method to customize the empty state element.
   createEmptyElement() {
-    return this.htmlElement(EMPTY_TEMPLATE);
+    return this.resolveElement(EMPTY_TEMPLATE);
   }
 
   // -----------------------------------------------------------------------------

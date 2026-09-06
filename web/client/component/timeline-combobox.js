@@ -83,7 +83,10 @@ export class TimelineCombobox extends Elm {
     }
 
     this.#updateInputState();
-    this.#onChange?.(newValue);
+    this.#onChange?.({
+      elm: this,
+      value: newValue,
+    });
   }
 
   // ---------------------------------------------------------------------------
