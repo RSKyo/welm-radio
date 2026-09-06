@@ -77,7 +77,7 @@ export class ItemsElm extends Elm {
 
   // Override this method to customize the empty state element.
   createEmptyElement() {
-    return this.createElementByHTML(EMPTY_TEMPLATE);
+    return this.htmlElement(EMPTY_TEMPLATE);
   }
 
   // -----------------------------------------------------------------------------
@@ -130,6 +130,8 @@ export class ItemsElm extends Elm {
 
   #setItemsRender(items) {
     this.dom.clear();
+    this.beforeRenderItems(items);
+    
     this.#updateEmptyElement();
     if (items.length === 0) {
       return;
@@ -143,6 +145,10 @@ export class ItemsElm extends Elm {
 
   afterSetItems(items) {
     // Override this method to perform actions after setting items.
+  }
+
+  beforeRenderItems(items) {
+    // Override this method to perform actions before rendering items.
   }
 
   afterRenderItems(items) {

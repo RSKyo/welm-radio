@@ -253,7 +253,7 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    const template = this.createElementByHTML(TEMPLATE);
+    const template = this.resolveElement(TEMPLATE, "TEMPLATE");
 
     const decreaseElement = template.querySelector('[data-role="decrease"]');
     const rangeElement = template.querySelector('[data-role="range"]');

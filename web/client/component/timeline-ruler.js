@@ -58,7 +58,7 @@ export class TimelineRuler extends Elm {
   }
 
   #initTickTemplate(target) {
-    this.#tickTemplate = this.createElementByHTML(
+    this.#tickTemplate = this.resolveElement(
       TICK_TEMPLATE,
       "TICK_TEMPLATE",
     );

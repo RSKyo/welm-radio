@@ -230,35 +230,7 @@ export class ElmDom {
     }
 
     const wrapper = (event) => {
-      const targetClosest = (selector, closestHandler, notFoundHandler) => {
-        assertNonBlankString(selector, "selector");
-        if (closestHandler != null) {
-          assertFunction(closestHandler, "closestHandler");
-        }
-        if (notFoundHandler != null) {
-          assertFunction(notFoundHandler, "notFoundHandler");
-        }
-
-        const { target, currentTarget } = event;
-
-        if (
-          !(target instanceof Element) ||
-          !(currentTarget instanceof Element)
-        ) {
-          return null;
-        }
-
-        const element = target.closest(selector);
-
-        if (element == null || !currentTarget.contains(element)) {
-          notFoundHandler?.({ event });
-          return null;
-        }
-
-        closestHandler?.({ event, target: element });
-        return element;
-      };
-      handler(event, { targetClosest });
+      handler(event);
     };
 
     element.addEventListener(eventType, wrapper);

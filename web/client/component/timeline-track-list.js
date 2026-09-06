@@ -54,7 +54,7 @@ export class TimelineTrackList extends ItemsElm {
 
   #initItemTemplate(target) {
     if (target == null) {
-      this.#itemTemplate = this.createElementByHTML(
+      this.#itemTemplate = this.resolveElement(
         ITEM_TEMPLATE,
         "ITEM_TEMPLATE",
       );

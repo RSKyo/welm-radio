@@ -42,79 +42,71 @@ export class ChipGroup extends ItemsElm {
       rootClass: ROOT_CLASS,
     });
 
-    if (options.mode != null) {
-      assertValueIn(options.mode, ["multiple", "single"], "options.mode");
-
-      this.#mode = options.mode;
-      this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
-    }
-
-    if (options.showActions != null) {
-      assertBoolean(options.showActions, "options.showActions");
-      this.#showActions = options.showActions;
-    }
-
-    if (options.showActionsMinCount != null) {
-      assertPositiveInteger(
-        options.showActionsMinCount,
-        "options.showActionsMinCount",
-      );
-      this.#showActionsMinCount = options.showActionsMinCount;
-    }
-
-    this.#initItemTemplate(options.itemTemplate);
-    this.#initActionsTemplate(options.actionsTemplate);
-
+    this.#initOptions(options);
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // templates
+  // options
   // -----------------------------------------------------------------------------
 
-  #initItemTemplate(target) {
-    if (target == null) {
-      this.#itemTemplate = this.createElementByHTML(
-        ITEM_TEMPLATE,
-        "ITEM_TEMPLATE",
-      );
-      return;
-    }
+  #initOptions(options) {
+    this.initOption(options, "mode", (value, assertionSubject) => {
+      assertValueIn(value, ["multiple", "single"], assertionSubject);
+      this.#mode = value;
+      this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
+    });
 
-    const assertionSubject = "options.itemTemplate";
-    assertNonBlankString(target, assertionSubject);
-    const itemTemplate = this.resolveElement(target, assertionSubject);
-    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
-    assertElementContains(itemTemplate, '[data-role="text"]', assertionSubject);
+    this.initOption(options, "showActions", (value, assertionSubject) => {
+      assertBoolean(value, assertionSubject);
+      this.#showActions = value;
+    });
 
-    this.#itemTemplate = itemTemplate;
-  }
-
-  #initActionsTemplate(target) {
-    if (target == null) {
-      this.#actionsTemplate = this.createElementByHTML(
-        ACTIONS_TEMPLATE,
-        "ACTIONS_TEMPLATE",
-      );
-      return;
-    }
-
-    const assertionSubject = "options.actionsTemplate";
-    assertNonBlankString(target, assertionSubject);
-    const actionsTemplate = this.resolveElement(target, assertionSubject);
-    assertElementMatches(actionsTemplate, '[data-role="actions"]', assertionSubject);
-    assertElementContains(
-      actionsTemplate,
-      '[data-role="action"][data-action="select-all"]',
-      assertionSubject,
-    );
-    assertElementContains(
-      actionsTemplate,
-      '[data-role="action"][data-action="unselect"]',
-      assertionSubject,
+    this.initOption(
+      options,
+      "showActionsMinCount",
+      (value, assertionSubject) => {
+        assertPositiveInteger(value, assertionSubject);
+        this.#showActionsMinCount = value;
+      },
     );
 
-    this.#actionsTemplate = actionsTemplate;
+    this.initOption(
+      options,
+      "itemTemplate",
+      (value, assertionSubject) => {
+        this.#itemTemplate = this.resolveElement(value, assertionSubject, {
+          matches: ['[data-role="item"]'],
+          contains: ['[data-role="text"]'],
+        });
+      },
+      () => {
+        this.#itemTemplate = this.resolveElement(
+          ITEM_TEMPLATE,
+          "ITEM_TEMPLATE",
+        );
+      },
+    );
+
+    this.initOption(
+      options,
+      "actionsTemplate",
+      (value, assertionSubject) => {
+        this.#actionsTemplate = this.resolveElement(value, assertionSubject, {
+          matches: ['[data-role="actions"]'],
+          contains: [
+            '[data-role="action"][data-action="select-all"]',
+            '[data-role="action"][data-action="unselect"]',
+          ],
+        });
+      },
+      () => {
+        this.#actionsTemplate = this.resolveElement(
+          ACTIONS_TEMPLATE,
+          "ACTIONS_TEMPLATE",
+        );
+      },
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -127,7 +119,7 @@ export class ChipGroup extends ItemsElm {
     }
   }
 
-  getSelectedValue() {
+  get selectedValue() {
     if (isNullishOrEmpty(this.#selectedValue)) {
       return null;
     }
@@ -136,7 +128,7 @@ export class ChipGroup extends ItemsElm {
       : this.#selectedValue;
   }
 
-  setSelectedValue(value) {
+  set selectedValue(value) {
     this.validateValueByMode(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
@@ -152,7 +144,7 @@ export class ChipGroup extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.getSelectedValue(),
+        value: this.selectedValue,
         item: this.getItem(newValue),
       });
     }
@@ -160,12 +152,12 @@ export class ChipGroup extends ItemsElm {
 
   selectAll() {
     this.#assertMultipleMode();
-    this.setSelectedValue(this.itemValues);
+    this.selectedValue = this.itemValues;
   }
 
   unselect() {
     this.#assertMultipleMode();
-    this.setSelectedValue(null);
+    this.selectedValue = null;
   }
 
   // -----------------------------------------------------------------------------
@@ -191,11 +183,11 @@ export class ChipGroup extends ItemsElm {
     this.dom.onRoot("click", this.#handleRootClick);
   }
 
-  #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="item"]', ({ target }) => {
-      const value = target.dataset.value;
+  #handleRootClick = (event) => {
+    this.closestElement(event, '[data-role="item"]', (element) => {
+      const value = element.dataset.value;
       if (this.#selectedValueMode === 1) {
-        this.setSelectedValue(value);
+        this.selectedValue = value;
         return;
       }
 
@@ -204,15 +196,15 @@ export class ChipGroup extends ItemsElm {
         ? oldValue.filter((v) => v !== value)
         : [...oldValue, value];
 
-      this.setSelectedValue(newValue);
+      this.selectedValue = newValue;
     });
 
-    targetClosest("[data-action]", ({ target }) => {
-      if (target.dataset.action === "select-all") {
-        this.selectAll();
-      } else if (target.dataset.action === "unselect") {
-        this.unselect();
-      }
+    this.closestElement(event, '[data-action="select-all"]', () => {
+      this.selectAll();
+    });
+
+    this.closestElement(event, '[data-action="unselect"]', () => {
+      this.unselect();
     });
   };
 
@@ -240,6 +232,25 @@ export class ChipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
+  afterSetItems(items) {
+    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
+  }
+
+  // override
+  afterRenderItems(items) {
+    if (
+      this.#selectedValueMode === 2 &&
+      this.#showActions &&
+      items.length >= this.#showActionsMinCount
+    ) {
+      const actionsElement = this.#actionsTemplate.cloneNode(true);
+      this.dom.add("__actions__", actionsElement);
+    }
+
+    this.#updateSelectedState();
+  }
+
+  // override
   renderItem(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
@@ -254,25 +265,8 @@ export class ChipGroup extends ItemsElm {
   }
 
   // override
-  afterRender(items) {
-    if (
-      this.#selectedValueMode === 2 &&
-      this.#showActions &&
-      items.length >= this.#showActionsMinCount
-    ) {
-      const actionsElement = this.#actionsTemplate.cloneNode(true);
-      this.dom.add("__actions__", actionsElement);
-    }
-  }
-
-  // Override
-  onItemsChange(items) {
+  afterRemoveItem(removedItem) {
     this.#selectedValue = this.filterExistingValue(this.#selectedValue);
-  }
-
-  // override
-  afterRender(items) {
-    this.#updateSelectedState();
   }
 }
 

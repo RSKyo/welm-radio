@@ -1,11 +1,16 @@
 import { ElmDom } from "./elm-dom.js";
 import {
+  isNullish,
   isHtmlElement,
   assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
   assertNonBlankString,
+  assertFunction,
   assertPlainObject,
   assertStringPlainObject,
+  assertElementMatches,
+  assertElementContains,
+  assertNonEmptyNonBlankStringArray,
 } from "./assert.js";
 
 export class Elm {
@@ -17,26 +22,53 @@ export class Elm {
 
   constructor(root, options = {}) {
     this.#rootElement = resolveElement(root);
-
-    assertPlainObject(options, "options");
     this.#dom = new ElmDom(this.#rootElement);
 
-    if (options.rootClass != null) {
-      assertNonBlankString(options.rootClass, "rootClass");
-      this.#rootElement.classList.add(options.rootClass);
-    }
-
-    if (options.dataset != null) {
-      assertStringPlainObject(options.dataset, "dataset");
-
-      for (const [key, value] of Object.entries(options.dataset)) {
-        this.#rootElement.dataset[key] = value;
-      }
-    }
-
-    this.#dataset = { ...this.#rootElement.dataset };
+    this.#initOptions(options);
 
     this.#observeRootElementResize();
+  }
+
+  #initOptions(options) {
+    this.initOption(options, "rootClass", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#rootElement.classList.add(value);
+    });
+
+    this.initOption(options, "dataset", (value, assertionSubject) => {
+      assertStringPlainObject(value, assertionSubject);
+
+      for (const [k, v] of Object.entries(value)) {
+        assertNonBlankString(v, `${assertionSubject}.${k}`);
+      }
+
+      for (const [k, v] of Object.entries(value)) {
+        this.#rootElement.dataset[k] = v;
+      }
+    });
+
+    this.#dataset = { ...this.#rootElement.dataset };
+  }
+
+  initOption(options, key, handler, fallbackHandler) {
+    assertPlainObject(options, "options");
+    assertNonBlankString(key, "key");
+
+    if (handler != null) {
+      assertFunction(handler, "handler");
+    }
+
+    if (fallbackHandler != null) {
+      assertFunction(fallbackHandler, "fallbackHandler");
+    }
+
+    const assertionSubject = `options.${key}`;
+
+    if (Object.hasOwn(options, key)) {
+      handler?.(options[key], assertionSubject);
+    } else {
+      fallbackHandler?.(assertionSubject);
+    }
   }
 
   get rootElement() {
@@ -65,76 +97,134 @@ export class Elm {
     // Override this method to handle root element resize events
   }
 
-  resolveElement(target, assertionSubject = "target") {
-    return resolveElement(target, assertionSubject);
+  resolveElement(target, assertionSubject = "target", options = {}) {
+    return resolveElement(target, assertionSubject, options);
   }
 
-  createElementByHTML(html, assertionSubject = "html") {
-    return createElementByHTML(html, assertionSubject);
+  queryElement(element, selector) {
+    return queryElement(element, selector);
   }
 
-  createElementsByHTML(html, assertionSubject = "html") {
-    return createElementsByHTML(html, assertionSubject);
+  closestElement(event, selector, handler, fallbackHandler) {
+    return closestElement(event, selector, handler, fallbackHandler);
   }
 
   normalizeArray(value) {
-    return Array.isArray(value) ? [value, true] : [[value], false];
+    return normalizeArray(value);
+  }
+
+  destroy() {
+    this.#rootElementResizeObserver?.disconnect();
+    this.#dom.clear();
   }
 }
 
-function resolveElement(target, assertionSubject = "target") {
+function resolveElement(target, assertionSubject = "target", options = {}) {
   assertNonBlankStringOrHtmlElement(target, assertionSubject);
-
-  if (isHtmlElement(target)) {
-    return target;
-  }
-
-  target = target.trim();
+  assertPlainObject(options, "options");
 
   let element;
-
-  if (target.startsWith("<") && target.endsWith(">")) {
-    element = createElementByHTML(target);
-  } else if (target.startsWith("#")) {
-    element = document.getElementById(target.slice(1));
+  if (isHtmlElement(target)) {
+    element = target;
   } else {
-    try {
-      element = document.querySelector(target);
-    } catch {
-      throw new Error(
-        `${assertionSubject} must be a valid CSS selector: ${target}`,
-      );
+    target = target.trim();
+
+    if (target.startsWith("<") && target.endsWith(">")) {
+      element = createElementByHTML(target, assertionSubject);
+    } else if (target.startsWith("#")) {
+      element = document.getElementById(target.slice(1));
+    } else {
+      try {
+        element = document.querySelector(target);
+      } catch {
+        throw new Error(
+          `${assertionSubject} must be a valid CSS selector: ${target}`,
+        );
+      }
     }
   }
 
   assertHtmlElement(element, assertionSubject);
 
+  const [matches] = normalizeArray(options.matches);
+  const [contains] = normalizeArray(options.contains);
+
+  for (const selector of matches) {
+    assertNonBlankString(selector, "matches selector");
+    assertElementMatches(element, selector, assertionSubject);
+  }
+
+  for (const selector of contains) {
+    assertNonBlankString(selector, "contains selector");
+    assertElementContains(element, selector, assertionSubject);
+  }
+
   return element;
 }
 
-function createElementByHTML(html, assertionSubject = "html") {
-  const elements = createElementsByHTML(html, assertionSubject);
+function queryElement(element, selector) {
+  assertHtmlElement(element, "element");
+  assertNonEmptyNonBlankStringArray(selector, "selector");
 
-  if (elements.length !== 1) {
-    throw new Error(
-      `${assertionSubject} must contain exactly one root element`,
-    );
+  const elements = [];
+  const [selectors, isArray] = normalizeArray(selector);
+  for (const sel of selectors) {
+    const el = element.querySelector(sel);
+    assertHtmlElement(el, `element matching selector "${sel}"`);
+    elements.push(el);
   }
 
-  return elements[0];
+  return isArray ? elements : elements[0];
 }
 
-function createElementsByHTML(html, assertionSubject = "html") {
+function closestElement(event, selector, handler, fallbackHandler) {
+  assertNonBlankString(selector, "selector");
+  if (handler != null) {
+    assertFunction(handler, "handler");
+  }
+
+  if (fallbackHandler != null) {
+    assertFunction(fallbackHandler, "fallbackHandler");
+  }
+
+  const { target, currentTarget } = event;
+
+  if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
+    return null;
+  }
+
+  const element = target.closest(selector);
+  if (element == null || !currentTarget.contains(element)) {
+    fallbackHandler?.();
+    return null;
+  }
+
+  handler?.(element);
+  return element;
+}
+
+function normalizeArray(value) {
+  if (isNullish(value)) {
+    return [[], false];
+  }
+  return Array.isArray(value) ? [value, true] : [[value], false];
+}
+
+function createElementByHTML(html, assertionSubject = "html") {
   assertNonBlankString(html, assertionSubject);
 
   const template = document.createElement("template");
   template.innerHTML = html.trim();
 
-  const elements = [...template.content.children];
-
-  for (const element of elements) {
-    assertHtmlElement(element, assertionSubject);
+  const { children } = template.content;
+  if (children.length !== 1) {
+    throw new Error(
+      `${assertionSubject} must contain exactly one root element`,
+    );
   }
 
-  return elements;
+  const element = children[0];
+  assertHtmlElement(element, assertionSubject);
+
+  return element;
 }

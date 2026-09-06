@@ -152,7 +152,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
 
-    const trackHeaderEl = this.createElementByHTML(
+    const trackHeaderEl = this.resolveElement(
       ITEM_TEMPLATE,
       "ITEM_TEMPLATE",
     );

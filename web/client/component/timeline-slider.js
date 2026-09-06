@@ -139,7 +139,7 @@ export class TimelineSlider extends Elm {
 
   #render() {
     const [prevEl, nextEl, rangeEl, valueEl] =
-      this.createElementsByHTML(INNERHTML);
+      this.htmlElements(INNERHTML);
 
     prevEl.textContent = this.#prevText;
     nextEl.textContent = this.#nextText;

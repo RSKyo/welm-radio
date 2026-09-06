@@ -1,19 +1,20 @@
-.timeline-combo-box {
+.timeline-combobox {
   width: 100%;
   position: relative;
   display: flex;
 }
 
-.timeline-combo-box-input {
+.timeline-combobox-input {
   flex: 1;
   border: 0;
+  min-width: 0;
   font-size: 11px;
   font-family: inherit;
   padding: 4px 8px;
-  border-radius: 4px 0 0 4px;
+  border-radius: 4px;
 }
 
-.timeline-combo-box-dropdown {
+.timeline-combobox-dropdown {
   position: absolute;
   z-index: 20;
 
@@ -34,17 +35,17 @@
   background: var(--color-surface-overlay);
 }
 
-.timeline-combo-box.is-open .timeline-combo-box-dropdown {
+.timeline-combobox.is-open .timeline-combobox-dropdown {
   display: block;
 }
 
-.timeline-combo-box-item {
+.timeline-combobox-item {
   padding: 5px 7px;
   border-radius: 3px;
 
   cursor: default;
 }
 
-.timeline-combo-box-item:hover {
+.timeline-combobox-item:hover {
   background: var(--color-hover);
 }

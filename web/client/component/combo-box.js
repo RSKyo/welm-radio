@@ -132,12 +132,12 @@ export class ComboBox extends Elm {
 
     this.rootElement.classList.toggle("no-toggle", !this.#showDropdownButton);
 
-    const comboboxEl = this.createElementByHTML(COMBOBOX_TEMPLATE);
+    const comboboxEl = this.resolveElement(COMBOBOX_TEMPLATE);
     this.dom.add("combobox", comboboxEl);
     const inputEl = comboboxEl.querySelector('[data-role="combo-box-input"]');
     inputEl.value = this.#value ?? "";
 
-    const dropdownEl = this.createElementByHTML(DROPDOWN_TEMPLATE);
+    const dropdownEl = this.resolveElement(DROPDOWN_TEMPLATE);
     this.dom.add("dropdown", dropdownEl);
     this.#renderItems();
   }
@@ -148,7 +148,7 @@ export class ComboBox extends Elm {
 
     let index = 0;
     for (const item of this.#items) {
-      const itemEl = this.createElementByHTML(DROPDOWN_ITEM_TEMPLATE);
+      const itemEl = this.resolveElement(DROPDOWN_ITEM_TEMPLATE);
 
       itemEl.textContent = item;
       itemEl.dataset.value = item;

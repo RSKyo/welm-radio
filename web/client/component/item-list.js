@@ -41,64 +41,58 @@ export class ItemList extends ItemsElm {
       rootClass: ROOT_CLASS,
     });
 
-    if (options.selectedValueMode != null) {
-      assertValueIn(
-        options.selectedValueMode,
-        [1, 2],
-        "options.selectedValueMode",
-      );
-      this.#selectedValueMode = options.selectedValueMode;
-    }
-
-    if (options.checkedValueMode != null) {
-      assertValueIn(
-        options.checkedValueMode,
-        [1, 2],
-        "options.checkedValueMode",
-      );
-      this.#checkedValueMode = options.checkedValueMode;
-    }
-
-    if (options.showCheckboxes != null) {
-      assertBoolean(options.showCheckboxes, "options.showCheckboxes");
-      this.#showCheckboxes = options.showCheckboxes;
-    }
-
-    this.#initItemTemplate(options.itemTemplate);
-
+    this.#initOptions(options);
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // templates
+  // options
   // -----------------------------------------------------------------------------
 
-  #initItemTemplate(target) {
-    if (target == null) {
-      this.#itemTemplate = this.createElementByHTML(
-        ITEM_TEMPLATE,
-        "ITEM_TEMPLATE",
-      );
-      return;
-    }
+  #initOptions(options) {
+    this.initOption(options, "selectedValueMode", (value, assertionSubject) => {
+      assertValueIn(value, [1, 2], assertionSubject);
+      this.#selectedValueMode = value;
+    });
 
-    const assertionSubject = "options.itemTemplate";
-    assertNonBlankString(target, assertionSubject);
-    const itemTemplate = this.resolveElement(target, assertionSubject);
-    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
-    assertElementContains(itemTemplate, '[data-role="content"]', assertionSubject);
-    assertElementContains(itemTemplate, '[data-role="text"]', assertionSubject);
-    assertElementContains(itemTemplate, '[data-role="check"]', assertionSubject);
-    assertElementContains(itemTemplate, '[data-role="checkbox"]', assertionSubject);
+    this.initOption(options, "checkedValueMode", (value, assertionSubject) => {
+      assertValueIn(value, [1, 2], assertionSubject);
+      this.#checkedValueMode = value;
+    });
 
-    this.#itemTemplate = itemTemplate;
+    this.initOption(options, "showCheckboxes", (value, assertionSubject) => {
+      assertBoolean(value, assertionSubject);
+      this.#showCheckboxes = value;
+    });
+
+    this.initOption(
+      options,
+      "itemTemplate",
+      (value, assertionSubject) => {
+        this.#itemTemplate = this.resolveElement(value, assertionSubject, {
+          matches: ['[data-role="item"]'],
+          contains: [
+            '[data-role="content"]',
+            '[data-role="text"]',
+            '[data-role="check"]',
+            '[data-role="checkbox"]',
+          ],
+        });
+      },
+      () => {
+        this.#itemTemplate = this.resolveElement(
+          ITEM_TEMPLATE,
+          "ITEM_TEMPLATE",
+        );
+      },
+    );
   }
 
   // -----------------------------------------------------------------------------
   // selected value
   // -----------------------------------------------------------------------------
 
-  getSelectedValue() {
+  get selectedValue() {
     if (isNullishOrEmpty(this.#selectedValue)) {
       return null;
     }
@@ -107,7 +101,7 @@ export class ItemList extends ItemsElm {
       : this.#selectedValue;
   }
 
-  setSelectedValue(value) {
+  set selectedValue(value) {
     this.validateValueByMode(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
@@ -123,7 +117,7 @@ export class ItemList extends ItemsElm {
       this.#updateSelectedState();
 
       this.#onSelectedChange?.({
-        value: this.getSelectedValue(),
+        value: this.selectedValue,
         item: this.getItem(newValue),
       });
     }
@@ -139,7 +133,7 @@ export class ItemList extends ItemsElm {
     }
   }
 
-  getCheckedValue() {
+  get checkedValue() {
     this.#assertCheckboxesEnabled();
 
     if (isNullishOrEmpty(this.#checkedValue)) {
@@ -150,7 +144,7 @@ export class ItemList extends ItemsElm {
       : this.#checkedValue;
   }
 
-  setCheckedValue(value) {
+  set checkedValue(value) {
     this.#assertCheckboxesEnabled();
 
     this.validateValueByMode(value, this.#checkedValueMode);
@@ -168,7 +162,7 @@ export class ItemList extends ItemsElm {
       this.#updateCheckedState();
 
       this.#onCheckedChange?.({
-        value: this.getCheckedValue(),
+        value: this.checkedValue,
         item: this.getItem(newValue),
       });
     }
@@ -176,12 +170,12 @@ export class ItemList extends ItemsElm {
 
   checkAll() {
     this.#assertCheckboxesEnabled();
-    this.setCheckedValue(this.itemValues);
+    this.checkedValue = this.itemValues;
   }
 
   uncheckAll() {
     this.#assertCheckboxesEnabled();
-    this.setCheckedValue(null);
+    this.checkedValue = null;
   }
 
   // -----------------------------------------------------------------------------
@@ -232,13 +226,13 @@ export class ItemList extends ItemsElm {
     this.dom.onRoot("dblclick", this.#handleRootDoubleClick);
   }
 
-  #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="content"]', ({ target }) => {
-      const itemElement = target.closest('[data-role="item"]');
-      const value = itemElement.dataset.value;
+  #handleRootClick = (event) => {
+    const itemElement = this.closestElement(event, '[data-role="item"]');
+    const value = itemElement?.dataset.value ?? null;
 
+    this.closestElement(event, '[data-role="content"]', () => {
       if (this.#selectedValueMode === 1) {
-        this.setSelectedValue(value);
+        this.selectedValue = value;
         return;
       }
 
@@ -247,16 +241,13 @@ export class ItemList extends ItemsElm {
         ? oldValue.filter((v) => v !== value)
         : [...oldValue, value];
 
-      this.setSelectedValue(newValue);
+      this.selectedValue = newValue;
     });
 
     if (this.#showCheckboxes) {
-      targetClosest('[data-role="checkbox"]', ({ target }) => {
-        const itemElement = target.closest('[data-role="item"]');
-        const value = itemElement.dataset.value;
-
+      this.closestElement(event, '[data-role="checkbox"]', () => {
         if (this.#checkedValueMode === 1) {
-          this.setCheckedValue(value);
+          this.checkedValue = value;
           return;
         }
 
@@ -265,13 +256,13 @@ export class ItemList extends ItemsElm {
           ? oldValue.filter((v) => v !== value)
           : [...oldValue, value];
 
-        this.setCheckedValue(newValue);
+        this.checkedValue = newValue;
       });
     }
   };
 
-  #handleRootDoubleClick = (event, { targetClosest }) => {
-    const itemElement = targetClosest('[data-role="item"]');
+  #handleRootDoubleClick = (event) => {
+    const itemElement = this.closestElement(event, '[data-role="item"]');
     if (itemElement != null) {
       const value = itemElement.dataset.value;
       this.#onDoubleClick?.({
@@ -325,9 +316,15 @@ export class ItemList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  onItemsChange(items) {
+  afterSetItems(items) {
     this.#selectedValue = this.filterExistingValue(this.#selectedValue);
     this.#checkedValue = this.filterExistingValue(this.#checkedValue);
+  }
+
+  // override
+  afterRenderItems(items) {
+    this.#updateSelectedState();
+    this.#updateCheckedState();
   }
 
   // override
@@ -347,8 +344,8 @@ export class ItemList extends ItemsElm {
   }
 
   // override
-  afterRender(items) {
-    this.#updateSelectedState();
-    this.#updateCheckedState();
+  afterRemoveItem(removedItem) {
+    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
+    this.#checkedValue = this.filterExistingValue(this.#checkedValue);
   }
 }
