@@ -27,10 +27,20 @@ export class ElmDom {
     return this.#elementMap.size;
   }
 
-  clear() {
-    while (this.size > 0) {
-      const keys = this.keys();
-      this.remove(keys.at(-1));
+  clear(key) {
+    if (key == null) {
+      while (this.size > 0) {
+        const keys = this.keys();
+        this.remove(keys.at(-1));
+      }
+      return;
+    }
+
+    assertKeyExists(key, this.#elementMap, "key");
+
+    // Remove all descendants while preserving the element itself.
+    for (const childKey of this.childKeys(key)) {
+      this.remove(childKey);
     }
   }
 
@@ -132,7 +142,7 @@ export class ElmDom {
     this.#elementMap.delete(key);
   }
 
-  get(key,selector) {
+  get(key, selector) {
     // Returns undefined if the key does not exist.
     const element = this.#elementMap.get(key)?.element;
     if (selector != null) {

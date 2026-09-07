@@ -1,5 +1,5 @@
 import { ItemsElm } from "./base/items-elm.js";
-import { TimelineComboBox } from "./timeline-combo-box.js";
+import { CompactCombobox } from "./combobox.js";
 import { TimelineGainSlider } from "./timeline-slider.js";
 import {
   isNullishOrEmpty,
@@ -21,8 +21,7 @@ const ITEM_TEMPLATE = `
 
 export class TimelineTrackHeaderList extends ItemsElm {
   // state
-  #nameElms = [];
-  #gainElms = [];
+  #elms = [];
   #selectedValue;
   #selectedValueMode = 1;
   // ruler
@@ -104,9 +103,9 @@ export class TimelineTrackHeaderList extends ItemsElm {
     this.dom.onRoot("click", this.#handleRootClick);
   }
 
-  #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="item"]', ({ target }) => {
-      const value = target.dataset.value;
+  #handleRootClick = (event) => {
+    this.closestElement(event, '[data-role="item"]', (element) => {
+      const value = element.dataset.value;
 
       if (this.#selectedValueMode === 1) {
         this.selectedValue = value;
@@ -119,7 +118,6 @@ export class TimelineTrackHeaderList extends ItemsElm {
         : [...oldValue, value];
 
       this.selectedValue = newValue;
-      
     });
   };
 
@@ -152,10 +150,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
     const text = item[this.textField];
     const tooltip = item[this.tooltipField];
 
-    const trackHeaderEl = this.resolveElement(
-      ITEM_TEMPLATE,
-      "ITEM_TEMPLATE",
-    );
+    const trackHeaderEl = this.resolveElement(ITEM_TEMPLATE, "ITEM_TEMPLATE");
     trackHeaderEl.dataset.value = value;
 
     const nameEl = trackHeaderEl.querySelector(
@@ -165,13 +160,19 @@ export class TimelineTrackHeaderList extends ItemsElm {
       '[data-role="timeline-track-header-gain"]',
     );
 
-    const nameComboBox = new TimelineComboBox(nameEl);
-    nameComboBox.items = getTrackNames();
-    this.#nameElms.push(nameComboBox);
+    const nameElm = new CompactCombobox(nameEl);
+    nameElm.dropdownValues = getTrackNames();
+
 
     const gainSlider = new TimelineGainSlider(gainEl);
 
-    this.#gainElms.push(gainSlider);
+
+
+    const elm = {
+      name: nameElm,
+      gain: gainSlider,
+    };
+    this.#elms.push(elm);
 
     this.dom.add(value, trackHeaderEl);
   }

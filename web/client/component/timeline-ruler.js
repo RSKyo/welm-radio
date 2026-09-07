@@ -84,6 +84,13 @@ export class TimelineRuler extends Elm {
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
       this.#render();
+
+      this.#onWidthChange?.({
+        elm: this,
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
     }
   }
 
@@ -109,6 +116,13 @@ export class TimelineRuler extends Elm {
     const calculatedWidth = this.#calculateWidth();
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
+
+      this.#onWidthChange?.({
+        elm: this,
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
     }
     this.#render();
 
@@ -133,6 +147,13 @@ export class TimelineRuler extends Elm {
     if (calculatedWidth !== this.#width) {
       this.#width = calculatedWidth;
       this.#render();
+
+      this.#onWidthChange?.({
+        elm: this,
+        duration: this.#duration,
+        pixelsPerSecond: this.#pixelsPerSecond,
+        width: this.#width,
+      });
     }
   }
 
@@ -260,6 +281,16 @@ export class TimelineRuler extends Elm {
     }
 
     this.#onPixelsPerSecondChange = null;
+  }
+
+  set onWidthChange(handler) {
+    if (handler != null) {
+      assertFunction(handler, "handler");
+      this.#onWidthChange = handler;
+      return;
+    }
+
+    this.#onWidthChange = null;
   }
 
   #bindEvents() {}

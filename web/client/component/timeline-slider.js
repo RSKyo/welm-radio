@@ -8,28 +8,30 @@ import {
 } from "./base/assert.js";
 
 const ROOT_CLASS = "timeline-slider";
-const INNERHTML = `
-<button
-    type="button"
-    class="timeline-slider-prev"
-    data-role="prev"
->
-</button>
-<button
-    type="button"
-    class="timeline-slider-next"
-    data-role="next"
->
-</button>
-<input
-    type="range"
-    class="timeline-slider-range"
-    data-role="range"
->
-<div
-    class="timeline-slider-value"
-    data-role="value"
->
+const TEMPLATE = `
+<div>
+  <button
+      type="button"
+      class="timeline-slider-prev"
+      data-role="prev"
+  >
+  </button>
+  <button
+      type="button"
+      class="timeline-slider-next"
+      data-role="next"
+  >
+  </button>
+  <input
+      type="range"
+      class="timeline-slider-range"
+      data-role="range"
+  >
+  <div
+      class="timeline-slider-value"
+      data-role="value"
+  >
+  </div>
 </div>
 `;
 
@@ -141,7 +143,15 @@ export class TimelineSlider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    const [prevEl, nextEl, rangeEl, valueEl] = this.htmlElements(INNERHTML);
+    const templateEl = this.resolveElement(TEMPLATE);
+
+    const [prevEl, nextEl, rangeEl, valueEl] = this.queryElements(
+      templateEl,
+      "[data-role=prev]",
+      "[data-role=next]",
+      "[data-role=range]",
+      "[data-role=value]",
+    );
 
     prevEl.textContent = this.#prevText;
     nextEl.textContent = this.#nextText;
@@ -210,7 +220,6 @@ export class TimelineSlider extends Elm {
 
   // override
   rootElementResize() {
-    console.log("rootElementResize", this.rootElement.clientWidth);
     this.#updateState();
   }
 

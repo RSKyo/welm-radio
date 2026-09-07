@@ -1,7 +1,6 @@
 import { toast, safeRun, on, getElement } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
-import { TimelineComboBox } from "../component/timeline-combo-box.js";
 import { TimelineRuler } from "../component/timeline-ruler.js";
 import { TimelineTrackHeaderList } from "../component/timeline-track-header-list.js";
 import { TimelineTrackList } from "../component/timeline-track-list.js";

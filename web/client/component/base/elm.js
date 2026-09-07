@@ -17,6 +17,7 @@ export class Elm {
   #rootElement;
   #dom;
   #dataset = {};
+  #handlerMap = new Map();
   // event
   #rootElementResizeObserver;
 
@@ -30,12 +31,8 @@ export class Elm {
   }
 
   #initOptions(options) {
-    this.initOption(options, "rootClass", (value, assertionSubject) => {
-      assertNonBlankString(value, assertionSubject);
-      this.#rootElement.classList.add(value);
-    });
-
-    this.initOption(options, "dataset", (value, assertionSubject) => {
+    // dataset
+    initOption(options, "dataset", (value, assertionSubject) => {
       assertStringPlainObject(value, assertionSubject);
 
       for (const [k, v] of Object.entries(value)) {
@@ -48,26 +45,16 @@ export class Elm {
     });
 
     this.#dataset = { ...this.#rootElement.dataset };
-  }
 
-  initOption(options, key, handler, fallbackHandler) {
-    assertPlainObject(options, "options");
-    assertNonBlankString(key, "key");
+    // root class
+    const rootClass =
+      options.rootClass ?? this.dataset.rootClass ?? options.defaultRootClass;
 
-    if (handler != null) {
-      assertFunction(handler, "handler");
-    }
+    if (rootClass != null) {
+      assertNonBlankString(rootClass, "rootClass");
 
-    if (fallbackHandler != null) {
-      assertFunction(fallbackHandler, "fallbackHandler");
-    }
-
-    const assertionSubject = `options.${key}`;
-
-    if (Object.hasOwn(options, key)) {
-      handler?.(options[key], assertionSubject);
-    } else {
-      fallbackHandler?.(assertionSubject);
+      const classes = rootClass.trim().split(/\s+/);
+      this.#rootElement.classList.add(...classes);
     }
   }
 
@@ -81,6 +68,24 @@ export class Elm {
 
   get dataset() {
     return { ...this.#dataset };
+  }
+
+  setHandler(name, handler) {
+    assertNonBlankString(name, "name");
+
+    if (handler != null) {
+      assertFunction(handler, "handler");
+      this.#handlerMap.set(name, handler);
+    } else {
+      this.#handlerMap.delete(name);
+    }
+  }
+
+  emit(name, detail) {
+    this.#handlerMap.get(name)?.({
+      elm: this,
+      ...detail,
+    });
   }
 
   #observeRootElementResize() {
@@ -97,12 +102,16 @@ export class Elm {
     // Override this method to handle root element resize events
   }
 
+  initOption(options, key, handler, fallbackHandler) {
+    initOption(options, key, handler, fallbackHandler);
+  }
+
   resolveElement(target, assertionSubject = "target", options = {}) {
     return resolveElement(target, assertionSubject, options);
   }
 
-  queryElement(element, selector) {
-    return queryElement(element, selector);
+  queryElements(element, ...selectors) {
+    return queryElements(element, ...selectors);
   }
 
   closestElement(event, selector, handler, fallbackHandler) {
@@ -116,6 +125,27 @@ export class Elm {
   destroy() {
     this.#rootElementResizeObserver?.disconnect();
     this.#dom.clear();
+  }
+}
+
+function initOption(options, key, handler, fallbackHandler) {
+  assertPlainObject(options, "options");
+  assertNonBlankString(key, "key");
+
+  if (handler != null) {
+    assertFunction(handler, "handler");
+  }
+
+  if (fallbackHandler != null) {
+    assertFunction(fallbackHandler, "fallbackHandler");
+  }
+
+  const assertionSubject = `options.${key}`;
+
+  if (Object.hasOwn(options, key)) {
+    handler?.(options[key], assertionSubject);
+  } else {
+    fallbackHandler?.(assertionSubject);
   }
 }
 
@@ -162,19 +192,14 @@ function resolveElement(target, assertionSubject = "target", options = {}) {
   return element;
 }
 
-function queryElement(element, selector) {
+function queryElements(element, ...selectors) {
   assertHtmlElement(element, "element");
-  assertNonEmptyNonBlankStringArray(selector, "selector");
 
-  const elements = [];
-  const [selectors, isArray] = normalizeArray(selector);
-  for (const sel of selectors) {
+  return selectors.map((sel) => {
     const el = element.querySelector(sel);
     assertHtmlElement(el, `element matching selector "${sel}"`);
-    elements.push(el);
-  }
-
-  return isArray ? elements : elements[0];
+    return el;
+  });
 }
 
 function closestElement(event, selector, handler, fallbackHandler) {
