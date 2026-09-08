@@ -3,17 +3,11 @@ import {
   isNullishOrEmpty,
   assertNonBlankString,
   assertPlainObject,
-  assertNonEmptyNonBlankStringArray,
-  assertNonBlankStringOrNonEmptyArray,
   assertPlainObjectArray,
-  assertPlainObjectOrNonEmptyArray,
-  assertNoDuplicateValues,
   assertNoDuplicatePlainObjectValues,
   assertValueExists,
   assertValueNotExists,
-  assertHtmlElement,
   assertFunction,
-  assertKeyExists,
 } from "./assert.js";
 
 const EMPTY_KEY = "__empty__";
@@ -22,22 +16,22 @@ const EMPTY_TEMPLATE = `
 `;
 
 export class ItemsElm extends Elm {
-  #valueField;
-  #textField;
-  #tooltipField;
+  #valueField = "value";
+  #textField = "text";
   #items = [];
 
   constructor(root, options = {}) {
     super(root, options);
 
-    this.#valueField = options.valueField ?? this.dataset.valueField ?? "value";
-    this.#textField = options.textField ?? this.dataset.textField ?? "text";
-    this.#tooltipField =
-      options.tooltipField ?? this.dataset.tooltipField ?? "tooltip";
+    this.resolveOption("valueField", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#valueField = value;
+    });
 
-    assertNonBlankString(this.#valueField, "valueField");
-    assertNonBlankString(this.#textField, "textField");
-    assertNonBlankString(this.#tooltipField, "tooltipField");
+    this.resolveOption("textField", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#textField = value;
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -50,10 +44,6 @@ export class ItemsElm extends Elm {
 
   get valueField() {
     return this.#valueField;
-  }
-
-  get tooltipField() {
-    return this.#tooltipField;
   }
 
   // -----------------------------------------------------------------------------
@@ -131,11 +121,8 @@ export class ItemsElm extends Elm {
   #setItemsRender(items) {
     this.dom.clear();
     this.beforeRenderItems(items);
-    
+
     this.#updateEmptyElement();
-    if (items.length === 0) {
-      return;
-    }
 
     for (const item of items) {
       this.renderItem(item);
@@ -174,6 +161,8 @@ export class ItemsElm extends Elm {
 
     // render the added item
     this.#addItemRender(addedItem);
+
+    return { ...addedItem };
   }
 
   // Add a single item to the internal list.
@@ -196,7 +185,7 @@ export class ItemsElm extends Elm {
   }
 
   // Render a single item. Must be implemented by subclass.
-  renderItem(addedItem) {
+  renderItem(item) {
     throw new Error("renderItem method must be implemented by subclass.");
   }
 
@@ -219,6 +208,8 @@ export class ItemsElm extends Elm {
 
     // render the updated item
     this.#updateItemRender(updatedItem);
+
+    return { ...updatedItem };
   }
 
   // Update the item in the internal list.
@@ -263,6 +254,8 @@ export class ItemsElm extends Elm {
 
     // render the removed item
     this.#removeItemRender(value);
+
+    return { ...removedItem };
   }
 
   // Remove the item from the internal list by its value.
@@ -313,8 +306,8 @@ export class ItemsElm extends Elm {
 
     this.#items.forEach((item, index) => {
       const value = item[this.#valueField];
-      const element = this.dom.get(value) ?? null;
-      callback({ item, index, value, element });
+      const element = this.dom.get(value);
+      callback({ item: { ...item }, index, value, element });
     });
   }
 
@@ -326,7 +319,7 @@ export class ItemsElm extends Elm {
     return this.#items.map((item) => item[this.#valueField]);
   }
 
-  filterExistingValue(value) {
+  filterItemValue(value) {
     if (isNullishOrEmpty(value) || isNullishOrEmpty(this.#items)) {
       return null;
     }
@@ -345,7 +338,7 @@ export class ItemsElm extends Elm {
     return isArray ? filteredValues : filteredValues[0];
   }
 
-  validateValueExists(value) {
+  assertItemValueExists(value) {
     if (isNullishOrEmpty(value)) {
       return;
     }
@@ -354,47 +347,5 @@ export class ItemsElm extends Elm {
     for (const tmpValue of normalizedValues) {
       assertValueExists(tmpValue, this.itemValues, "value");
     }
-  }
-
-  validateValueByMode(value, valueMode = 1) {
-    if (![1, 2].includes(valueMode)) {
-      throw new Error(`invalid valueMode: ${valueMode}`);
-    }
-
-    if (isNullishOrEmpty(value)) {
-      return;
-    }
-
-    if (valueMode === 1) {
-      assertNonBlankString(value, "value");
-    } else if (valueMode === 2) {
-      assertNonEmptyNonBlankStringArray(value, "value");
-      assertNoDuplicateValues(value, "value");
-    }
-  }
-
-  isEqualValue(value1, value2) {
-    if (value1 == null || value2 == null) {
-      return value1 == null && value2 == null;
-    }
-
-    if (typeof value1 === "string" && typeof value2 === "string") {
-      return value1 === value2;
-    }
-
-    if (Array.isArray(value1) && Array.isArray(value2)) {
-      if (value1.length !== value2.length) {
-        return false;
-      }
-
-      const sortedValues1 = [...value1].sort();
-      const sortedValues2 = [...value2].sort();
-
-      return sortedValues1.every(
-        (value, index) => value === sortedValues2[index],
-      );
-    }
-
-    return false;
   }
 }

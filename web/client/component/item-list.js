@@ -50,23 +50,22 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #initOptions(options) {
-    this.initOption(options, "selectedValueMode", (value, assertionSubject) => {
+    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#selectedValueMode = value;
     });
 
-    this.initOption(options, "checkedValueMode", (value, assertionSubject) => {
+    this.resolveOption("checkedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#checkedValueMode = value;
     });
 
-    this.initOption(options, "showCheckboxes", (value, assertionSubject) => {
+    this.resolveOption("showCheckboxes", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showCheckboxes = value;
     });
 
-    this.initOption(
-      options,
+    this.resolveOption(
       "itemTemplate",
       (value, assertionSubject) => {
         this.#itemTemplate = this.resolveElement(value, assertionSubject, {
@@ -102,13 +101,13 @@ export class ItemList extends ItemsElm {
   }
 
   set selectedValue(value) {
-    this.validateValueByMode(value, this.#selectedValueMode);
+    this.assertModeValue(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
     if (isNullishOrEmpty(value)) {
       this.#selectedValue = null;
     } else {
-      this.validateValueExists(value);
+      this.assertItemValueExists(value);
       this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
     }
 
@@ -147,13 +146,13 @@ export class ItemList extends ItemsElm {
   set checkedValue(value) {
     this.#assertCheckboxesEnabled();
 
-    this.validateValueByMode(value, this.#checkedValueMode);
+    this.assertModeValue(value, this.#checkedValueMode);
 
     const oldValue = this.#checkedValue;
     if (isNullishOrEmpty(value)) {
       this.#checkedValue = null;
     } else {
-      this.validateValueExists(value);
+      this.assertItemValueExists(value);
       this.#checkedValue = this.#checkedValueMode === 2 ? [...value] : value;
     }
 
@@ -317,8 +316,8 @@ export class ItemList extends ItemsElm {
 
   // override
   afterSetItems(items) {
-    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
-    this.#checkedValue = this.filterExistingValue(this.#checkedValue);
+    this.#selectedValue = this.filterItemValue(this.#selectedValue);
+    this.#checkedValue = this.filterItemValue(this.#checkedValue);
   }
 
   // override
@@ -345,7 +344,7 @@ export class ItemList extends ItemsElm {
 
   // override
   afterRemoveItem(removedItem) {
-    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
-    this.#checkedValue = this.filterExistingValue(this.#checkedValue);
+    this.#selectedValue = this.filterItemValue(this.#selectedValue);
+    this.#checkedValue = this.filterItemValue(this.#checkedValue);
   }
 }

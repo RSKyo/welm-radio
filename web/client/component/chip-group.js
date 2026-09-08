@@ -51,28 +51,23 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #initOptions(options) {
-    this.initOption(options, "mode", (value, assertionSubject) => {
+    this.resolveOption("mode", (value, assertionSubject) => {
       assertValueIn(value, ["multiple", "single"], assertionSubject);
       this.#mode = value;
       this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
     });
 
-    this.initOption(options, "showActions", (value, assertionSubject) => {
+    this.resolveOption("showActions", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showActions = value;
     });
 
-    this.initOption(
-      options,
-      "showActionsMinCount",
-      (value, assertionSubject) => {
-        assertPositiveInteger(value, assertionSubject);
-        this.#showActionsMinCount = value;
-      },
-    );
+    this.resolveOption("showActionsMinCount", (value, assertionSubject) => {
+      assertPositiveInteger(value, assertionSubject);
+      this.#showActionsMinCount = value;
+    });
 
-    this.initOption(
-      options,
+    this.resolveOption(
       "itemTemplate",
       (value, assertionSubject) => {
         this.#itemTemplate = this.resolveElement(value, assertionSubject, {
@@ -88,8 +83,7 @@ export class ChipGroup extends ItemsElm {
       },
     );
 
-    this.initOption(
-      options,
+    this.resolveOption(
       "actionsTemplate",
       (value, assertionSubject) => {
         this.#actionsTemplate = this.resolveElement(value, assertionSubject, {
@@ -129,13 +123,13 @@ export class ChipGroup extends ItemsElm {
   }
 
   set selectedValue(value) {
-    this.validateValueByMode(value, this.#selectedValueMode);
+    this.assertModeValue(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
     if (isNullishOrEmpty(value)) {
       this.#selectedValue = null;
     } else {
-      this.validateValueExists(value);
+      this.assertItemValueExists(value);
       this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
     }
 
@@ -233,7 +227,7 @@ export class ChipGroup extends ItemsElm {
 
   // override
   afterSetItems(items) {
-    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
+    this.#selectedValue = this.filterItemValue(this.#selectedValue);
   }
 
   // override
@@ -266,7 +260,7 @@ export class ChipGroup extends ItemsElm {
 
   // override
   afterRemoveItem(removedItem) {
-    this.#selectedValue = this.filterExistingValue(this.#selectedValue);
+    this.#selectedValue = this.filterItemValue(this.#selectedValue);
   }
 }
 

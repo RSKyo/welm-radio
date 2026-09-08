@@ -1,6 +1,7 @@
 import { ElmDom } from "./elm-dom.js";
 import {
   isNullish,
+  isNullishOrEmpty,
   isHtmlElement,
   assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
@@ -11,11 +12,13 @@ import {
   assertElementMatches,
   assertElementContains,
   assertNonEmptyNonBlankStringArray,
+  assertNoDuplicateValues,
 } from "./assert.js";
 
 export class Elm {
   #rootElement;
   #dom;
+  #options = {};
   #dataset = {};
   #handlerMap = new Map();
   // event
@@ -26,13 +29,20 @@ export class Elm {
     this.#dom = new ElmDom(this.#rootElement);
 
     this.#initOptions(options);
-
-    this.#observeRootElementResize();
+    this.#initDataset();
+    this.#initRootClass();
   }
 
   #initOptions(options) {
-    // dataset
-    initOption(options, "dataset", (value, assertionSubject) => {
+    assertPlainObject(options, "options");
+    this.#options = { ...options };
+  }
+
+  #initDataset() {
+    if (this.#options.dataset != null) {
+      const assertionSubject = "options.dataset";
+      const value = this.#options.dataset;
+
       assertStringPlainObject(value, assertionSubject);
 
       for (const [k, v] of Object.entries(value)) {
@@ -42,13 +52,16 @@ export class Elm {
       for (const [k, v] of Object.entries(value)) {
         this.#rootElement.dataset[k] = v;
       }
-    });
+    }
 
     this.#dataset = { ...this.#rootElement.dataset };
+  }
 
-    // root class
+  #initRootClass() {
     const rootClass =
-      options.rootClass ?? this.dataset.rootClass ?? options.defaultRootClass;
+      this.#options.rootClass ??
+      this.#dataset.rootClass ??
+      this.#options.defaultRootClass;
 
     if (rootClass != null) {
       assertNonBlankString(rootClass, "rootClass");
@@ -66,8 +79,29 @@ export class Elm {
     return this.#dom;
   }
 
+  get options() {
+    return { ...this.#options };
+  }
+
   get dataset() {
     return { ...this.#dataset };
+  }
+
+  set onResize(handler) {
+    this.setHandler("resize", handler);
+
+    this.#rootElementResizeObserver?.disconnect();
+    this.#rootElementResizeObserver = null;
+
+    if (handler == null) {
+      return;
+    }
+
+    this.#rootElementResizeObserver = new ResizeObserver(() => {
+      this.emit("resize", {});
+    });
+
+    this.#rootElementResizeObserver.observe(this.#rootElement);
   }
 
   setHandler(name, handler) {
@@ -81,29 +115,44 @@ export class Elm {
     }
   }
 
-  emit(name, detail) {
+  emit(name, detail = {}) {
+    assertNonBlankString(name, "name");
+    assertPlainObject(detail, "detail");
+
     this.#handlerMap.get(name)?.({
-      elm: this,
       ...detail,
+      elm: this,
     });
   }
 
-  #observeRootElementResize() {
-    this.#rootElementResizeObserver?.disconnect();
+  resolveOption(key, handler, fallbackHandler) {
+    assertNonBlankString(key, "key");
 
-    this.#rootElementResizeObserver = new ResizeObserver(() => {
-      this.rootElementResize();
-    });
+    if (handler != null) {
+      assertFunction(handler, "handler");
+    }
 
-    this.#rootElementResizeObserver.observe(this.rootElement);
-  }
+    if (fallbackHandler != null) {
+      assertFunction(fallbackHandler, "fallbackHandler");
+    }
 
-  rootElementResize() {
-    // Override this method to handle root element resize events
-  }
+    let value;
+    let assertionSubject;
 
-  initOption(options, key, handler, fallbackHandler) {
-    initOption(options, key, handler, fallbackHandler);
+    if (Object.hasOwn(this.#options, key)) {
+      value = this.#options[key];
+      assertionSubject = `options.${key}`;
+    } else if (Object.hasOwn(this.#dataset, key)) {
+      value = this.#dataset[key];
+      assertionSubject = `dataset.${key}`;
+    } else {
+      fallbackHandler?.(key);
+      return;
+    }
+
+    handler?.(value, assertionSubject);
+
+    return value;
   }
 
   resolveElement(target, assertionSubject = "target", options = {}) {
@@ -122,31 +171,40 @@ export class Elm {
     return normalizeArray(value);
   }
 
+  isEqualValue(value1, value2) {
+    return isEqualValue(value1, value2);
+  }
+
+  assertModeValue(value, valueMode = 1) {
+    assertModeValue(value, valueMode);
+  }
+
   destroy() {
     this.#rootElementResizeObserver?.disconnect();
+    this.#rootElementResizeObserver = null;
+
+    this.#handlerMap.clear();
     this.#dom.clear();
   }
 }
 
-function initOption(options, key, handler, fallbackHandler) {
-  assertPlainObject(options, "options");
-  assertNonBlankString(key, "key");
+function createElementByHTML(html, assertionSubject = "html") {
+  assertNonBlankString(html, assertionSubject);
 
-  if (handler != null) {
-    assertFunction(handler, "handler");
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+
+  const { children } = template.content;
+  if (children.length !== 1) {
+    throw new Error(
+      `${assertionSubject} must contain exactly one root element`,
+    );
   }
 
-  if (fallbackHandler != null) {
-    assertFunction(fallbackHandler, "fallbackHandler");
-  }
+  const element = children[0];
+  assertHtmlElement(element, assertionSubject);
 
-  const assertionSubject = `options.${key}`;
-
-  if (Object.hasOwn(options, key)) {
-    handler?.(options[key], assertionSubject);
-  } else {
-    fallbackHandler?.(assertionSubject);
-  }
+  return element;
 }
 
 function resolveElement(target, assertionSubject = "target", options = {}) {
@@ -194,10 +252,19 @@ function resolveElement(target, assertionSubject = "target", options = {}) {
 
 function queryElements(element, ...selectors) {
   assertHtmlElement(element, "element");
+  assertNonEmptyNonBlankStringArray(selectors, "selectors");
 
-  return selectors.map((sel) => {
-    const el = element.querySelector(sel);
-    assertHtmlElement(el, `element matching selector "${sel}"`);
+  return selectors.map((selector) => {
+    let el;
+
+    try {
+      el = element.querySelector(selector);
+    } catch {
+      throw new Error(`selector must be a valid CSS selector: ${selector}`);
+    }
+
+    assertHtmlElement(el, `element matching selector "${selector}"`);
+
     return el;
   });
 }
@@ -218,7 +285,14 @@ function closestElement(event, selector, handler, fallbackHandler) {
     return null;
   }
 
-  const element = target.closest(selector);
+  let element;
+
+  try {
+    element = target.closest(selector);
+  } catch {
+    throw new Error(`selector must be a valid CSS selector: ${selector}`);
+  }
+
   if (element == null || !currentTarget.contains(element)) {
     fallbackHandler?.();
     return null;
@@ -235,21 +309,44 @@ function normalizeArray(value) {
   return Array.isArray(value) ? [value, true] : [[value], false];
 }
 
-function createElementByHTML(html, assertionSubject = "html") {
-  assertNonBlankString(html, assertionSubject);
+function isEqualValue(value1, value2) {
+  if (value1 == null || value2 == null) {
+    return value1 == null && value2 == null;
+  }
 
-  const template = document.createElement("template");
-  template.innerHTML = html.trim();
+  if (typeof value1 === "string" && typeof value2 === "string") {
+    return value1 === value2;
+  }
 
-  const { children } = template.content;
-  if (children.length !== 1) {
-    throw new Error(
-      `${assertionSubject} must contain exactly one root element`,
+  if (Array.isArray(value1) && Array.isArray(value2)) {
+    if (value1.length !== value2.length) {
+      return false;
+    }
+
+    const sortedValues1 = [...value1].sort();
+    const sortedValues2 = [...value2].sort();
+
+    return sortedValues1.every(
+      (value, index) => value === sortedValues2[index],
     );
   }
 
-  const element = children[0];
-  assertHtmlElement(element, assertionSubject);
+  return false;
+}
 
-  return element;
+function assertModeValue(value, valueMode = 1) {
+  if (![1, 2].includes(valueMode)) {
+    throw new Error(`invalid valueMode: ${valueMode}`);
+  }
+
+  if (isNullishOrEmpty(value)) {
+    return;
+  }
+
+  if (valueMode === 1) {
+    assertNonBlankString(value, "value");
+  } else {
+    assertNonEmptyNonBlankStringArray(value, "value");
+    assertNoDuplicateValues(value, "value");
+  }
 }

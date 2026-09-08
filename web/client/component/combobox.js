@@ -60,6 +60,7 @@ export class Combobox extends Elm {
     }
 
     this.#updateInputValue();
+    this.#updateSelectedState();
 
     this.emit("change", {
       value: newValue,
@@ -158,6 +159,13 @@ export class Combobox extends Elm {
   #updateInputValue() {
     const inputElement = this.dom.get("input");
     inputElement.value = this.#value ?? "";
+  }
+
+  #updateSelectedState() {
+    this.#dropdownValues.forEach((value) => {
+      const dropdownItemEl = this.dom.get(`dropdown-${value}`);
+      dropdownItemEl.classList.toggle("is-selected", this.#value === value);
+    });
   }
 }
 

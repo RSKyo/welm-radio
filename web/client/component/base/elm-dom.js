@@ -1,9 +1,11 @@
 import {
+  assertNonBlankStringArray,
   assertPlainObjectArray,
   assertKeyExists,
   assertKeyNotExists,
   assertHtmlElement,
   assertFunction,
+  assertHtmlElement,
   assertNonBlankString,
 } from "./assert.js";
 
@@ -15,7 +17,7 @@ export class ElmDom {
   #elementMap = new Map();
 
   constructor(rootElement) {
-    assertHtmlElement(rootElement, "root element");
+    assertHtmlElement(rootElement, "rootElement");
     this.#rootElement = rootElement;
   }
 
@@ -55,19 +57,26 @@ export class ElmDom {
     this.#rootEvents = [];
   }
 
+  #assertElementIsNotRoot(element, assertionSubject = "element") {
+    if (element === this.#rootElement) {
+      throw new Error(`${assertionSubject} cannot be the root element`);
+    }
+  }
+
+  #assertElementNotExists(element, assertionSubject = "element") {
+    for (const [key, item] of this.#elementMap) {
+      if (item.element === element) {
+        throw new Error(`${assertionSubject} already exists: ${key}`);
+      }
+    }
+  }
+
+  // A null parentKey means the element is appended directly to rootElement.
   add(key, newElement, parentKey = null) {
     assertKeyNotExists(key, this.#elementMap);
     assertHtmlElement(newElement, "newElement");
-
-    if (newElement === this.#rootElement) {
-      throw new Error("newElement cannot be the root element");
-    }
-
-    for (const [key, item] of this.#elementMap) {
-      if (item.element === newElement) {
-        throw new Error(`newElement already exists: ${key}`);
-      }
-    }
+    this.#assertElementIsNotRoot(newElement, "newElement");
+    this.#assertElementNotExists(newElement, "newElement");
 
     if (parentKey !== null) {
       assertKeyExists(parentKey, this.#elementMap, "parentKey");
@@ -89,16 +98,8 @@ export class ElmDom {
   replace(key, newElement) {
     assertKeyExists(key, this.#elementMap, "key");
     assertHtmlElement(newElement, "newElement");
-
-    if (newElement === this.#rootElement) {
-      throw new Error("newElement cannot be the root element");
-    }
-
-    for (const [key, item] of this.#elementMap) {
-      if (item.element === newElement) {
-        throw new Error(`newElement already exists: ${key}`);
-      }
-    }
+    this.#assertElementIsNotRoot(newElement, "newElement");
+    this.#assertElementNotExists(newElement, "newElement");
 
     const current = this.#elementMap.get(key);
     const oldElement = current.element;
@@ -142,14 +143,28 @@ export class ElmDom {
     this.#elementMap.delete(key);
   }
 
-  get(key, selector) {
-    // Returns undefined if the key does not exist.
+  get(key, ...selectors) {
+    assertKeyExists(key, this.#elementMap, "key");
+    assertNonBlankStringArray(selectors, "selectors");
+
     const element = this.#elementMap.get(key)?.element;
-    if (selector != null) {
-      assertNonBlankString(selector, "selector");
-      return element?.querySelector(selector);
+    if (selectors.length === 0) {
+      return element;
     }
-    return element;
+
+    return selectors.map((selector) => {
+      let el;
+
+      try {
+        el = element.querySelector(selector);
+      } catch {
+        throw new Error(`selector must be a valid CSS selector: ${selector}`);
+      }
+
+      assertHtmlElement(el, `element matching selector "${selector}"`);
+
+      return el;
+    });
   }
 
   keys() {
@@ -179,9 +194,7 @@ export class ElmDom {
   }
 
   each(callback) {
-    if (typeof callback !== "function") {
-      throw new Error("callback must be a function");
-    }
+    assertFunction(callback, "callback");
 
     for (const [key, item] of this.#elementMap.entries()) {
       callback(key, item.element, item.parentKey);

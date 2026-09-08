@@ -59,13 +59,13 @@ export class TimelineTrackHeaderList extends ItemsElm {
   }
 
   set selectedValue(value) {
-    this.validateValueByMode(value, this.#selectedValueMode);
+    this.assertModeValue(value, this.#selectedValueMode);
 
     const oldValue = this.#selectedValue;
     if (isNullishOrEmpty(value)) {
       this.#selectedValue = null;
     } else {
-      this.validateValueExists(value);
+      this.assertItemValueExists(value);
       this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
     }
 
