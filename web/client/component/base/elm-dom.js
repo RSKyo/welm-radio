@@ -8,6 +8,7 @@ import {
   assertHtmlElement,
   assertNonBlankString,
 } from "./assert.js";
+import { EventRegistry } from "../../js/event.js";
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
@@ -15,6 +16,7 @@ export class ElmDom {
   #rootElement;
   #rootEvents = [];
   #elementMap = new Map();
+  #eventRegistry = new EventRegistry();
 
   constructor(rootElement) {
     assertHtmlElement(rootElement, "rootElement");
@@ -57,42 +59,32 @@ export class ElmDom {
     this.#rootEvents = [];
   }
 
-  #assertElementIsNotRoot(element, assertionSubject = "element") {
-    if (element === this.#rootElement) {
-      throw new Error(`${assertionSubject} cannot be the root element`);
+ 
+
+  get(key, ...selectors) {
+    assertKeyExists(key, this.#elementMap, "key");
+    assertNonBlankStringArray(selectors, "selectors");
+
+    const element = this.#elementMap.get(key);
+    if (selectors.length === 0) {
+      return element;
     }
+
+    return this.#queryElements(element, ...selectors);
   }
 
-  #assertElementNotExists(element, assertionSubject = "element") {
-    for (const [key, item] of this.#elementMap) {
-      if (item.element === element) {
-        throw new Error(`${assertionSubject} already exists: ${key}`);
-      }
-    }
-  }
-
-  // A null parentKey means the element is appended directly to rootElement.
   add(key, newElement, parentKey = null) {
     assertKeyNotExists(key, this.#elementMap);
     assertHtmlElement(newElement, "newElement");
     this.#assertElementIsNotRoot(newElement, "newElement");
     this.#assertElementNotExists(newElement, "newElement");
 
-    if (parentKey !== null) {
-      assertKeyExists(parentKey, this.#elementMap, "parentKey");
-      const parent = this.#elementMap.get(parentKey);
-      parent.element.appendChild(newElement);
-      parent.childKeys.push(key);
-    } else {
-      this.#rootElement.appendChild(newElement);
-    }
+    const parentElement =
+      parentKey == null ? this.#rootElement : this.get(parentKey);
 
-    this.#elementMap.set(key, {
-      element: newElement,
-      parentKey,
-      childKeys: [],
-      events: [],
-    });
+    parentElement.appendChild(newElement);
+
+    this.#elementMap.set(key, newElement);
   }
 
   replace(key, newElement) {
@@ -101,21 +93,22 @@ export class ElmDom {
     this.#assertElementIsNotRoot(newElement, "newElement");
     this.#assertElementNotExists(newElement, "newElement");
 
-    const current = this.#elementMap.get(key);
-    const oldElement = current.element;
+    const oldElement = this.#elementMap.get(key);
 
-    for (const childKey of current.childKeys) {
-      const child = this.#elementMap.get(childKey);
-      newElement.appendChild(child.element);
+    for (const element of this.#elementMap.values()) {
+      if (oldElement.contains(element)) {
+        newElement.appendChild(element);
+      }
     }
 
-    for (const event of current.events) {
+    const events = this.#eventRegistry.getEvents(current);
+    for (const event of events) {
       oldElement.removeEventListener(event.eventType, event.wrapper);
       newElement.addEventListener(event.eventType, event.wrapper);
     }
 
     oldElement.replaceWith(newElement);
-    current.element = newElement;
+    this.#elementMap.set(key, newElement);
   }
 
   remove(key) {
@@ -129,43 +122,23 @@ export class ElmDom {
     const current = this.#elementMap.get(key);
 
     // update the parent's childKeys to remove the child being removed
-    if (current.parentKey != null) {
-      const parent = this.#elementMap.get(current.parentKey);
+    const parentKey = this.#getParentKey(key);
+    if (parentKey != null) {
+      const parent = this.#elementMap.get(parentKey);
       parent.childKeys = parent.childKeys.filter((k) => k !== key);
     }
 
     // Remove all event listeners from the element.
-    for (const event of current.events) {
-      current.element.removeEventListener(event.eventType, event.wrapper);
+    const events = this.#eventRegistry.getEvents(current);
+    for (const event of events) {
+      current.removeEventListener(event.eventType, event.wrapper);
     }
 
-    current.element.remove();
+    current.remove();
     this.#elementMap.delete(key);
   }
 
-  get(key, ...selectors) {
-    assertKeyExists(key, this.#elementMap, "key");
-    assertNonBlankStringArray(selectors, "selectors");
-
-    const element = this.#elementMap.get(key)?.element;
-    if (selectors.length === 0) {
-      return element;
-    }
-
-    return selectors.map((selector) => {
-      let el;
-
-      try {
-        el = element.querySelector(selector);
-      } catch {
-        throw new Error(`selector must be a valid CSS selector: ${selector}`);
-      }
-
-      assertHtmlElement(el, `element matching selector "${selector}"`);
-
-      return el;
-    });
-  }
+  
 
   keys() {
     return [...this.#elementMap.keys()];
@@ -178,7 +151,7 @@ export class ElmDom {
   }
 
   elements() {
-    return Array.from(this.#elementMap.values(), (item) => item.element);
+    return Array.from(this.#elementMap.values());
   }
 
   children(key) {
@@ -197,13 +170,13 @@ export class ElmDom {
     assertFunction(callback, "callback");
 
     for (const [key, item] of this.#elementMap.entries()) {
-      callback(key, item.element, item.parentKey);
+      callback(key, item, this.#getParentKey(key));
     }
   }
 
   on(key, type, handler, selector) {
     assertKeyExists(key, this.#elementMap, "key");
-    const { element, events } = this.#elementMap.get(key);
+    const element = this.#elementMap.get(key);
 
     let targetElement = element;
     if (selector != null) {
@@ -211,86 +184,59 @@ export class ElmDom {
       targetElement = element.querySelector(selector);
     }
 
-    this.#registerEvent(targetElement, type, handler, events);
+    this.#registerEvent(targetElement, type, handler);
   }
 
   off(key, type, handler, selector) {
     assertKeyExists(key, this.#elementMap, "key");
-    let { element, events } = this.#elementMap.get(key);
+    let element = this.#elementMap.get(key);
 
     if (selector != null) {
       assertNonBlankString(selector, "selector");
       element = element.querySelector(selector);
     }
 
-    this.#unregisterEvent(element, type, handler, events);
+    this.#unregisterEvent(element, type, handler);
   }
 
   onRoot(type, handler) {
-    this.#registerEvent(this.#rootElement, type, handler, this.#rootEvents);
+    this.#registerEvent(this.#rootElement, type, handler);
   }
 
   offRoot(type, handler) {
-    this.#unregisterEvent(this.#rootElement, type, handler, this.#rootEvents);
+    this.#unregisterEvent(this.#rootElement, type, handler);
   }
 
-  #registerEvent(element, eventType, handler, eventRegistry) {
-    if (element == null) {
-      return;
+   #assertElementIsNotRoot(element, assertionSubject = "element") {
+    if (element === this.#rootElement) {
+      throw new Error(`${assertionSubject} cannot be the root element`);
     }
+  }
 
+  #assertElementNotExists(element, assertionSubject = "element") {
+    for (const [key, el] of this.#elementMap) {
+      if (el === element) {
+        throw new Error(`${assertionSubject} already exists: ${key}`);
+      }
+    }
+  }
+
+  #queryElements(element, ...selectors) {
     assertHtmlElement(element, "element");
-    assertNonBlankString(eventType, "eventType");
-    assertFunction(handler, "handler");
-    assertPlainObjectArray(eventRegistry, "eventRegistry");
+    assertNonEmptyNonBlankStringArray(selectors, "selectors");
 
-    const index = eventRegistry.findIndex(
-      (event) => event.eventType === eventType && event.handler === handler,
-    );
+    return selectors.map((selector) => {
+      let el;
 
-    if (index !== -1) {
-      return;
-    }
+      try {
+        el = element.querySelector(selector);
+      } catch {
+        throw new Error(`selector must be a valid CSS selector: ${selector}`);
+      }
 
-    const wrapper = (event) => {
-      handler(event);
-    };
+      assertHtmlElement(el, `element matching selector "${selector}"`);
 
-    element.addEventListener(eventType, wrapper);
-
-    eventRegistry.push({
-      element,
-      eventType,
-      wrapper,
-      handler,
+      return el;
     });
-  }
-
-  #unregisterEvent(element, eventType, handler, eventRegistry) {
-    if (element == null) {
-      return;
-    }
-
-    assertHtmlElement(element, "element");
-    assertNonBlankString(eventType, "eventType");
-    assertFunction(handler, "handler");
-    assertPlainObjectArray(eventRegistry, "eventRegistry");
-
-    const index = eventRegistry.findIndex(
-      (event) =>
-        event.element === element &&
-        event.eventType === eventType &&
-        event.handler === handler,
-    );
-
-    if (index === -1) {
-      return;
-    }
-
-    const { wrapper } = eventRegistry[index];
-
-    element.removeEventListener(eventType, wrapper);
-
-    eventRegistry.splice(index, 1);
   }
 }
