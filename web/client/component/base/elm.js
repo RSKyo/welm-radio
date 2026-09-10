@@ -269,14 +269,14 @@ function queryElements(element, ...selectors) {
   });
 }
 
-function closestElement(event, selector, handler, fallbackHandler) {
+function closestElement(event, selector, handler, unmatchedHandler) {
   assertNonBlankString(selector, "selector");
   if (handler != null) {
     assertFunction(handler, "handler");
   }
 
-  if (fallbackHandler != null) {
-    assertFunction(fallbackHandler, "fallbackHandler");
+  if (unmatchedHandler != null) {
+    assertFunction(unmatchedHandler, "unmatchedHandler");
   }
 
   const { target, currentTarget } = event;
@@ -294,11 +294,11 @@ function closestElement(event, selector, handler, fallbackHandler) {
   }
 
   if (element == null || !currentTarget.contains(element)) {
-    fallbackHandler?.();
+    unmatchedHandler?.(event);
     return null;
   }
 
-  handler?.(element);
+  handler?.(event, element);
   return element;
 }
 

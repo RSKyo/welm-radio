@@ -1,12 +1,7 @@
 import {
-  assertNonBlankStringArray,
-  assertPlainObjectArray,
   assertKeyExists,
   assertKeyNotExists,
   assertHtmlElement,
-  assertFunction,
-  assertHtmlElement,
-  assertNonBlankString,
 } from "./assert.js";
 import { EventRegistry } from "../../js/event.js";
 
@@ -14,7 +9,6 @@ import { EventRegistry } from "../../js/event.js";
 // The element in the Map and the element in the DOM are the same object.
 export class ElmDom {
   #rootElement;
-  #rootEvents = [];
   #elementMap = new Map();
   #eventRegistry = new EventRegistry();
 
@@ -31,46 +25,39 @@ export class ElmDom {
     return this.#elementMap.size;
   }
 
-  clear(key) {
-    if (key == null) {
-      while (this.size > 0) {
-        const keys = this.keys();
-        this.remove(keys.at(-1));
-      }
-      return;
-    }
-
-    assertKeyExists(key, this.#elementMap, "key");
-
-    // Remove all descendants while preserving the element itself.
-    for (const childKey of this.childKeys(key)) {
-      this.remove(childKey);
-    }
+  get keys() {
+    return Array.from(this.#elementMap.keys());
   }
 
-  destroy() {
-    this.clear();
-
-    for (const event of this.#rootEvents) {
-      this.#rootElement.removeEventListener(event.eventType, event.wrapper);
-    }
-
-    this.#rootElement = null;
-    this.#rootEvents = [];
+  get elements() {
+    return Array.from(this.#elementMap.values());
   }
 
- 
-
-  get(key, ...selectors) {
+  getChildKeys(key) {
     assertKeyExists(key, this.#elementMap, "key");
-    assertNonBlankStringArray(selectors, "selectors");
+    const element = this.#get(key);
 
-    const element = this.#elementMap.get(key);
-    if (selectors.length === 0) {
-      return element;
-    }
+    return Array.from(this.#elementMap.entries())
+      .filter(([, childElement]) => childElement.parentElement === element)
+      .map(([childKey]) => childKey);
+  }
 
-    return this.#queryElements(element, ...selectors);
+  getChildren(key) {
+    assertKeyExists(key, this.#elementMap, "key");
+    const element = this.#get(key);
+
+    return Array.from(this.#elementMap.values()).filter(
+      (childElement) => childElement.parentElement === element,
+    );
+  }
+
+  get(key) {
+    assertKeyExists(key, this.#elementMap, "key");
+    return this.#get(key);
+  }
+
+  #get(key) {
+    return this.#elementMap.get(key);
   }
 
   add(key, newElement, parentKey = null) {
@@ -93,20 +80,12 @@ export class ElmDom {
     this.#assertElementIsNotRoot(newElement, "newElement");
     this.#assertElementNotExists(newElement, "newElement");
 
-    const oldElement = this.#elementMap.get(key);
-
-    for (const element of this.#elementMap.values()) {
-      if (oldElement.contains(element)) {
-        newElement.appendChild(element);
-      }
+    const oldElement = this.#get(key);
+    for (const child of this.getChildren(key)) {
+      newElement.appendChild(child);
     }
 
-    const events = this.#eventRegistry.getEvents(current);
-    for (const event of events) {
-      oldElement.removeEventListener(event.eventType, event.wrapper);
-      newElement.addEventListener(event.eventType, event.wrapper);
-    }
-
+    this.#eventRegistry.replace(oldElement, newElement);
     oldElement.replaceWith(newElement);
     this.#elementMap.set(key, newElement);
   }
@@ -115,99 +94,85 @@ export class ElmDom {
     assertKeyExists(key, this.#elementMap, "key");
 
     // Remove all child elements recursively.
-    for (const childKey of this.childKeys(key)) {
+    for (const childKey of this.getChildKeys(key)) {
       this.remove(childKey);
     }
 
-    const current = this.#elementMap.get(key);
+    const element = this.#get(key);
 
-    // update the parent's childKeys to remove the child being removed
-    const parentKey = this.#getParentKey(key);
-    if (parentKey != null) {
-      const parent = this.#elementMap.get(parentKey);
-      parent.childKeys = parent.childKeys.filter((k) => k !== key);
-    }
-
-    // Remove all event listeners from the element.
-    const events = this.#eventRegistry.getEvents(current);
-    for (const event of events) {
-      current.removeEventListener(event.eventType, event.wrapper);
-    }
-
-    current.remove();
+    this.#eventRegistry.off({ element });
+    element.remove();
     this.#elementMap.delete(key);
   }
 
-  
+  clear(key) {
+    if (key == null) {
+      while (this.size > 0) {
+        const keys = this.keys;
+        this.remove(keys.at(-1));
+      }
+      return;
+    }
 
-  keys() {
-    return [...this.#elementMap.keys()];
-  }
-
-  childKeys(key) {
     assertKeyExists(key, this.#elementMap, "key");
 
-    return [...this.#elementMap.get(key).childKeys];
-  }
-
-  elements() {
-    return Array.from(this.#elementMap.values());
-  }
-
-  children(key) {
-    assertKeyExists(key, this.#elementMap, "key");
-
-    return this.childKeys(key).map((childKey) => this.get(childKey));
-  }
-
-  has(key) {
-    assertNonBlankString(key, "key");
-
-    return this.#elementMap.has(key);
-  }
-
-  each(callback) {
-    assertFunction(callback, "callback");
-
-    for (const [key, item] of this.#elementMap.entries()) {
-      callback(key, item, this.#getParentKey(key));
+    // Remove all descendants while preserving the element itself.
+    for (const childKey of this.getChildKeys(key)) {
+      this.remove(childKey);
     }
   }
 
-  on(key, type, handler, selector) {
+  on(
+    key,
+    type,
+    handler,
+    { detail = null, selector = null, unmatchedHandler = null } = {},
+  ) {
     assertKeyExists(key, this.#elementMap, "key");
-    const element = this.#elementMap.get(key);
+    const element = this.#get(key);
 
-    let targetElement = element;
-    if (selector != null) {
-      assertNonBlankString(selector, "selector");
-      targetElement = element.querySelector(selector);
-    }
-
-    this.#registerEvent(targetElement, type, handler);
+    this.#eventRegistry.on(element, type, handler, {
+      detail,
+      selector,
+      unmatchedHandler,
+    });
   }
 
-  off(key, type, handler, selector) {
+  off(key, { type = null, handler = null, subtree = false } = {}) {
     assertKeyExists(key, this.#elementMap, "key");
-    let element = this.#elementMap.get(key);
+    const element = this.#get(key);
 
-    if (selector != null) {
-      assertNonBlankString(selector, "selector");
-      element = element.querySelector(selector);
-    }
-
-    this.#unregisterEvent(element, type, handler);
+    this.#eventRegistry.off({ element, type, handler, subtree });
   }
 
-  onRoot(type, handler) {
-    this.#registerEvent(this.#rootElement, type, handler);
+  onRoot(
+    type,
+    handler,
+    { detail = null, selector = null, unmatchedHandler = null } = {},
+  ) {
+    this.#eventRegistry.on(this.#rootElement, type, handler, {
+      detail,
+      selector,
+      unmatchedHandler,
+    });
   }
 
-  offRoot(type, handler) {
-    this.#unregisterEvent(this.#rootElement, type, handler);
+  offRoot({ type = null, handler = null, subtree = false } = {}) {
+    this.#eventRegistry.off({
+      element: this.#rootElement,
+      type,
+      handler,
+      subtree,
+    });
   }
 
-   #assertElementIsNotRoot(element, assertionSubject = "element") {
+  destroy() {
+    this.clear();
+    this.#eventRegistry.off();
+    this.#rootElement = null;
+  }
+
+  #assertElementIsNotRoot(element, assertionSubject = "element") {
     if (element === this.#rootElement) {
       throw new Error(`${assertionSubject} cannot be the root element`);
     }
@@ -219,24 +184,5 @@ export class ElmDom {
         throw new Error(`${assertionSubject} already exists: ${key}`);
       }
     }
-  }
-
-  #queryElements(element, ...selectors) {
-    assertHtmlElement(element, "element");
-    assertNonEmptyNonBlankStringArray(selectors, "selectors");
-
-    return selectors.map((selector) => {
-      let el;
-
-      try {
-        el = element.querySelector(selector);
-      } catch {
-        throw new Error(`selector must be a valid CSS selector: ${selector}`);
-      }
-
-      assertHtmlElement(el, `element matching selector "${selector}"`);
-
-      return el;
-    });
   }
 }
