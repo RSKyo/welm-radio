@@ -163,10 +163,6 @@ export class Elm {
     return queryElements(element, ...selectors);
   }
 
-  closestElement(event, selector, handler, fallbackHandler) {
-    return closestElement(event, selector, handler, fallbackHandler);
-  }
-
   normalizeArray(value) {
     return normalizeArray(value);
   }
@@ -184,7 +180,10 @@ export class Elm {
     this.#rootElementResizeObserver = null;
 
     this.#handlerMap.clear();
-    this.#dom.clear();
+    this.#dom.destroy();
+
+    this.#dom = null;
+    this.#rootElement = null;
   }
 }
 
@@ -267,39 +266,6 @@ function queryElements(element, ...selectors) {
 
     return el;
   });
-}
-
-function closestElement(event, selector, handler, unmatchedHandler) {
-  assertNonBlankString(selector, "selector");
-  if (handler != null) {
-    assertFunction(handler, "handler");
-  }
-
-  if (unmatchedHandler != null) {
-    assertFunction(unmatchedHandler, "unmatchedHandler");
-  }
-
-  const { target, currentTarget } = event;
-
-  if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
-    return null;
-  }
-
-  let element;
-
-  try {
-    element = target.closest(selector);
-  } catch {
-    throw new Error(`selector must be a valid CSS selector: ${selector}`);
-  }
-
-  if (element == null || !currentTarget.contains(element)) {
-    unmatchedHandler?.(event);
-    return null;
-  }
-
-  handler?.(event, element);
-  return element;
 }
 
 function normalizeArray(value) {

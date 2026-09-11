@@ -128,6 +128,8 @@ export class ItemsElm extends Elm {
       this.renderItem(item);
     }
     this.afterRenderItems(items);
+    
+    this.#updateEmptyElement();
   }
 
   afterSetItems(items) {
@@ -136,6 +138,10 @@ export class ItemsElm extends Elm {
 
   beforeRenderItems(items) {
     // Override this method to perform actions before rendering items.
+  }
+
+  renderItem(item) {
+    throw new Error("renderItem must be implemented by the subclass.");
   }
 
   afterRenderItems(items) {
@@ -178,15 +184,11 @@ export class ItemsElm extends Elm {
   #addItemRender(addedItem) {
     this.#updateEmptyElement();
     this.renderItem(addedItem);
+    this.#updateEmptyElement();
   }
 
   afterAddItem(addedItem) {
     // Override this method to perform actions after adding an item.
-  }
-
-  // Render a single item. Must be implemented by subclass.
-  renderItem(item) {
-    throw new Error("renderItem method must be implemented by subclass.");
   }
 
   // -----------------------------------------------------------------------------
@@ -228,12 +230,14 @@ export class ItemsElm extends Elm {
   // render the updated item
   #updateItemRender(updatedItem) {
     this.renderUpdatedItem(updatedItem);
+    this.#updateEmptyElement();
   }
 
   afterUpdateItem(updatedItem) {
     // Override this method to perform actions after updating an item.
   }
 
+  // render updated item
   renderUpdatedItem(updatedItem) {
     throw new Error(
       "renderUpdatedItem method must be implemented by subclass.",
@@ -253,7 +257,7 @@ export class ItemsElm extends Elm {
     const removedItem = this.#removeItem(value);
 
     // render the removed item
-    this.#removeItemRender(value);
+    this.#removeItemRender(removedItem);
 
     return { ...removedItem };
   }
@@ -273,13 +277,20 @@ export class ItemsElm extends Elm {
     return removedItem;
   }
 
-  #removeItemRender(value) {
-    this.dom.remove(value);
+  #removeItemRender(removedItem) {
+    this.#updateEmptyElement();
+    this.renderRemovedItem(removedItem);
     this.#updateEmptyElement();
   }
 
   afterRemoveItem(removedItem) {
     // Override this method to perform actions after removing an item.
+  }
+
+  // Override this method to perform actions after rendering the removed item.
+  renderRemovedItem(removedItem) {
+    const value = removedItem[this.#valueField];
+    this.dom.remove(value);
   }
 
   // -----------------------------------------------------------------------------
@@ -307,7 +318,13 @@ export class ItemsElm extends Elm {
     this.#items.forEach((item, index) => {
       const value = item[this.#valueField];
       const element = this.dom.get(value);
-      callback({ item: { ...item }, index, value, element });
+      callback({
+        item: { ...item },
+        index,
+        value,
+        element,
+        valueField: this.#valueField,
+      });
     });
   }
 

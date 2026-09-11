@@ -2,6 +2,8 @@ import {
   assertKeyExists,
   assertKeyNotExists,
   assertHtmlElement,
+  isNonBlankString,
+  isHtmlElement,
 } from "./assert.js";
 import { EventRegistry } from "../../js/event.js";
 
@@ -48,6 +50,20 @@ export class ElmDom {
 
     return Array.from(this.#elementMap.values()).filter(
       (childElement) => childElement.parentElement === element,
+    );
+  }
+
+  has(target) {
+    if (isNonBlankString(target)) {
+      return this.#elementMap.has(target);
+    }
+
+    if (isHtmlElement(target)) {
+      return this.elements.includes(target);
+    }
+
+    throw new Error(
+      `target must be a non-blank string or an HTML element: ${target}`,
     );
   }
 
