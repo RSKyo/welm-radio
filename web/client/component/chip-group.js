@@ -1,16 +1,10 @@
 import { ItemsElm } from "./base/items-elm.js";
 import {
-  isNullishOrEmpty,
   assertBoolean,
-  assertNonBlankString,
-  assertFunction,
   assertPositiveInteger,
   assertValueIn,
-  assertElementMatches,
-  assertElementContains,
 } from "./base/assert.js";
 
-const ROOT_CLASS = "chip-group";
 const ITEM_TEMPLATE = `
 <div class="chip-group-item" data-role="item">
   <span class="chip-group-text" data-role="text"></span>
@@ -28,21 +22,18 @@ export class ChipGroup extends ItemsElm {
   #itemTemplate;
   #actionsTemplate;
   // state
-  #mode = "multiple";
-  #selectedValue;
   #selectedValueMode = 2;
   #showActions = true;
   #showActionsMinCount = 3;
-  // event
-  #onSelectedChange;
 
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: ROOT_CLASS,
+      defaultRootClass: "chip-group",
     });
 
-    this.#initOptions(options);
+    this.#init();
+    this.#initTemplate();
     this.#bindEvents();
   }
 
@@ -50,11 +41,10 @@ export class ChipGroup extends ItemsElm {
   // options
   // -----------------------------------------------------------------------------
 
-  #initOptions(options) {
+  #init() {
     this.resolveOption("mode", (value, assertionSubject) => {
       assertValueIn(value, ["multiple", "single"], assertionSubject);
-      this.#mode = value;
-      this.#selectedValueMode = this.#mode === "multiple" ? 2 : 1;
+      this.#selectedValueMode = value === "multiple" ? 2 : 1;
     });
 
     this.resolveOption("showActions", (value, assertionSubject) => {
@@ -67,6 +57,10 @@ export class ChipGroup extends ItemsElm {
       this.#showActionsMinCount = value;
     });
 
+    this.initValueState("selectedValue", null, this.#selectedValueMode);
+  }
+
+  #initTemplate() {
     this.resolveOption(
       "itemTemplate",
       (value, assertionSubject) => {
@@ -107,51 +101,12 @@ export class ChipGroup extends ItemsElm {
   // selected value
   // -----------------------------------------------------------------------------
 
-  #assertMultipleMode() {
-    if (this.#selectedValueMode !== 2) {
-      throw new Error("This operation is only available in multiple mode");
-    }
-  }
-
   get selectedValue() {
-    if (isNullishOrEmpty(this.#selectedValue)) {
-      return null;
-    }
-    return this.#selectedValueMode === 2
-      ? [...this.#selectedValue]
-      : this.#selectedValue;
+    return this.getStateValue("selectedValue");
   }
 
   set selectedValue(value) {
-    this.assertModeValue(value, this.#selectedValueMode);
-
-    const oldValue = this.#selectedValue;
-    if (isNullishOrEmpty(value)) {
-      this.#selectedValue = null;
-    } else {
-      this.assertItemValueExists(value);
-      this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
-    }
-
-    const newValue = this.#selectedValue;
-    if (!this.isEqualValue(newValue, oldValue)) {
-      this.#updateSelectedState();
-
-      this.#onSelectedChange?.({
-        elm: this,
-        value: newValue,
-      });
-    }
-  }
-
-  selectAll() {
-    this.#assertMultipleMode();
-    this.selectedValue = this.itemValues;
-  }
-
-  unselect() {
-    this.#assertMultipleMode();
-    this.selectedValue = null;
+    this.setStateValue("selectedValue", value);
   }
 
   // -----------------------------------------------------------------------------
@@ -159,14 +114,13 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onSelectedChange = handler;
-      return;
-    }
+    this.setHandler("onSelectedChange", handler);
+  }
 
-    // handler can be null to remove the event listener
-    this.#onSelectedChange = null;
+  triggerSelectedChange(value) {
+    this.emit("onSelectedChange", {
+      value,
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -174,18 +128,16 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("click", this.#handleRootClick);
-  }
-
-  #handleRootClick = (event) => {
-    this.closestElement(event, '[data-role="item"]', (element) => {
+    this.dom.onRootDelegate('[data-role="item"]', "click", (event, detail) => {
+      const { element } = detail;
       const value = element.dataset.value;
+
       if (this.#selectedValueMode === 1) {
         this.selectedValue = value;
         return;
       }
 
-      const oldValue = this.#selectedValue ?? [];
+      const oldValue = this.selectedValue ?? [];
       const newValue = oldValue.includes(value)
         ? oldValue.filter((v) => v !== value)
         : [...oldValue, value];
@@ -193,28 +145,28 @@ export class ChipGroup extends ItemsElm {
       this.selectedValue = newValue;
     });
 
-    this.closestElement(event, '[data-action="select-all"]', () => {
-      this.selectAll();
+    this.dom.onRootDelegate('[data-action="select-all"]', "click", () => {
+      this.selectedValue = this.itemValues;
     });
 
-    this.closestElement(event, '[data-action="unselect"]', () => {
-      this.unselect();
+    this.dom.onRootDelegate('[data-action="unselect"]', "click", () => {
+      this.selectedValue = null;
     });
-  };
+  }
 
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateSelectedState() {
+  #updateUISelectedState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
       let selected = false;
       if (this.#selectedValueMode === 1) {
-        selected = this.#selectedValue === value;
-      } else if (this.#selectedValueMode === 2) {
-        selected = this.#selectedValue?.includes(value) ?? false;
+        selected = this.selectedValue === value;
+      } else {
+        selected = this.selectedValue?.includes(value) ?? false;
       }
 
       element.classList.toggle("is-selected", selected);
@@ -225,9 +177,24 @@ export class ChipGroup extends ItemsElm {
   // overrides
   // ---------------------------------------------------------------------------
 
+  // Override this method to perform actions after the state value has been set.
+  afterSetStateValue({ key, newValue }) {
+    if (key === "selectedValue") {
+      this.#updateUISelectedState();
+      this.triggerSelectedChange(newValue);
+    }
+  }
+
   // override
-  afterSetItems(items) {
-    this.#selectedValue = this.filterItemValue(this.#selectedValue);
+  renderItem(item) {
+    const value = item[this.valueField];
+    const text = item[this.textField];
+
+    const itemElement = this.#itemTemplate.cloneNode(true);
+    itemElement.dataset.value = value;
+    itemElement.querySelector("[data-role='text']").textContent = text || value;
+
+    this.dom.add(value, itemElement);
   }
 
   // override
@@ -241,26 +208,17 @@ export class ChipGroup extends ItemsElm {
       this.dom.add("__actions__", actionsElement);
     }
 
-    this.#updateSelectedState();
+    this.#updateUISelectedState();
   }
 
   // override
-  renderItem(item) {
-    const value = item[this.valueField];
-    const text = item[this.textField];
-    const tooltip = item[this.tooltipField];
+  renderUpdatedItem(updatedItem) {
+    const value = updatedItem[this.valueField];
+    const text = updatedItem[this.textField];
 
-    const itemElement = this.#itemTemplate.cloneNode(true);
-    itemElement.dataset.value = value;
+    const itemElement = this.dom.get(value);
+
     itemElement.querySelector("[data-role='text']").textContent = text || value;
-    itemElement.title = tooltip || text || "";
-
-    this.dom.add(value, itemElement);
-  }
-
-  // override
-  afterRemoveItem(removedItem) {
-    this.#selectedValue = this.filterItemValue(this.#selectedValue);
   }
 }
 
@@ -274,13 +232,6 @@ export class SoloChipGroup extends ChipGroup {
       mode: "single",
     });
   }
-
-  init(root, options = {}) {
-    super.init(root, {
-      ...options,
-      mode: "single",
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -289,13 +240,6 @@ export class SoloChipGroup extends ChipGroup {
 export class MultiChipGroup extends ChipGroup {
   constructor(root, options = {}) {
     super(root, {
-      ...options,
-      mode: "multiple",
-    });
-  }
-
-  init(root, options = {}) {
-    super.init(root, {
       ...options,
       mode: "multiple",
     });

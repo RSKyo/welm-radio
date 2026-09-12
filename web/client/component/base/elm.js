@@ -1,7 +1,5 @@
-import { ElmDom } from "./elm-dom.js";
 import {
   isNullish,
-  isNullishOrEmpty,
   isHtmlElement,
   assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
@@ -12,8 +10,9 @@ import {
   assertElementMatches,
   assertElementContains,
   assertNonEmptyNonBlankStringArray,
-  assertNoDuplicateValues,
 } from "./assert.js";
+import { ElmDom } from "./elm-dom.js";
+import { ElmValueState } from "./elm-state.js";
 
 export class Elm {
   #rootElement;
@@ -21,6 +20,7 @@ export class Elm {
   #options = {};
   #dataset = {};
   #handlerMap = new Map();
+  #valueState = new ElmValueState();
   // event
   #rootElementResizeObserver;
 
@@ -31,6 +31,11 @@ export class Elm {
     this.#initOptions(options);
     this.#initDataset();
     this.#initRootClass();
+
+    this.#valueState.beforeSetStateValueHandler =
+      this.beforeSetStateValue.bind(this);
+    this.#valueState.afterSetStateValueHandler =
+      this.afterSetStateValue.bind(this);
   }
 
   #initOptions(options) {
@@ -87,22 +92,7 @@ export class Elm {
     return { ...this.#dataset };
   }
 
-  set onResize(handler) {
-    this.setHandler("resize", handler);
-
-    this.#rootElementResizeObserver?.disconnect();
-    this.#rootElementResizeObserver = null;
-
-    if (handler == null) {
-      return;
-    }
-
-    this.#rootElementResizeObserver = new ResizeObserver(() => {
-      this.emit("resize", {});
-    });
-
-    this.#rootElementResizeObserver.observe(this.#rootElement);
-  }
+  /** handler management */
 
   setHandler(name, handler) {
     assertNonBlankString(name, "name");
@@ -124,6 +114,69 @@ export class Elm {
       elm: this,
     });
   }
+
+  /** state value management */
+
+  get valueStateKeys() {
+    return this.#valueState.keys;
+  }
+
+  get valueStateValues() {
+    return this.#valueState.values;
+  }
+
+  initValueState(key, value = null, mode = 1) {
+    this.#valueState.init(key, value, mode);
+  }
+
+  getState(key) {
+    return this.#valueState.get(key);
+  }
+
+  getStateValue(key) {
+    return this.#valueState.getValue(key);
+  }
+
+  getStateMode(key) {
+    return this.#valueState.getMode(key);
+  }
+
+  setStateValue(key, value) {
+    this.#valueState.set(key, value);
+  }
+
+  beforeSetStateValue(state) {
+    // Override if needed.
+  }
+
+  afterSetStateValue(state) {
+    // Override if needed.
+  }
+
+  eachValueState(callback) {
+    this.#valueState.each(callback);
+  }
+
+  /** resize observer management */
+
+  set onResize(handler) {
+    this.setHandler("resize", handler);
+
+    this.#rootElementResizeObserver?.disconnect();
+    this.#rootElementResizeObserver = null;
+
+    if (handler == null) {
+      return;
+    }
+
+    this.#rootElementResizeObserver = new ResizeObserver(() => {
+      this.emit("resize", {});
+    });
+
+    this.#rootElementResizeObserver.observe(this.#rootElement);
+  }
+
+  /** public option resolution */
 
   resolveOption(key, handler, fallbackHandler) {
     assertNonBlankString(key, "key");
@@ -169,10 +222,6 @@ export class Elm {
 
   isEqualValue(value1, value2) {
     return isEqualValue(value1, value2);
-  }
-
-  assertModeValue(value, valueMode = 1) {
-    assertModeValue(value, valueMode);
   }
 
   destroy() {
@@ -298,21 +347,4 @@ function isEqualValue(value1, value2) {
   }
 
   return false;
-}
-
-function assertModeValue(value, valueMode = 1) {
-  if (![1, 2].includes(valueMode)) {
-    throw new Error(`invalid valueMode: ${valueMode}`);
-  }
-
-  if (isNullishOrEmpty(value)) {
-    return;
-  }
-
-  if (valueMode === 1) {
-    assertNonBlankString(value, "value");
-  } else {
-    assertNonEmptyNonBlankStringArray(value, "value");
-    assertNoDuplicateValues(value, "value");
-  }
 }

@@ -5,7 +5,7 @@ import {
   isNonBlankString,
   isHtmlElement,
 } from "./assert.js";
-import { EventRegistry } from "../../js/event.js";
+import { EventRegistry } from "./elm-event.js";
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
@@ -138,11 +138,22 @@ export class ElmDom {
     }
   }
 
-  on(
+  on(key, type, handler, detail = null) {
+    assertKeyExists(key, this.#elementMap, "key");
+    const element = this.#get(key);
+
+    this.#eventRegistry.on(element, type, handler, {
+      detail,
+    });
+  }
+
+  onDelegate(
     key,
+    selector,
     type,
     handler,
-    { detail = null, selector = null, unmatchedHandler = null } = {},
+    detail = null,
+    unmatchedHandler = null,
   ) {
     assertKeyExists(key, this.#elementMap, "key");
     const element = this.#get(key);
@@ -161,10 +172,18 @@ export class ElmDom {
     this.#eventRegistry.off({ element, type, handler, subtree });
   }
 
-  onRoot(
+  onRoot(type, handler, detail = null) {
+    this.#eventRegistry.on(this.#rootElement, type, handler, {
+      detail,
+    });
+  }
+
+  onRootDelegate(
+    selector,
     type,
     handler,
-    { detail = null, selector = null, unmatchedHandler = null } = {},
+    detail = null,
+    unmatchedHandler = null,
   ) {
     this.#eventRegistry.on(this.#rootElement, type, handler, {
       detail,
