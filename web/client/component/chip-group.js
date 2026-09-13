@@ -1,15 +1,17 @@
-import { ItemsElm } from "./base/items-elm.js";
 import {
   assertBoolean,
   assertPositiveInteger,
   assertValueIn,
 } from "./base/assert.js";
+import { createElementByHTML } from "./base/elm-helper.js";
+import { ItemsElm } from "./base/items-elm.js";
 
 const ITEM_TEMPLATE = `
 <div class="chip-group-item" data-role="item">
   <span class="chip-group-text" data-role="text"></span>
 </div>
 `;
+
 const ACTIONS_TEMPLATE = `
 <div class="chip-group-actions" data-role="actions">
   <button type="button" class="chip-group-action" data-role="action" data-action="select-all">全选</button>
@@ -17,10 +19,10 @@ const ACTIONS_TEMPLATE = `
 </div>
 `;
 
+const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
+
 export class ChipGroup extends ItemsElm {
-  // templates
-  #itemTemplate;
-  #actionsTemplate;
   // state
   #selectedValueMode = 2;
   #showActions = true;
@@ -33,18 +35,29 @@ export class ChipGroup extends ItemsElm {
     });
 
     this.#init();
-    this.#initTemplate();
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // options
+  // selected value
+  // -----------------------------------------------------------------------------
+
+  get selectedValue() {
+    return this.itemValueState.getValue("selectedValue");
+  }
+
+  set selectedValue(value) {
+    this.itemValueState.setValue("selectedValue", value);
+  }
+
+  // -----------------------------------------------------------------------------
+  // initialization
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("mode", (value, assertionSubject) => {
-      assertValueIn(value, ["multiple", "single"], assertionSubject);
-      this.#selectedValueMode = value === "multiple" ? 2 : 1;
+    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
+      assertValueIn(value, [1, 2], assertionSubject);
+      this.#selectedValueMode = value;
     });
 
     this.resolveOption("showActions", (value, assertionSubject) => {
@@ -57,68 +70,19 @@ export class ChipGroup extends ItemsElm {
       this.#showActionsMinCount = value;
     });
 
-    this.initValueState("selectedValue", null, this.#selectedValueMode);
-  }
-
-  #initTemplate() {
-    this.resolveOption(
-      "itemTemplate",
-      (value, assertionSubject) => {
-        this.#itemTemplate = this.resolveElement(value, assertionSubject, {
-          matches: ['[data-role="item"]'],
-          contains: ['[data-role="text"]'],
-        });
-      },
-      () => {
-        this.#itemTemplate = this.resolveElement(
-          ITEM_TEMPLATE,
-          "ITEM_TEMPLATE",
-        );
-      },
-    );
-
-    this.resolveOption(
-      "actionsTemplate",
-      (value, assertionSubject) => {
-        this.#actionsTemplate = this.resolveElement(value, assertionSubject, {
-          matches: ['[data-role="actions"]'],
-          contains: [
-            '[data-role="action"][data-action="select-all"]',
-            '[data-role="action"][data-action="unselect"]',
-          ],
-        });
-      },
-      () => {
-        this.#actionsTemplate = this.resolveElement(
-          ACTIONS_TEMPLATE,
-          "ACTIONS_TEMPLATE",
-        );
-      },
-    );
+    this.itemValueState.define("selectedValue", null, this.#selectedValueMode);
   }
 
   // -----------------------------------------------------------------------------
-  // selected value
+  // registered events
   // -----------------------------------------------------------------------------
 
-  get selectedValue() {
-    return this.getStateValue("selectedValue");
+  set onSelectedValueChange(handler) {
+    this.handlerRegistry.set("onSelectedValueChange", handler);
   }
 
-  set selectedValue(value) {
-    this.setStateValue("selectedValue", value);
-  }
-
-  // -----------------------------------------------------------------------------
-  // events
-  // -----------------------------------------------------------------------------
-
-  set onSelectedChange(handler) {
-    this.setHandler("onSelectedChange", handler);
-  }
-
-  triggerSelectedChange(value) {
-    this.emit("onSelectedChange", {
+  emitSelectedValueChange(value) {
+    this.handlerRegistry.emit("onSelectedValueChange", {
       value,
     });
   }
@@ -158,7 +122,7 @@ export class ChipGroup extends ItemsElm {
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateUISelectedState() {
+  #updateSelectedValueUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
@@ -177,11 +141,11 @@ export class ChipGroup extends ItemsElm {
   // overrides
   // ---------------------------------------------------------------------------
 
-  // Override this method to perform actions after the state value has been set.
-  afterSetStateValue({ key, newValue }) {
+  // override
+  afterItemValueStateSet({ key, newValue }) {
     if (key === "selectedValue") {
-      this.#updateUISelectedState();
-      this.triggerSelectedChange(newValue);
+      this.#updateSelectedValueUIState();
+      this.emitSelectedValueChange(newValue);
     }
   }
 
@@ -190,7 +154,7 @@ export class ChipGroup extends ItemsElm {
     const value = item[this.valueField];
     const text = item[this.textField];
 
-    const itemElement = this.#itemTemplate.cloneNode(true);
+    const itemElement = itemTemplate.cloneNode(true);
     itemElement.dataset.value = value;
     itemElement.querySelector("[data-role='text']").textContent = text || value;
 
@@ -204,11 +168,11 @@ export class ChipGroup extends ItemsElm {
       this.#showActions &&
       items.length >= this.#showActionsMinCount
     ) {
-      const actionsElement = this.#actionsTemplate.cloneNode(true);
+      const actionsElement = actionsTemplate.cloneNode(true);
       this.dom.add("__actions__", actionsElement);
     }
 
-    this.#updateUISelectedState();
+    this.#updateSelectedValueUIState();
   }
 
   // override
@@ -229,7 +193,7 @@ export class SoloChipGroup extends ChipGroup {
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      mode: "single",
+      selectedValueMode: 1,
     });
   }
 }
@@ -241,7 +205,7 @@ export class MultiChipGroup extends ChipGroup {
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      mode: "multiple",
+      selectedValueMode: 2,
     });
   }
 }

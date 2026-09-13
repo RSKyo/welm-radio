@@ -7,31 +7,56 @@ import {
   isNullishOrEmpty,
   assertFunction,
 } from "./assert.js";
+import { isEqualValue } from "./elm-helper.js";
 
 export class ElmValueState {
   #valueStateMap = new Map();
-  beforeSetStateValueHandler = null;
-  afterSetStateValueHandler = null;
+  #beforeValueStateSet = null;
+  #afterValueStateSet = null;
+
+  set beforeValueStateSet(handler) {
+    assertFunction(handler, "beforeValueStateSet");
+
+    if (this.#beforeValueStateSet !== null) {
+      throw new Error("beforeValueStateSet has already been set");
+    }
+
+    this.#beforeValueStateSet = handler;
+  }
+
+  set afterValueStateSet(handler) {
+    assertFunction(handler, "afterValueStateSet");
+
+    if (this.#afterValueStateSet !== null) {
+      throw new Error("afterValueStateSet has already been set");
+    }
+
+    this.#afterValueStateSet = handler;
+  }
+
+  get size() {
+    return this.#valueStateMap.size;
+  }
 
   get keys() {
     return Array.from(this.#valueStateMap.keys());
   }
 
-  get values() {
-    return Array.from(this.#valueStateMap.values()).map(({ value, mode }) =>
-      cloneValue(value, mode),
-    );
-  }
-
-  init(key, value = null, mode = 1) {
+  define(key, value = null, mode = 1) {
     assertNonBlankString(key, "key");
     assertKeyNotExists(key, this.#valueStateMap, "key");
-    assertModeValue(value, mode);
+    this.#assertValueForMode(value, mode);
 
     this.#valueStateMap.set(key, {
       mode,
-      value: cloneValue(value, mode),
+      value: this.#normalizeValue(value, mode),
     });
+  }
+
+  has(key) {
+    assertNonBlankString(key, "key");
+
+    return this.#valueStateMap.has(key);
   }
 
   get(key) {
@@ -39,15 +64,10 @@ export class ElmValueState {
     assertKeyExists(key, this.#valueStateMap, "key");
     const state = this.#valueStateMap.get(key);
 
-    return { mode: state.mode, value: cloneValue(state.value, state.mode) };
-  }
-
-  getValue(key) {
-    assertNonBlankString(key, "key");
-    assertKeyExists(key, this.#valueStateMap, "key");
-    const state = this.#valueStateMap.get(key);
-
-    return cloneValue(state.value, state.mode);
+    return {
+      mode: state.mode,
+      value: this.#normalizeValue(state.value, state.mode),
+    };
   }
 
   getMode(key) {
@@ -58,100 +78,85 @@ export class ElmValueState {
     return state.mode;
   }
 
-  set(key, value) {
+  getValue(key) {
+    assertNonBlankString(key, "key");
+    assertKeyExists(key, this.#valueStateMap, "key");
+    const state = this.#valueStateMap.get(key);
+
+    return this.#normalizeValue(state.value, state.mode);
+  }
+
+  setValue(key, value) {
     assertNonBlankString(key, "key");
     assertKeyExists(key, this.#valueStateMap, "key");
 
     const state = this.#valueStateMap.get(key);
-    assertModeValue(value, state.mode);
+    this.#assertValueForMode(value, state.mode);
 
     const mode = state.mode;
-    const oldValue = cloneValue(state.value, mode);
-    const newValue = cloneValue(value, mode);
+    const oldValue = this.#normalizeValue(state.value, mode);
+    const newValue = this.#normalizeValue(value, mode);
 
     if (isEqualValue(newValue, oldValue)) {
       return;
     }
 
-    this.beforeSetStateValue({
+    this.beforeValueStateSet?.({
       key,
       mode,
-      oldValue: cloneValue(oldValue, mode),
-      newValue: cloneValue(newValue, mode),
+      oldValue: this.#normalizeValue(oldValue, mode),
+      newValue: this.#normalizeValue(newValue, mode),
     });
 
-    state.value = cloneValue(newValue, mode);
+    state.value = this.#normalizeValue(newValue, mode);
 
-    this.afterSetStateValue({
+    this.afterValueStateSet?.({
       key,
       mode,
-      oldValue: cloneValue(oldValue, mode),
-      newValue: cloneValue(newValue, mode),
+      oldValue: this.#normalizeValue(oldValue, mode),
+      newValue: this.#normalizeValue(newValue, mode),
     });
   }
 
-  beforeSetStateValue(state) {
-    this.beforeSetStateValueHandler?.(state);
+  remove(key) {
+    assertNonBlankString(key, "key");
+
+    return this.#valueStateMap.delete(key);
   }
 
-  afterSetStateValue(state) {
-    this.afterSetStateValueHandler?.(state);
-  }
-
-  each(callback) {
+  forEach(callback) {
     assertFunction(callback, "callback");
     for (const [key, { value, mode }] of this.#valueStateMap.entries()) {
-      callback({ key, value: cloneValue(value, mode), mode });
+      callback({ key, value: this.#normalizeValue(value, mode), mode });
     }
   }
-}
 
-function cloneValue(value, mode) {
-  if (isNullishOrEmpty(value)) {
-    return null;
+  clear() {
+    this.#valueStateMap.clear();
   }
 
-  return mode === 2 ? [...value] : value;
-}
-
-function isEqualValue(value1, value2) {
-  if (value1 == null || value2 == null) {
-    return value1 == null && value2 == null;
-  }
-
-  if (typeof value1 === "string" && typeof value2 === "string") {
-    return value1 === value2;
-  }
-
-  if (Array.isArray(value1) && Array.isArray(value2)) {
-    if (value1.length !== value2.length) {
-      return false;
+  #normalizeValue(value, mode) {
+    if (isNullishOrEmpty(value)) {
+      return null;
     }
 
-    const sortedValues1 = [...value1].sort();
-    const sortedValues2 = [...value2].sort();
-
-    return sortedValues1.every(
-      (value, index) => value === sortedValues2[index],
-    );
+    return mode === 2 ? [...value] : value;
   }
 
-  return false;
-}
+  #assertValueForMode(value, mode = 1) {
+    if (![1, 2].includes(mode)) {
+      throw new Error(`invalid mode: ${mode}`);
+    }
 
-function assertModeValue(value, valueMode = 1) {
-  if (![1, 2].includes(valueMode)) {
-    throw new Error(`invalid valueMode: ${valueMode}`);
-  }
+    if (isNullishOrEmpty(value)) {
+      return;
+    }
 
-  if (isNullishOrEmpty(value)) {
-    return;
-  }
-
-  if (valueMode === 1) {
-    assertNonBlankString(value, "value");
-  } else {
-    assertNonEmptyNonBlankStringArray(value, "value");
-    assertNoDuplicateValues(value, "value");
+    if (mode === 1) {
+      assertNonBlankString(value, "value");
+    } else {
+      assertNonEmptyNonBlankStringArray(value, "value");
+      assertNoDuplicateValues(value, "value");
+    }
   }
 }

@@ -9,16 +9,20 @@ import {
   assertValueNotExists,
   assertFunction,
 } from "./assert.js";
+import { createElementByHTML, normalizeArray } from "./elm-helper.js";
+import { ElmValueState } from "./elm-state.js";
 
 const EMPTY_KEY = "__empty__";
 const EMPTY_TEMPLATE = `
 <div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No items</div>
 `;
+const emptyTemplate = createElementByHTML(EMPTY_TEMPLATE);
 
 export class ItemsElm extends Elm {
   #valueField = "value";
   #textField = "text";
   #items = [];
+  #itemValueState = new ElmValueState();
 
   constructor(root, options = {}) {
     super(root, options);
@@ -32,11 +36,16 @@ export class ItemsElm extends Elm {
       assertNonBlankString(value, assertionSubject);
       this.#textField = value;
     });
-  }
 
-  // -----------------------------------------------------------------------------
-  // fields
-  // -----------------------------------------------------------------------------
+    this.#itemValueState.beforeValueStateSet = (state) => {
+      this.#validateItemValueState(state);
+      this.beforeItemValueStateSet(state);
+    };
+
+    this.#itemValueState.afterValueStateSet = (state) => {
+      this.afterItemValueStateSet(state);
+    };
+  }
 
   get textField() {
     return this.#textField;
@@ -44,6 +53,10 @@ export class ItemsElm extends Elm {
 
   get valueField() {
     return this.#valueField;
+  }
+
+  get itemValueState() {
+    return this.#itemValueState;
   }
 
   // -----------------------------------------------------------------------------
@@ -67,7 +80,7 @@ export class ItemsElm extends Elm {
 
   // Override this method to customize the empty state element.
   createEmptyElement() {
-    return this.resolveElement(EMPTY_TEMPLATE);
+    return emptyTemplate.cloneNode(true);
   }
 
   // -----------------------------------------------------------------------------
@@ -101,7 +114,7 @@ export class ItemsElm extends Elm {
     this.#setItems(items);
 
     // update the state value after setting new items
-    this.#updateStateValue();
+    this.#updateItemValueState();
 
     // perform any additional actions after setting items
     this.afterSetItems(this.#items);
@@ -264,7 +277,7 @@ export class ItemsElm extends Elm {
     const removedItem = this.#removeItem(value);
 
     // update the state value after removing an item
-    this.#updateStateValue();
+    this.#updateItemValueState();
 
     // perform any additional actions after removing an item
     this.afterRemoveItem(removedItem);
@@ -310,7 +323,7 @@ export class ItemsElm extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // get item
+  // item access
   // -----------------------------------------------------------------------------
 
   getItem(value) {
@@ -353,14 +366,12 @@ export class ItemsElm extends Elm {
     return this.#items.map((item) => item[this.#valueField]);
   }
 
-  #updateStateValue() {
+  #updateItemValueState() {
     const itemValues = this.itemValues;
 
-    this.eachValueState(({ key, value }) => {
+    this.#itemValueState.forEach(({ key, value }) => {
       const filteredValue = this.#filterItemValue(value, itemValues);
-      if (!this.isEqualValue(filteredValue, value)) {
-        this.setStateValue(key, filteredValue);
-      }
+      this.#itemValueState.setValue(key, filteredValue);
     });
   }
 
@@ -369,7 +380,7 @@ export class ItemsElm extends Elm {
       return null;
     }
 
-    const [normalizedValues, isArray] = this.normalizeArray(value);
+    const [normalizedValues, isArray] = normalizeArray(value);
 
     const filteredValues = normalizedValues.filter((v) =>
       itemValues.includes(v),
@@ -382,16 +393,24 @@ export class ItemsElm extends Elm {
     return isArray ? filteredValues : filteredValues[0];
   }
 
-  beforeSetStateValue({ newValue }) {
+  #validateItemValueState({ newValue }) {
     if (isNullishOrEmpty(newValue)) {
       return;
     }
 
     const itemValues = this.itemValues;
-    const [normalizedValues] = this.normalizeArray(newValue);
+    const [normalizedValues] = normalizeArray(newValue);
 
     for (const value of normalizedValues) {
       assertValueExists(value, itemValues, "value");
     }
+  }
+
+  beforeItemValueStateSet(state) {
+    // Override in subclass if needed.
+  }
+
+  afterItemValueStateSet(state) {
+    // Override in subclass if needed.
   }
 }
