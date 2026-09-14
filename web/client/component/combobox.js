@@ -87,7 +87,7 @@ export class Combobox extends Elm {
     this.dom.clear();
 
     const templateEl = this.resolveElement(TEMPLATE);
-    const [inputEl, dropdownEl] = this.queryElements(
+    const [inputEl, dropdownEl] = this.getBySelector(
       templateEl,
       '[data-role="input"]',
       '[data-role="dropdown"]',

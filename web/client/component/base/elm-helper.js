@@ -16,17 +16,19 @@ export function createElementByHTML(html, assertionSubject = "html") {
   const template = document.createElement("template");
   template.innerHTML = html.trim();
 
-  const { children } = template.content;
-  if (children.length !== 1) {
+  const elements = Array.from(template.content.children);
+
+  if (elements.length === 0) {
     throw new Error(
-      `${assertionSubject} must contain exactly one root element`,
+      `${assertionSubject} must contain at least one root element`,
     );
   }
 
-  const element = children[0];
-  assertHtmlElement(element, assertionSubject);
+  for (const element of elements) {
+    assertHtmlElement(element, assertionSubject);
+  }
 
-  return element;
+  return elements.length === 1 ? elements[0] : elements;
 }
 
 export function resolveElement(
@@ -45,6 +47,11 @@ export function resolveElement(
 
     if (target.startsWith("<") && target.endsWith(">")) {
       element = createElementByHTML(target, assertionSubject);
+      if (Array.isArray(element)) {
+        throw new Error(
+          `${assertionSubject} must contain exactly one root element`,
+        );
+      }
     } else if (target.startsWith("#")) {
       element = document.getElementById(target.slice(1));
     } else {
@@ -76,11 +83,11 @@ export function resolveElement(
   return element;
 }
 
-export function queryElements(element, ...selectors) {
+export function getBySelector(element, ...selectors) {
   assertHtmlElement(element, "element");
   assertNonEmptyNonBlankStringArray(selectors, "selectors");
 
-  return selectors.map((selector) => {
+  const elements = selectors.map((selector) => {
     let el;
 
     try {
@@ -93,6 +100,8 @@ export function queryElements(element, ...selectors) {
 
     return el;
   });
+
+  return selectors.length === 1 ? elements[0] : elements;
 }
 
 export function normalizeArray(value) {

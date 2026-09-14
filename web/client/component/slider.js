@@ -1,44 +1,61 @@
-import { Elm } from "./base/elm.js";
 import {
+  isNullishOrEmpty,
   assertNumber,
-  assertPositive,
   assertNonBlankString,
   assertFunction,
-  assertBoolean,
+  isNonBlankString,
 } from "./base/assert.js";
-
-const ROOT_CLASS = "slider";
+import { createElementByHTML, getBySelector } from "./base/elm-helper.js";
+import { Elm } from "./base/elm.js";
 
 const TEMPLATE = `
 <div>
-  <button type="button" data-role="decrease">−</button>
-  <input type="range" data-role="range">
-  <button type="button" data-role="increase">+</button>
-  <div class="slider-text-field" data-role="percent">
-      <input type="text" data-role="percent-input">
-      <span>%</span>
-  </div>
-  <div class="slider-text-field" data-role="value">
-    <input type="text" data-role="value-input">
-    <span data-role="suffix"></span>
+  <button
+      type="button"
+      class="slider-prev"
+      data-role="prev"
+  >
+  </button>
+  <button
+      type="button"
+      class="slider-next"
+      data-role="next"
+  >
+  </button>
+  <input
+      type="range"
+      class="slider-range"
+      data-role="range"
+  >
+  <div
+      class="slider-value"
+      data-role="value"
+  >
   </div>
 </div>
 `;
+const template = createElementByHTML(TEMPLATE);
+const [prevTemplate, nextTemplate, rangeTemplate, valueTemplate] =
+  getBySelector(
+    template,
+    "[data-role=prev]",
+    "[data-role=next]",
+    "[data-role=range]",
+    "[data-role=value]",
+  );
 
 export class Slider extends Elm {
   // state
-  #base = 100;
+  #prevText = "-";
+  #nextText = "+";
+  #suffix = "%";
+  #minValueText;
+  #maxValueText;
+  #percentBase = 100;
   #min = 0;
   #max = 100;
   #step = 1;
   #value = 0;
-  #suffix = "";
-  #showPercent = true;
-  #showValue = true;
-
-  #percent;
-  #minPercent;
-  #maxPercent;
 
   // event
   #onChange;
@@ -46,13 +63,12 @@ export class Slider extends Elm {
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: ROOT_CLASS,
+      defaultRootClass: "slider",
     });
 
     this.#initOptions(options);
     this.#render();
     this.#bindEvents();
-    this.#updateState();
   }
 
   // -----------------------------------------------------------------------------
@@ -60,25 +76,39 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #initOptions(options) {
-    this.#base = options.base ?? this.dataset.base ?? this.#base;
+    this.#prevText =
+      options.prevText ?? this.dataset.prevText ?? this.#prevText;
+    this.#nextText =
+      options.nextText ?? this.dataset.nextText ?? this.#nextText;
+    this.#suffix = options.suffix ?? this.dataset.suffix ?? this.#suffix;
+    this.#minValueText =
+      options.minValueText ?? this.dataset.minValueText ?? this.#minValueText;
+    this.#maxValueText =
+      options.maxValueText ?? this.dataset.maxValueText ?? this.#maxValueText;
+    // percentBase can be null
+    if (Object.hasOwn(options, "percentBase")) {
+      this.#percentBase = options.percentBase;
+    } else if (this.dataset.percentBase != null) {
+      this.#percentBase = this.dataset.percentBase;
+    }
     this.#min = options.min ?? this.dataset.min ?? this.#min;
     this.#max = options.max ?? this.dataset.max ?? this.#max;
     this.#step = options.step ?? this.dataset.step ?? this.#step;
     this.#value = options.value ?? this.dataset.value ?? this.#value;
-    this.#suffix = options.suffix ?? this.dataset.suffix ?? this.#suffix;
-    this.#showPercent =
-      options.showPercent ?? this.dataset.showPercent ?? this.#showPercent;
-    this.#showValue =
-      options.showValue ?? this.dataset.showValue ?? this.#showValue;
 
-    assertNumber(this.#base, "base");
+    assertNonBlankString(this.#prevText, "prevText");
+    assertNonBlankString(this.#nextText, "nextText");
+    if (this.#percentBase != null) {
+      assertNumber(this.#percentBase, "percentBase");
+
+      if (this.#percentBase === 0) {
+        throw new Error("percentBase must not be 0");
+      }
+    }
     assertNumber(this.#min, "min");
     assertNumber(this.#max, "max");
-    assertPositive(this.#step, "step");
+    assertNumber(this.#step, "step");
     assertNumber(this.#value, "value");
-    assertNonBlankString(this.#suffix, "suffix");
-    assertBoolean(this.#showPercent, "showPercent");
-    assertBoolean(this.#showValue, "showValue");
 
     if (this.#max <= this.#min) {
       throw new Error("max must be greater than min");
@@ -87,48 +117,6 @@ export class Slider extends Elm {
     if (this.#value < this.#min || this.#value > this.#max) {
       throw new Error("value must be between min and max");
     }
-
-    if (this.#suffix !== "") {
-      assertNonBlankString(this.#suffix, "suffix");
-    }
-
-    this.#percent = Number((this.#value / this.#base).toFixed(2));
-    this.#minPercent = Number((this.#min / this.#base).toFixed(2));
-    this.#maxPercent = Number((this.#max / this.#base).toFixed(2));
-  }
-
-  // -----------------------------------------------------------------------------
-  // percent
-  // -----------------------------------------------------------------------------
-
-  get percent() {
-    return this.#percent;
-  }
-
-  set percent(percent) {
-    assertNumber(percent, "percent");
-    this.#setPercent(percent);
-  }
-
-  #setPercent(percent) {
-    if (percent === this.#percent) {
-      return;
-    }
-
-    const normalizedPercent = Math.min(
-      this.#maxPercent,
-      Math.max(this.#minPercent, percent),
-    );
-
-    this.#percent = Number(normalizedPercent.toFixed(2));
-    this.#value = Number((this.#base * normalizedPercent).toFixed(2));
-    this.#updateState();
-
-    this.#onChange?.({
-      elm: this,
-      percent: this.#percent,
-      value: this.#value,
-    });
   }
 
   // -----------------------------------------------------------------------------
@@ -150,20 +138,99 @@ export class Slider extends Elm {
     }
 
     const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
-
-    this.#percent = Number((normalizedValue / this.#base).toFixed(2));
     this.#value = Number(normalizedValue.toFixed(2));
     this.#updateState();
 
     this.#onChange?.({
-      percent: this.#percent,
+      elm: this,
       value: this.#value,
     });
   }
 
   // -----------------------------------------------------------------------------
+  // render
+  // -----------------------------------------------------------------------------
+
+  #render() {
+    const templateEl = this.resolveElement(TEMPLATE);
+
+    const [prevEl, nextEl, rangeEl, valueEl] = this.getBySelector(
+      templateEl,
+      "[data-role=prev]",
+      "[data-role=next]",
+      "[data-role=range]",
+      "[data-role=value]",
+    );
+
+    prevEl.textContent = this.#prevText;
+    nextEl.textContent = this.#nextText;
+
+    rangeEl.min = this.#min;
+    rangeEl.max = this.#max;
+    rangeEl.step = this.#step;
+    rangeEl.value = this.#value;
+
+    this.dom.add("prev", prevEl);
+    this.dom.add("next", nextEl);
+    this.dom.add("range", rangeEl);
+    this.dom.add("value", valueEl);
+
+    this.#updateState();
+  }
+
+  #updateState() {
+    const rangeEl = this.dom.get("range");
+    rangeEl.min = this.#min;
+    rangeEl.max = this.#max;
+    rangeEl.step = this.#step;
+    rangeEl.value = this.#value;
+
+    const ratio = (this.#value - this.#min) / (this.#max - this.#min);
+    const progress = Number((ratio * 100).toFixed(2));
+    rangeEl.style.setProperty("--range-progress", `${progress}%`);
+
+    const valueEl = this.dom.get("value");
+    if (this.#value === this.#min && isNonBlankString(this.#minValueText)) {
+      valueEl.textContent = this.#minValueText;
+    } else if (
+      this.#value === this.#max &&
+      isNonBlankString(this.#maxValueText)
+    ) {
+      valueEl.textContent = this.#maxValueText;
+    } else {
+      if (isNullishOrEmpty(this.#percentBase)) {
+        valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
+      } else {
+        const percent = Number(
+          ((this.#value / this.#percentBase) * 100).toFixed(2),
+        );
+        valueEl.textContent = `${percent}%`;
+      }
+    }
+
+    const rootElWidth = this.rootElement.clientWidth;
+    const prevElWidth = this.dom.get("prev").offsetWidth;
+    const nextElWidth = this.dom.get("next").offsetWidth;
+
+    const rawLeft = ratio * rootElWidth;
+    const valueElWidth = valueEl.offsetWidth;
+    const minLeft = prevElWidth + valueElWidth / 2;
+    const maxLeft = rootElWidth - nextElWidth - valueElWidth / 2;
+
+    const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
+
+    valueEl.style.left = `${left}px`;
+    valueEl.style.transform = "translateX(-50%)";
+  }
+
+  // -----------------------------------------------------------------------------
   // events
   // -----------------------------------------------------------------------------
+
+  // override
+  rootElementResize() {
+    this.#updateState();
+  }
 
   set onChange(handler) {
     if (handler != null) {
@@ -177,120 +244,82 @@ export class Slider extends Elm {
 
   #bindEvents() {
     this.dom.on("range", "input", this.#handleRangeInput);
-    this.dom.on("decrease", "click", this.#handleDecreaseClick);
-    this.dom.on("increase", "click", this.#handleIncreaseClick);
-    this.dom.on(
-      "percentField",
-      "blur",
-      this.#handlePercentBlur,
-      '[data-role="percent-input"]',
-    );
-    this.dom.on(
-      "percentField",
-      "keydown",
-      this.#handlePercentKeydown,
-      '[data-role="percent-input"]',
-    );
-    this.dom.on(
-      "valueField",
-      "blur",
-      this.#handleValueBlur,
-      '[data-role="value-input"]',
-    );
-    this.dom.on(
-      "valueField",
-      "keydown",
-      this.#handleValueKeydown,
-      '[data-role="value-input"]',
-    );
+    this.dom.on("prev", "click", this.#handlePrevClick);
+    this.dom.on("next", "click", this.#handleNextClick);
   }
 
   #handleRangeInput = ({ target }) => {
     this.#setValue(Number(target.value));
   };
 
-  #handleDecreaseClick = () => {
-    this.#setValue(this.#value - this.#step);
+  #handlePrevClick = () => {
+    let value = this.#value - this.#step;
+    value = value < this.#min ? this.#min : value;
+    this.#setValue(value);
   };
 
-  #handleIncreaseClick = () => {
-    this.#setValue(this.#value + this.#step);
+  #handleNextClick = () => {
+    let value = this.#value + this.#step;
+    value = value > this.#max ? this.#max : value;
+    this.#setValue(value);
   };
+}
 
-  #handlePercentBlur = (event) => {
-    const value = event.target.value.trim();
-    if (value === "") {
-      this.#updateState();
-      return;
-    }
+/**
+ * -60 dB ≈ gain 0.001
+ * 0 dB = gain 1
+ * +12 dB ≈ gain 3.98
+ */
+const MIN_DB = -60;
+const MAX_DB = 12;
+const DEFAULT_STEP = 0.5;
+const DEFAULT_VALUE = 0;
+export class TimelineGainSlider extends TimelineSlider {
+  constructor(root, options = {}) {
+    timelineGainSliderValidateOptions(options);
 
-    this.#setPercent(Number(value) / 100);
-  };
-
-  #handlePercentKeydown = (event) => {
-    if (event.key === "Enter") {
-      this.#handlePercentBlur(event);
-    }
-  };
-
-  #handleValueBlur = (event) => {
-    const value = event.target.value.trim();
-    if (value === "") {
-      this.#updateState();
-      return;
-    }
-    
-    this.#setValue(Number(event.target.value));
-  };
-
-  #handleValueKeydown = (event) => {
-    if (event.key === "Enter") {
-      this.#handleValueBlur(event);
-    }
-  };
-
-  // -----------------------------------------------------------------------------
-  // render
-  // -----------------------------------------------------------------------------
-
-  #render() {
-    const template = this.resolveElement(TEMPLATE, "TEMPLATE");
-
-    const decreaseElement = template.querySelector('[data-role="decrease"]');
-    const rangeElement = template.querySelector('[data-role="range"]');
-    const increaseElement = template.querySelector('[data-role="increase"]');
-    const percentField = template.querySelector('[data-role="percent"]');
-    const valueField = template.querySelector('[data-role="value"]');
-
-    percentField.classList.toggle("hidden", !this.#showPercent);
-    valueField.classList.toggle("hidden", !this.#showValue);
-
-    this.dom.add("decrease", decreaseElement);
-    this.dom.add("range", rangeElement);
-    this.dom.add("increase", increaseElement);
-    this.dom.add("percentField", percentField);
-    this.dom.add("valueField", valueField);
+    super(root, {
+      step: DEFAULT_STEP,
+      value: DEFAULT_VALUE,
+      ...options,
+      min: MIN_DB,
+      max: MAX_DB,
+      percentBase: null,
+      suffix: "dB",
+      minValueText: "-∞",
+    });
   }
 
-  #updateState() {
-    const rangeElement = this.dom.get("range");
+  get gain() {
+    if (this.value === MIN_DB) {
+      return 0;
+    }
 
-    const percentField = this.dom.get("percentField");
-    const percentElement = percentField.querySelector(
-      '[data-role="percent-input"]',
+    return this.dbToGain(this.value);
+  }
+
+  dbToGain(db) {
+    return 10 ** (db / 20);
+  }
+
+  gainToDb(gain) {
+    return Math.max(20 * Math.log10(gain), MIN_DB);
+  }
+}
+
+function timelineGainSliderValidateOptions(options) {
+  const step = options.step ?? DEFAULT_STEP;
+  const value = options.value ?? DEFAULT_VALUE;
+
+  if (step <= 0 || step > MAX_DB - MIN_DB) {
+    throw new Error(
+      `step must be greater than 0 and less than or equal to ${
+        MAX_DB - MIN_DB
+      }`,
     );
+  }
 
-    const valueField = this.dom.get("valueField");
-    const valueElement = valueField.querySelector('[data-role="value-input"]');
-    const valueSuffixElement = valueField.querySelector("span");
-
-    rangeElement.min = this.#min;
-    rangeElement.max = this.#max;
-    rangeElement.step = this.#step;
-    rangeElement.value = this.#value;
-
-    percentElement.value = Number((this.#percent * 100).toFixed(2));
-    valueElement.value = this.#value;
-    valueSuffixElement.textContent = this.#suffix;
+  if (value < MIN_DB || value > MAX_DB) {
+    throw new Error(`value must be between ${MIN_DB} and ${MAX_DB}`);
   }
 }

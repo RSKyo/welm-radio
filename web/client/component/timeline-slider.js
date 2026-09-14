@@ -145,7 +145,7 @@ export class TimelineSlider extends Elm {
   #render() {
     const templateEl = this.resolveElement(TEMPLATE);
 
-    const [prevEl, nextEl, rangeEl, valueEl] = this.queryElements(
+    const [prevEl, nextEl, rangeEl, valueEl] = this.getBySelector(
       templateEl,
       "[data-role=prev]",
       "[data-role=next]",
