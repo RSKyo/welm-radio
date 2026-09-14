@@ -8,6 +8,7 @@ import {
   assertValueExists,
   assertValueNotExists,
   assertFunction,
+  assertNonEmptyNonBlankStringArray,
 } from "./assert.js";
 import { createElementByHTML, normalizeArray } from "./elm-helper.js";
 import { ElmValueState } from "./elm-state.js";
@@ -326,19 +327,35 @@ export class ItemsElm extends Elm {
   // item access
   // -----------------------------------------------------------------------------
 
-  getItem(value) {
+  getItemByValue(value, mode = null) {
     if (isNullishOrEmpty(value)) {
       return null;
     }
 
+    if (mode != null) {
+      if (![1, 2].includes(mode)) {
+        throw new Error(`Invalid mode: ${mode}. Mode must be 1 or 2.`);
+      }
+    } else {
+      mode = 1;
+    }
+
     const assertionSubject = this.#valueField;
 
-    assertNonBlankString(value, assertionSubject);
-    assertValueExists(value, this.itemValues, assertionSubject);
+    if (mode === 1) {
+      assertNonBlankString(value, assertionSubject);
+      assertValueExists(value, this.itemValues, assertionSubject);
 
-    const item = this.#items.find((item) => item[this.#valueField] === value);
+      const item = this.#items.find((item) => item[this.#valueField] === value);
+      return { ...item };
+    }
 
-    return { ...item };
+    assertNonEmptyNonBlankStringArray(value, assertionSubject);
+
+    const items = this.#items.filter((item) =>
+      value.includes(item[this.#valueField]),
+    );
+    return items.map((item) => ({ ...item }));
   }
 
   eachItem(callback) {

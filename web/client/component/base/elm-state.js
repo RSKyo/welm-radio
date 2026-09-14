@@ -101,7 +101,7 @@ export class ElmValueState {
       return;
     }
 
-    this.beforeValueStateSet?.({
+    this.#beforeValueStateSet?.({
       key,
       mode,
       oldValue: this.#normalizeValue(oldValue, mode),
@@ -110,7 +110,7 @@ export class ElmValueState {
 
     state.value = this.#normalizeValue(newValue, mode);
 
-    this.afterValueStateSet?.({
+    this.#afterValueStateSet?.({
       key,
       mode,
       oldValue: this.#normalizeValue(oldValue, mode),

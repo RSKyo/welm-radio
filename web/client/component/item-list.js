@@ -1,15 +1,7 @@
+import { assertBoolean, assertValueIn } from "./base/assert.js";
+import { createElementByHTML } from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
-import {
-  assertBoolean,
-  isNullishOrEmpty,
-  assertNonBlankString,
-  assertFunction,
-  assertElementMatches,
-  assertElementContains,
-  assertValueIn,
-} from "./base/assert.js";
 
-const ROOT_CLASS = "item-list";
 const ITEM_TEMPLATE = `
 <div class="item-list-item" data-role="item">
   <div class="item-list-check"  data-role="check">
@@ -21,35 +13,29 @@ const ITEM_TEMPLATE = `
 </div>
 `;
 
+const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+
 export class ItemList extends ItemsElm {
-  // templates
-  #itemTemplate;
   // state
-  #selectedValue;
   #selectedValueMode = 1;
-  #checkedValue;
   #checkedValueMode = 2;
   #showCheckboxes = true;
-  // event
-  #onSelectedChange;
-  #onCheckedChange;
-  #onDoubleClick;
 
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: ROOT_CLASS,
+      defaultRootClass: "item-list",
     });
 
-    this.#initOptions(options);
+    this.#init(options);
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // options
+  // initialization
   // -----------------------------------------------------------------------------
 
-  #initOptions(options) {
+  #init() {
     this.resolveOption("selectedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#selectedValueMode = value;
@@ -65,155 +51,88 @@ export class ItemList extends ItemsElm {
       this.#showCheckboxes = value;
     });
 
-    this.resolveOption(
-      "itemTemplate",
-      (value, assertionSubject) => {
-        this.#itemTemplate = this.resolveElement(value, assertionSubject, {
-          matches: ['[data-role="item"]'],
-          contains: [
-            '[data-role="content"]',
-            '[data-role="text"]',
-            '[data-role="check"]',
-            '[data-role="checkbox"]',
-          ],
-        });
-      },
-      () => {
-        this.#itemTemplate = this.resolveElement(
-          ITEM_TEMPLATE,
-          "ITEM_TEMPLATE",
-        );
-      },
-    );
+    this.itemValueState.define("selectedValue", null, this.#selectedValueMode);
+    this.itemValueState.define("checkedValue", null, this.#checkedValueMode);
   }
 
   // -----------------------------------------------------------------------------
-  // selected value
+  // get/set state value
   // -----------------------------------------------------------------------------
 
   get selectedValue() {
-    if (isNullishOrEmpty(this.#selectedValue)) {
-      return null;
-    }
-    return this.#selectedValueMode === 2
-      ? [...this.#selectedValue]
-      : this.#selectedValue;
+    return this.itemValueState.getValue("selectedValue");
   }
 
   set selectedValue(value) {
-    this.assertModeValue(value, this.#selectedValueMode);
-
-    const oldValue = this.#selectedValue;
-    if (isNullishOrEmpty(value)) {
-      this.#selectedValue = null;
-    } else {
-      this.assertItemValueExists(value);
-      this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
-    }
-
-    const newValue = this.#selectedValue;
-    if (!this.isEqualValue(newValue, oldValue)) {
-      this.#updateSelectedState();
-
-      this.#onSelectedChange?.({
-        elm: this,
-        value: newValue,
-      });
-    }
-  }
-
-  // -----------------------------------------------------------------------------
-  // checked value
-  // -----------------------------------------------------------------------------
-
-  #assertCheckboxesEnabled() {
-    if (!this.#showCheckboxes) {
-      throw new Error("Checkboxes are not enabled for this item list");
-    }
+    this.itemValueState.setValue("selectedValue", value);
   }
 
   get checkedValue() {
-    this.#assertCheckboxesEnabled();
-
-    if (isNullishOrEmpty(this.#checkedValue)) {
-      return null;
-    }
-    return this.#checkedValueMode === 2
-      ? [...this.#checkedValue]
-      : this.#checkedValue;
+    return this.itemValueState.getValue("checkedValue");
   }
 
   set checkedValue(value) {
-    this.#assertCheckboxesEnabled();
-
-    this.assertModeValue(value, this.#checkedValueMode);
-
-    const oldValue = this.#checkedValue;
-    if (isNullishOrEmpty(value)) {
-      this.#checkedValue = null;
-    } else {
-      this.assertItemValueExists(value);
-      this.#checkedValue = this.#checkedValueMode === 2 ? [...value] : value;
-    }
-
-    const newValue = this.#checkedValue;
-    if (!this.isEqualValue(newValue, oldValue)) {
-      this.#updateCheckedState();
-
-      this.#onCheckedChange?.({
-        elm: this,
-        value: newValue,
-      });
-    }
+    this.itemValueState.setValue("checkedValue", value);
   }
 
   checkAll() {
-    this.#assertCheckboxesEnabled();
+    if (this.#checkedValueMode === 1) {
+      throw new Error("Cannot check all items when checkedValueMode is 1.");
+    }
     this.checkedValue = this.itemValues;
   }
 
   uncheckAll() {
-    this.#assertCheckboxesEnabled();
+    if (this.#checkedValueMode === 1) {
+      throw new Error("Cannot uncheck all items when checkedValueMode is 1.");
+    }
     this.checkedValue = null;
   }
 
   // -----------------------------------------------------------------------------
-  // events
+  // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onSelectedChange = handler;
-      return;
-    }
-
-    // handler can be null to remove the event listener
-    this.#onSelectedChange = null;
+  set onSelectedValueChange(handler) {
+    this.handlerRegistry.set("onSelectedValueChange", handler);
   }
 
-  set onCheckedChange(handler) {
-    this.#assertCheckboxesEnabled();
+  #emitSelectedValueChange(newValue) {
+    this.handlerRegistry.emit("onSelectedValueChange", {
+      elm: this,
+      item: this.getItemByValue(newValue, this.#selectedValueMode),
+      value: newValue,
+    });
+  }
 
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onCheckedChange = handler;
-      return;
-    }
+  set onCheckedValueChange(handler) {
+    this.handlerRegistry.set("onCheckedValueChange", handler);
+  }
 
-    // handler can be null to remove the event listener
-    this.#onCheckedChange = null;
+  #emitCheckedValueChange(newValue) {
+    const item =
+      this.#checkedValueMode === 1
+        ? this.getItemByValue(newValue, this.#checkedValueMode)
+        : newValue.map((v) => this.getItemByValue(v, this.#checkedValueMode));
+
+    this.handlerRegistry.emit("onCheckedValueChange", {
+      elm: this,
+      item,
+      value: newValue,
+    });
   }
 
   set onDoubleClick(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onDoubleClick = handler;
-      return;
-    }
+    this.handlerRegistry.set("onDoubleClick", handler);
+  }
 
-    // handler can be null to remove the event listener
-    this.#onDoubleClick = null;
+  #emitDoubleClick(state) {
+    const { newValue } = state;
+
+    this.handlerRegistry.emit("onDoubleClick", {
+      elm: this,
+      value: newValue,
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -221,84 +140,92 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("click", this.#handleRootClick);
-    this.dom.onRoot("dblclick", this.#handleRootDoubleClick);
-  }
+    this.dom.onRootDelegate(
+      '[data-role="content"]',
+      "click",
+      (event, detail) => {
+        const { element } = detail;
+        const itemElement = element.closest('[data-role="item"]');
+        const value = itemElement?.dataset.value;
 
-  #handleRootClick = (event) => {
-    const itemElement = this.closestElement(event, '[data-role="item"]');
-    const value = itemElement?.dataset.value ?? null;
-
-    this.closestElement(event, '[data-role="content"]', () => {
-      if (this.#selectedValueMode === 1) {
-        this.selectedValue = value;
-        return;
-      }
-
-      const oldValue = this.#selectedValue ?? [];
-      const newValue = oldValue.includes(value)
-        ? oldValue.filter((v) => v !== value)
-        : [...oldValue, value];
-
-      this.selectedValue = newValue;
-    });
-
-    if (this.#showCheckboxes) {
-      this.closestElement(event, '[data-role="checkbox"]', () => {
-        if (this.#checkedValueMode === 1) {
-          this.checkedValue = value;
+        if (this.#selectedValueMode === 1) {
+          this.selectedValue = value;
           return;
         }
 
-        const oldValue = this.#checkedValue ?? [];
+        const oldValue = this.selectedValue ?? [];
         const newValue = oldValue.includes(value)
           ? oldValue.filter((v) => v !== value)
           : [...oldValue, value];
 
-        this.checkedValue = newValue;
-      });
-    }
-  };
+        this.selectedValue = newValue;
+      },
+    );
 
-  #handleRootDoubleClick = (event) => {
-    const itemElement = this.closestElement(event, '[data-role="item"]');
-    if (itemElement != null) {
-      const value = itemElement.dataset.value;
-      this.#onDoubleClick?.({
-        value: value,
-        item: this.getItem(value),
-      });
+    if (this.#showCheckboxes) {
+      this.dom.onRootDelegate(
+        '[data-role="checkbox"]',
+        "click",
+        (event, detail) => {
+          const { element } = detail;
+          const itemElement = element.closest('[data-role="item"]');
+          const value = itemElement?.dataset.value;
+
+          if (this.#checkedValueMode === 1) {
+            this.checkedValue = value;
+            return;
+          }
+
+          const oldValue = this.checkedValue ?? [];
+          const newValue = oldValue.includes(value)
+            ? oldValue.filter((v) => v !== value)
+            : [...oldValue, value];
+
+          this.checkedValue = newValue;
+        },
+      );
     }
-  };
+
+    this.dom.onRootDelegate(
+      '[data-role="item"]',
+      "dblclick",
+      (event, detail) => {
+        const { element } = detail;
+        const value = element.dataset.value;
+
+        this.#emitDoubleClick(value);
+      },
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateSelectedState() {
+  #updateSelectedValueUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
       let selected = false;
       if (this.#selectedValueMode === 1) {
-        selected = this.#selectedValue === value;
-      } else if (this.#selectedValueMode === 2) {
-        selected = this.#selectedValue?.includes(value) ?? false;
+        selected = this.selectedValue === value;
+      } else {
+        selected = this.selectedValue?.includes(value) ?? false;
       }
 
       element.classList.toggle("is-selected", selected);
     });
   }
 
-  #updateCheckedState() {
+  #updateCheckedValueUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
       let checked = false;
       if (this.#checkedValueMode === 1) {
-        checked = this.#checkedValue === value;
+        checked = this.checkedValue === value;
       } else if (this.#checkedValueMode === 2) {
-        checked = this.#checkedValue?.includes(value) ?? false;
+        checked = this.checkedValue?.includes(value) ?? false;
       }
 
       element.classList.toggle("is-checked", checked);
@@ -315,27 +242,27 @@ export class ItemList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  afterSetItems(items) {
-    this.#selectedValue = this.filterItemValue(this.#selectedValue);
-    this.#checkedValue = this.filterItemValue(this.#checkedValue);
-  }
+  afterItemValueStateSet({ key, newValue }) {
+    if (key === "selectedValue") {
+      this.#updateSelectedValueUIState();
+      this.#emitSelectedValueChange(newValue);
+      return;
+    }
 
-  // override
-  afterRenderItems(items) {
-    this.#updateSelectedState();
-    this.#updateCheckedState();
+    if (key === "checkedValue") {
+      this.#updateCheckedValueUIState();
+      this.#emitCheckedValueChange(newValue);
+    }
   }
 
   // override
   renderItem(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
-    const tooltip = item[this.tooltipField];
 
-    const itemElement = this.#itemTemplate.cloneNode(true);
+    const itemElement = itemTemplate.cloneNode(true);
     itemElement.dataset.value = value;
     itemElement.querySelector("[data-role='text']").textContent = text || value;
-    itemElement.title = tooltip || text || "";
 
     itemElement.classList.toggle("no-check", !this.#showCheckboxes);
 
@@ -343,8 +270,18 @@ export class ItemList extends ItemsElm {
   }
 
   // override
-  afterRemoveItem(removedItem) {
-    this.#selectedValue = this.filterItemValue(this.#selectedValue);
-    this.#checkedValue = this.filterItemValue(this.#checkedValue);
+  afterRenderItems(items) {
+    this.#updateSelectedValueUIState();
+    this.#updateCheckedValueUIState();
+  }
+
+  // override
+  renderUpdatedItem(updatedItem) {
+    const value = updatedItem[this.valueField];
+    const text = updatedItem[this.textField];
+
+    const itemElement = this.dom.get(value);
+
+    itemElement.querySelector("[data-role='text']").textContent = text || value;
   }
 }

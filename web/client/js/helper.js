@@ -86,65 +86,6 @@ const DOM_EVENT_NAMES = [
   
 ];
 
-// export const on = {
-//   /** Dom events */
-
-//   click: (target, handler) => {
-//     return bindEvent(target, "click", handler);
-//   },
-//   dblclick: (target, handler) => {
-//     return bindEvent(target, "dblclick", handler);
-//   },
-//   change: (target, handler) => {
-//     return bindEvent(target, "change", handler);
-//   },
-//   input: (target, handler) => {
-//     return bindEvent(target, "input", handler);
-//   },
-//   focus: (target, handler) => {
-//     return bindEvent(target, "focus", handler);
-//   },
-//   blur: (target, handler) => {
-//     return bindEvent(target, "blur", handler);
-//   },
-//   keydown: (target, handler) => {
-//     return bindEvent(target, "keydown", handler);
-//   },
-//   keyup: (target, handler) => {
-//     return bindEvent(target, "keyup", handler);
-//   },
-//   keypress: (target, handler) => {
-//     return bindEvent(target, "keypress", handler);
-//   },
-//   mousemove: (target, handler) => {
-//     return bindEvent(target, "mousemove", handler);
-//   },
-//   mousedown: (target, handler) => {
-//     return bindEvent(target, "mousedown", handler);
-//   },
-//   mouseup: (target, handler) => {
-//     return bindEvent(target, "mouseup", handler);
-//   },
-//   mouseenter: (target, handler) => {
-//     return bindEvent(target, "mouseenter", handler);
-//   },
-//   mouseleave: (target, handler) => {
-//     return bindEvent(target, "mouseleave", handler);
-//   },
-
-//   /** Elm events */
-
-//   selectedChange: (target, handler) => {
-//     return bindEvent(target, "selectedChange", handler);
-//   },
-//   checkedChange: (target, handler) => {
-//     return bindEvent(target, "checkedChange", handler);
-//   },
-//   doubleClick: (target, handler) => {
-//     return bindEvent(target, "doubleClick", handler);
-//   },
-// };
-
 export function on(target, eventName, handler) {
   if (isNonBlankString(target)) {
     const element = target.startsWith("#")

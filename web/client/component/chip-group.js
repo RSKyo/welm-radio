@@ -39,18 +39,6 @@ export class ChipGroup extends ItemsElm {
   }
 
   // -----------------------------------------------------------------------------
-  // selected value
-  // -----------------------------------------------------------------------------
-
-  get selectedValue() {
-    return this.itemValueState.getValue("selectedValue");
-  }
-
-  set selectedValue(value) {
-    this.itemValueState.setValue("selectedValue", value);
-  }
-
-  // -----------------------------------------------------------------------------
   // initialization
   // -----------------------------------------------------------------------------
 
@@ -74,6 +62,18 @@ export class ChipGroup extends ItemsElm {
   }
 
   // -----------------------------------------------------------------------------
+  // get/set state value
+  // -----------------------------------------------------------------------------
+
+  get selectedValue() {
+    return this.itemValueState.getValue("selectedValue");
+  }
+
+  set selectedValue(value) {
+    this.itemValueState.setValue("selectedValue", value);
+  }
+
+  // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
 
@@ -81,9 +81,11 @@ export class ChipGroup extends ItemsElm {
     this.handlerRegistry.set("onSelectedValueChange", handler);
   }
 
-  emitSelectedValueChange(value) {
+  #emitSelectedValueChange(newValue) {
     this.handlerRegistry.emit("onSelectedValueChange", {
-      value,
+      elm: this,
+      item: this.getItemByValue(newValue, this.#selectedValueMode),
+      value: newValue,
     });
   }
 
@@ -145,7 +147,7 @@ export class ChipGroup extends ItemsElm {
   afterItemValueStateSet({ key, newValue }) {
     if (key === "selectedValue") {
       this.#updateSelectedValueUIState();
-      this.emitSelectedValueChange(newValue);
+      this.#emitSelectedValueChange(newValue);
     }
   }
 

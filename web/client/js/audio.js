@@ -68,12 +68,12 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on(audioTypeFilterElm, "selectedChange", filterChanged);
-  on(audioPositionFilterElm, "selectedChange", filterChanged);
-  on(audioDayPartFilterElm, "selectedChange", filterChanged);
-  on(audioLanguageFilterElm, "selectedChange", filterChanged);
-  on(audioCategoryFilterElm, "selectedChange", filterChanged);
-  on(audioAlternateGroupFilterElm, "selectedChange", filterChanged);
+  on(audioTypeFilterElm, "selectedValueChange", filterChanged);
+  on(audioPositionFilterElm, "selectedValueChange", filterChanged);
+  on(audioDayPartFilterElm, "selectedValueChange", filterChanged);
+  on(audioLanguageFilterElm, "selectedValueChange", filterChanged);
+  on(audioCategoryFilterElm, "selectedValueChange", filterChanged);
+  on(audioAlternateGroupFilterElm, "selectedValueChange", filterChanged);
 
   on("#set-audio-root", "click", setAudioRoot);
 
@@ -82,8 +82,8 @@ function bindEvents() {
   on("#import-audios", "click", importAudios);
   on("#order", "change", orderChanged);
 
-  on(audiosElm, "selectedChange", changeAudio);
-  on(audiosElm, "checkedChange", updateCheckedStateForSelectAll);
+  on(audiosElm, "selectedValueChange", changeAudio);
+  on(audiosElm, "checkedValueChange", updateCheckedStateForSelectAll);
   on(audiosElm, "doubleClick", doubleClickAudio);
 
   on("#save-meta", "click", saveMeta);
@@ -210,8 +210,8 @@ async function orderChanged(event) {
 }
 
 async function changeAudio({ item }) {
-  setFormMeta(item.meta);
-  setAudioPlayer(item.audioPath);
+  setFormMeta(item?.meta);
+  setAudioPlayer(item?.audioPath);
 }
 
 async function doubleClickAudio({ item }) {
@@ -233,7 +233,7 @@ async function setAudiosCheckedState(event) {
 }
 
 async function saveMeta() {
-  const item = audiosElm.getItem(audiosElm.selectedValue);
+  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -269,7 +269,7 @@ async function saveMeta() {
 }
 
 async function startTranscription() {
-  const item = audiosElm.getItem(audiosElm.selectedValue);
+  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -312,7 +312,7 @@ async function startTranscription() {
   audiosElm.updateItem(updatedItem);
 
   // if current selected item is the same as the one we just transcribed, update the form meta
-  const currentItem = audiosElm.getItem(audiosElm.selectedValue);
+  const currentItem = audiosElm.getItemByValue(audiosElm.selectedValue);
   if (currentItem && currentItem.audioPath === item.audioPath) {
     setFormMeta(savedMeta);
   }
@@ -343,7 +343,7 @@ async function selectVadModel() {
 }
 
 async function detectDuration() {
-  const item = audiosElm.getItem(audiosElm.selectedValue);
+  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -395,7 +395,7 @@ async function listAudios() {
 
   audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
-  const item = audiosElm.getItem(audiosElm.selectedValue);
+  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
   if (item) {
     setFormMeta(item.meta);
     setAudioPlayer(item.audioPath);
