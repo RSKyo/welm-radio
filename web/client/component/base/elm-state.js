@@ -148,15 +148,26 @@ export class ElmValueState {
       throw new Error(`invalid mode: ${mode}`);
     }
 
-    if (isNullishOrEmpty(value)) {
+    if (value == null) {
       return;
     }
 
     if (mode === 1) {
-      assertNonBlankString(value, "value");
-    } else {
-      assertNonEmptyNonBlankStringArray(value, "value");
-      assertNoDuplicateValues(value, "value");
+      if (Array.isArray(value)) {
+        throw new Error("value must not be an array when mode is 1");
+      }
+
+      return;
     }
+
+    if (!Array.isArray(value)) {
+      throw new Error("value must be an array when mode is 2");
+    }
+
+    if (value.length === 0) {
+      return;
+    }
+
+    assertNoDuplicateValues(value, "value");
   }
 }

@@ -112,24 +112,60 @@ export function normalizeArray(value) {
 }
 
 export function isEqualValue(value1, value2) {
+  if (Object.is(value1, value2)) {
+    return true;
+  }
+
   if (value1 == null || value2 == null) {
-    return value1 == null && value2 == null;
+    return false;
   }
 
-  if (typeof value1 === "string" && typeof value2 === "string") {
-    return value1 === value2;
+  if (value1 instanceof Date || value2 instanceof Date) {
+    return (
+      value1 instanceof Date &&
+      value2 instanceof Date &&
+      value1.getTime() === value2.getTime()
+    );
   }
 
-  if (Array.isArray(value1) && Array.isArray(value2)) {
+  if (Array.isArray(value1) || Array.isArray(value2)) {
+    if (!Array.isArray(value1) || !Array.isArray(value2)) {
+      return false;
+    }
+
     if (value1.length !== value2.length) {
       return false;
     }
 
-    const sortedValues1 = [...value1].sort();
-    const sortedValues2 = [...value2].sort();
+    const matchedIndexes = new Set();
 
-    return sortedValues1.every(
-      (value, index) => value === sortedValues2[index],
+    return value1.every((item1) => {
+      const index = value2.findIndex(
+        (item2, index) =>
+          !matchedIndexes.has(index) && isEqualValue(item1, item2),
+      );
+
+      if (index === -1) {
+        return false;
+      }
+
+      matchedIndexes.add(index);
+
+      return true;
+    });
+  }
+
+  if (typeof value1 === "object" && typeof value2 === "object") {
+    const keys1 = Object.keys(value1);
+    const keys2 = Object.keys(value2);
+
+    if (keys1.length !== keys2.length) {
+      return false;
+    }
+
+    return keys1.every(
+      (key) =>
+        Object.hasOwn(value2, key) && isEqualValue(value1[key], value2[key]),
     );
   }
 
