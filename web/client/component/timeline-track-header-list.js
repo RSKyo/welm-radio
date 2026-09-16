@@ -1,6 +1,6 @@
 import { ItemsElm } from "./base/items-elm.js";
 import { CompactCombobox } from "./combobox.js";
-import { TimelineGainSlider } from "./timeline-slider.js";
+import { GainCompactSlider } from "./slider.js";
 import {
   isNullishOrEmpty,
   assertBoolean,
@@ -163,10 +163,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
     const nameElm = new CompactCombobox(nameEl);
     nameElm.dropdownValues = getTrackNames();
 
-
-    const gainSlider = new TimelineGainSlider(gainEl);
-
-
+    const gainSlider = new GainCompactSlider(gainEl);
 
     const elm = {
       name: nameElm,

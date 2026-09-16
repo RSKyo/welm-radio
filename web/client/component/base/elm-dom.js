@@ -6,6 +6,7 @@ import {
   isHtmlElement,
 } from "./assert.js";
 import { EventRegistry } from "./elm-event.js";
+import { getBySelector } from "./elm-helper.js";
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.
@@ -67,43 +68,55 @@ export class ElmDom {
     );
   }
 
-  get(key) {
+  get(key, ...selectors) {
     assertKeyExists(key, this.#elementMap, "key");
-    return this.#get(key);
+
+    const element = this.#get(key);
+
+    if (selectors.length === 0) {
+      return element;
+    }
+
+    return getBySelector(element, ...selectors);
   }
 
   #get(key) {
     return this.#elementMap.get(key);
   }
 
-  add(key, newElement, parentKey = null) {
+  add(key, newElement, target = null) {
     assertKeyNotExists(key, this.#elementMap);
     assertHtmlElement(newElement, "newElement");
     this.#assertElementIsNotRoot(newElement, "newElement");
     this.#assertElementNotExists(newElement, "newElement");
 
-    const parentElement =
-      parentKey == null ? this.#rootElement : this.get(parentKey);
-
-    parentElement.appendChild(newElement);
-
+    const { element: targetElement } = this.#resolveTarget(target);
+    targetElement.appendChild(newElement);
     this.#elementMap.set(key, newElement);
   }
 
-  replace(key, newElement) {
-    assertKeyExists(key, this.#elementMap, "key");
+  replace(target, newElement) {
     assertHtmlElement(newElement, "newElement");
     this.#assertElementIsNotRoot(newElement, "newElement");
     this.#assertElementNotExists(newElement, "newElement");
 
-    const oldElement = this.#get(key);
-    for (const child of this.getChildren(key)) {
-      newElement.appendChild(child);
+    const { key,element: oldElement } = this.#resolveTarget(target);
+    this.#assertElementIsNotRoot(oldElement, "oldElement");
+
+    while (oldElement.firstChild) {
+      newElement.appendChild(oldElement.firstChild);
     }
 
     this.#eventRegistry.replace(oldElement, newElement);
+
     oldElement.replaceWith(newElement);
-    this.#elementMap.set(key, newElement);
+
+    for (const [key, element] of this.#elementMap.entries()) {
+      if (element === oldElement) {
+        this.#elementMap.set(key, newElement);
+        break;
+      }
+    }
   }
 
   remove(key) {
@@ -138,27 +151,59 @@ export class ElmDom {
     }
   }
 
-  on(key, type, handler, detail = null) {
-    assertKeyExists(key, this.#elementMap, "key");
-    const element = this.#get(key);
+  #resolveTarget(target) {
+    if (isNonBlankString(target)) {
+      assertKeyExists(target, this.#elementMap, "target");
 
-    this.#eventRegistry.on(element, type, handler, {
-      detail,
-    });
+      return {
+        key: target,
+        element: this.#get(target),
+      };
+    }
+
+    if (isHtmlElement(target)) {
+      if (!this.#rootElement.contains(target)) {
+        throw new Error(
+          `target element must be within the root element: ${target}`,
+        );
+      }
+
+      for (const [key, element] of this.#elementMap.entries()) {
+        if (element === target) {
+          return { key, element };
+        }
+      }
+
+      return {
+        key: null,
+        element: target,
+      };
+    }
+
+    throw new Error(
+      `target must be a non-blank string or an HTML element: ${target}`,
+    );
   }
 
-  onDelegate(
+  on(
     key,
-    selector,
     type,
     handler,
-    detail = null,
-    unmatchedHandler = null,
+    {
+      detail = null,
+      listenerSelector = null,
+      selector = null,
+      unmatchedHandler = null,
+    } = {},
   ) {
     assertKeyExists(key, this.#elementMap, "key");
     const element = this.#get(key);
+    const listenerElement =
+      listenerSelector == null
+        ? element
+        : getBySelector(element, listenerSelector);
 
-    this.#eventRegistry.on(element, type, handler, {
+    this.#eventRegistry.on(listenerElement, type, handler, {
       detail,
       selector,
       unmatchedHandler,
@@ -172,18 +217,10 @@ export class ElmDom {
     this.#eventRegistry.off({ element, type, handler, subtree });
   }
 
-  onRoot(type, handler, detail = null) {
-    this.#eventRegistry.on(this.#rootElement, type, handler, {
-      detail,
-    });
-  }
-
-  onRootDelegate(
-    selector,
+  onRoot(
     type,
     handler,
-    detail = null,
-    unmatchedHandler = null,
+    { detail = null, selector = null, unmatchedHandler = null } = {},
   ) {
     this.#eventRegistry.on(this.#rootElement, type, handler, {
       detail,

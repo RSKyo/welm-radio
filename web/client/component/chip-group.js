@@ -94,31 +94,42 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRootDelegate('[data-role="item"]', "click", (event, detail) => {
-      const { element } = detail;
-      const value = element.dataset.value;
-
-      if (this.#selectedValueMode === 1) {
-        this.selectedValue = value;
-        return;
-      }
-
-      const oldValue = this.selectedValue ?? [];
-      const newValue = oldValue.includes(value)
-        ? oldValue.filter((v) => v !== value)
-        : [...oldValue, value];
-
-      this.selectedValue = newValue;
+    this.dom.onRoot("click", this.#itemClickHandler, {
+      selector: '[data-role="item"]',
     });
 
-    this.dom.onRootDelegate('[data-action="select-all"]', "click", () => {
-      this.selectedValue = this.itemValues;
+    this.dom.onRoot("click", this.#selectAllClickHandler, {
+      selector: '[data-action="select-all"]',
     });
 
-    this.dom.onRootDelegate('[data-action="unselect"]', "click", () => {
-      this.selectedValue = null;
+    this.dom.onRoot("click", this.#unselectClickHandler, {
+      selector: '[data-action="unselect"]',
     });
   }
+
+  #itemClickHandler = (event, { element }) => {
+    const value = element.dataset.value;
+
+    if (this.#selectedValueMode === 1) {
+      this.selectedValue = value;
+      return;
+    }
+
+    const oldValue = this.selectedValue ?? [];
+    const newValue = oldValue.includes(value)
+      ? oldValue.filter((v) => v !== value)
+      : [...oldValue, value];
+
+    this.selectedValue = newValue;
+  };
+
+  #selectAllClickHandler = () => {
+    this.selectedValue = this.itemValues;
+  };
+
+  #unselectClickHandler = () => {
+    this.selectedValue = null;
+  };
 
   // ---------------------------------------------------------------------------
   // update ui state

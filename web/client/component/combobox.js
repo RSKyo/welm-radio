@@ -6,8 +6,8 @@ import {
   assertNoDuplicateValues,
 } from "./base/assert.js";
 
-const TEMPLATE = `
-<div>
+const MAIN_TEMPLATE = `
+<div class="combobox-main" data-role="main">
   <input
     class="combobox-input"
     type="text"
@@ -18,9 +18,13 @@ const TEMPLATE = `
   <div class="combobox-dropdown" data-role="dropdown"></div>
 </div>
 `;
+
 const DROPDOWN_ITEM_TEMPLATE = `
 <div class="combobox-item" data-role="dropdown-item"></div>
 `;
+
+const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
+const dropdownItemTemplate = createElementByHTML(DROPDOWN_ITEM_TEMPLATE);
 
 export class Combobox extends Elm {
   // state
@@ -33,50 +37,56 @@ export class Combobox extends Elm {
       defaultRootClass: "combobox",
     });
 
+    this.#init();
     this.#render();
     this.#bindEvents();
   }
 
-  // ---------------------------------------------------------------------------
-  // value
-  // ---------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------
+  // initialization
+  // -----------------------------------------------------------------------------
+
+  #init() {
+    this.valueState.define("value", null, 1);
+    this.valueState.define("dropdownValues", null, 2);
+  }
+
+  // -----------------------------------------------------------------------------
+  // get/set state value
+  // -----------------------------------------------------------------------------
 
   get value() {
-    return this.#value;
+    return this.valueState.get("value");
   }
 
   set value(value) {
-    const oldValue = this.#value;
-    if (isNullishOrEmpty(value)) {
-      this.#value = null;
-    } else {
-      assertNonBlankString(value, "value");
-      this.#value = value;
-    }
-
-    const newValue = this.#value;
-    if (oldValue === newValue) {
-      return;
-    }
-
-    this.#updateInputValue();
-    this.#updateSelectedState();
-
-    this.emit("change", {
-      value: newValue,
-    });
+    assertNonBlankString(value, "value");
+    this.valueState.set("value", value);
   }
 
-  // ---------------------------------------------------------------------------
-  // dropdown values
-  // ---------------------------------------------------------------------------
+  get dropdownValues() {
+    return this.valueState.get("dropdownValues");
+  }
 
   set dropdownValues(values) {
     assertNonBlankStringArray(values, "values");
-    assertNoDuplicateValues(values, "values");
+    this.valueState.set("dropdownValues", values);
+  }
 
-    this.#dropdownValues = [...values];
-    this.#renderDropdownValues();
+
+  // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
+
+  set onChange(handler) {
+    this.handlerRegistry.set("onChange", handler);
+  }
+
+  #emitChange(newValue) {
+    this.handlerRegistry.emit("onChange", {
+      elm: this,
+      value: newValue,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -84,22 +94,14 @@ export class Combobox extends Elm {
   // ---------------------------------------------------------------------------
 
   #render() {
-    this.dom.clear();
-
-    const templateEl = this.resolveElement(TEMPLATE);
-    const [inputEl, dropdownEl] = this.getBySelector(
-      templateEl,
-      '[data-role="input"]',
-      '[data-role="dropdown"]',
-    );
-    this.dom.add("input", inputEl);
-    this.dom.add("dropdown", dropdownEl);
+    this.dom.add("main",mainTemplate.cloneNode(true));
   }
 
-  #renderDropdownValues() {
+  #renderDropdownValues(values) {
+    const dropdownEl = this.dom.getBySelector("main",'[data-role="dropdown"]');
     this.dom.clear("dropdown");
 
-    for (const value of this.#dropdownValues) {
+    for (const value of values) {
       const dropdownItemEl = this.resolveElement(DROPDOWN_ITEM_TEMPLATE);
 
       dropdownItemEl.textContent = value;
@@ -113,21 +115,32 @@ export class Combobox extends Elm {
   // events
   // ---------------------------------------------------------------------------
 
-  /** event handlers */
-
-  set onChange(handler) {
-    this.setHandler("change", handler);
-  }
 
   /** bind events */
 
   #bindEvents() {
+    this.valueState.afterValueStateSet = this.#afterValueStateSet;
+
     this.dom.on("input", "focus", this.#handleInputFocus);
     this.dom.on("input", "blur", this.#handleInputBlur);
     this.dom.on("input", "change", this.#handleInputChange);
 
     this.dom.on("dropdown", "mousedown", this.#handleDropdownMouseDown);
     this.dom.on("dropdown", "click", this.#handleDropdownClick);
+  }
+
+  #afterValueStateSet({ key, newValue }) {
+    if (key === "value") {
+      this.#updateInputValue();
+      this.#updateSelectedState();
+
+      this.#emitChange(newValue);
+      return;
+    }
+
+    if (key === "dropdownValues") {
+      this.#renderDropdownValues(newValue);
+    }
   }
 
   #handleInputFocus = () => {
@@ -173,7 +186,7 @@ export class CompactCombobox extends Combobox {
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: "combobox combobox-compact",
+      defaultRootClass: "combobox combobox-compact",
     });
   }
 }

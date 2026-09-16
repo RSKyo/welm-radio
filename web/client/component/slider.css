@@ -1,9 +1,17 @@
 .slider {
   display: flex;
+  width: 100%;
+  gap: 4px;
+}
+
+.slider-main {
+  flex: 1;
+  display: flex;
   align-items: end;
   position: relative;
-  width: 100%;
 }
+
+
 
 .slider button.slider-prev,
 .slider button.slider-next {
@@ -97,6 +105,20 @@
   color: var(--color-text-muted);
 }
 
+/* actions */
+
+.slider-actions {
+  display: flex;
+}
+
+.slider-value-input {
+  box-sizing: border-box;
+  margin: 0;
+
+  text-align: right;
+  font-family: inherit;
+}
+
 /* normal */
 
 .slider:not(.slider-compact) {
@@ -114,8 +136,15 @@
 
 .slider:not(.slider-compact) .slider-value {
   height: 15px;
-
   font-size: 10px;
+}
+
+.slider:not(.slider-compact) .slider-value-input {
+  width: 60px;
+  height: 28px;
+  padding: 4px 6px;
+
+  font-size: inherit;
 }
 
 /* compact */
@@ -137,4 +166,12 @@
   height: 12px;
 
   font-size: 9px;
+}
+
+.slider-compact .slider-value-input {
+  width: 50px;
+  height: 22px;
+  padding: 2px 4px;
+
+  font-size: 11px;
 }

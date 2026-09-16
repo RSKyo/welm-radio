@@ -27,6 +27,7 @@ const sliderElm = new Slider("#timeline-zoom", {
   max: 250,
   step: 1,
   value: 50,
+  showActions: true,
 });
 
 // const timelineRulerElm = new TimelineRuler("#timeline-ruler");

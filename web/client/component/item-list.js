@@ -140,63 +140,58 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRootDelegate(
-      '[data-role="content"]',
-      "click",
-      (event, detail) => {
-        const { element } = detail;
-        const itemElement = element.closest('[data-role="item"]');
-        const value = itemElement?.dataset.value;
-
-        if (this.#selectedValueMode === 1) {
-          this.selectedValue = value;
-          return;
-        }
-
-        const oldValue = this.selectedValue ?? [];
-        const newValue = oldValue.includes(value)
-          ? oldValue.filter((v) => v !== value)
-          : [...oldValue, value];
-
-        this.selectedValue = newValue;
-      },
-    );
+    this.dom.onRoot("contextmenu", this.#contextClickHandler, {
+      selector: '[data-role="content"]',
+    });
 
     if (this.#showCheckboxes) {
-      this.dom.onRootDelegate(
-        '[data-role="checkbox"]',
-        "click",
-        (event, detail) => {
-          const { element } = detail;
-          const itemElement = element.closest('[data-role="item"]');
-          const value = itemElement?.dataset.value;
-
-          if (this.#checkedValueMode === 1) {
-            this.checkedValue = value;
-            return;
-          }
-
-          const oldValue = this.checkedValue ?? [];
-          const newValue = oldValue.includes(value)
-            ? oldValue.filter((v) => v !== value)
-            : [...oldValue, value];
-
-          this.checkedValue = newValue;
-        },
-      );
+      this.dom.onRoot("click", this.#checkboxClickHandler, {
+        selector: '[data-role="checkbox"]',
+      });
     }
 
-    this.dom.onRootDelegate(
-      '[data-role="item"]',
-      "dblclick",
-      (event, detail) => {
-        const { element } = detail;
-        const value = element.dataset.value;
-
-        this.#emitDoubleClick(value);
-      },
-    );
+    this.dom.onRoot("dblclick", this.#itemDblclickHandler, {
+      selector: '[data-role="item"]',
+    });
   }
+
+  #contextClickHandler = (event, { element }) => {
+    const value = element.dataset.value;
+
+    if (this.#selectedValueMode === 1) {
+      this.selectedValue = value;
+      return;
+    }
+
+    const oldValue = this.selectedValue ?? [];
+    const newValue = oldValue.includes(value)
+      ? oldValue.filter((v) => v !== value)
+      : [...oldValue, value];
+
+    this.selectedValue = newValue;
+  };
+
+  #checkboxClickHandler = (event, { element }) => {
+    const value = element?.dataset.value;
+
+    if (this.#checkedValueMode === 1) {
+      this.checkedValue = value;
+      return;
+    }
+
+    const oldValue = this.checkedValue ?? [];
+    const newValue = oldValue.includes(value)
+      ? oldValue.filter((v) => v !== value)
+      : [...oldValue, value];
+
+    this.checkedValue = newValue;
+  };
+
+  #itemDblclickHandler = (event, { element }) => {
+    const value = element.dataset.value;
+
+    this.#emitDoubleClick({ newValue: value });
+  };
 
   // ---------------------------------------------------------------------------
   // update ui state

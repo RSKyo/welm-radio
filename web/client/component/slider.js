@@ -1,40 +1,53 @@
 import {
-  isNullishOrEmpty,
+  assertBoolean,
   assertNumber,
   assertNonBlankString,
   isNonBlankString,
   assertNonNegativeInteger,
   assertPositive,
 } from "./base/assert.js";
-import { createElementByHTML } from "./base/elm-helper.js";
+import { createElementByHTML, getBySelector } from "./base/elm-helper.js";
 import { Elm } from "./base/elm.js";
 
-const TEMPLATE = `
-<button
-    type="button"
-    class="slider-prev"
-    data-role="prev"
->
-</button>
-<button
-    type="button"
-    class="slider-next"
-    data-role="next"
->
-</button>
-<input
-    type="range"
-    class="slider-range"
-    data-role="range"
->
-<div
-    class="slider-value"
-    data-role="value"
->
+const MAIN_TEMPLATE = `
+<div class="slider-main" data-role="main">
+  <button
+      type="button"
+      class="slider-prev"
+      data-role="prev"
+  >
+  </button>
+  <button
+      type="button"
+      class="slider-next"
+      data-role="next"
+  >
+  </button>
+  <input
+      type="range"
+      class="slider-range"
+      data-role="range"
+  >
+  <div
+      class="slider-value"
+      data-role="value"
+  >
+  </div>
 </div>
 `;
-const [prevTemplate, nextTemplate, rangeTemplate, valueTemplate] =
-  createElementByHTML(TEMPLATE);
+
+const ACTIONS_TEMPLATE = `
+<div class="slider-actions" data-role="actions">
+  <input
+      type="number"
+      class="slider-value-input"
+      data-role="value-input"
+  >
+</div>
+`;
+
+const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
+const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
 
 export class Slider extends Elm {
   // state
@@ -49,6 +62,7 @@ export class Slider extends Elm {
   #max = 100;
   #step = 1;
   #value = 0;
+  #showActions = false;
 
   constructor(root, options = {}) {
     super(root, {
@@ -125,6 +139,11 @@ export class Slider extends Elm {
       assertNumber(value, assertionSubject);
       const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
       this.#value = normalizedValue;
+    });
+
+    this.resolveOption("showActions", (value, assertionSubject) => {
+      assertBoolean(value, assertionSubject);
+      this.#showActions = value;
     });
 
     if (this.#max <= this.#min) {
@@ -212,23 +231,10 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    const prevEl = prevTemplate.cloneNode(true);
-    const nextEl = nextTemplate.cloneNode(true);
-    const rangeEl = rangeTemplate.cloneNode(true);
-    const valueEl = valueTemplate.cloneNode(true);
-
-    prevEl.textContent = this.#prevText;
-    nextEl.textContent = this.#nextText;
-
-    rangeEl.min = this.#min;
-    rangeEl.max = this.#max;
-    rangeEl.step = this.#step;
-    rangeEl.value = this.#value;
-
-    this.dom.add("prev", prevEl);
-    this.dom.add("next", nextEl);
-    this.dom.add("range", rangeEl);
-    this.dom.add("value", valueEl);
+    this.dom.add("main", mainTemplate.cloneNode(true));
+    if (this.#showActions) {
+      this.dom.add("actions", actionsTemplate.cloneNode(true));
+    }
 
     this.#updateUIState();
   }
@@ -242,25 +248,48 @@ export class Slider extends Elm {
       this.#updateUIState();
     };
 
-    this.dom.on("range", "input", this.#handleRangeInput);
-    this.dom.on("prev", "click", this.#handlePrevClick);
-    this.dom.on("next", "click", this.#handleNextClick);
+    this.dom.onRoot("input", this.#rangeInputHandler, {
+      selector: '[data-role="range"]',
+    });
+    this.dom.onRoot("click", this.#prevClickHandler, {
+      selector: '[data-role="prev"]',
+    });
+    this.dom.onRoot("click", this.#nextClickHandler, {
+      selector: '[data-role="next"]',
+    });
+
+    if (this.#showActions) {
+      this.dom.on("actions", "blur", this.#valueInputBlurHandler, {
+        listenerSelector: '[data-role="value-input"]',
+      });
+    }
   }
 
-  #handleRangeInput = (event) => {
+  #rangeInputHandler = (event) => {
     this.#setValue(Number(event.target.value));
   };
 
-  #handlePrevClick = () => {
+  #prevClickHandler = () => {
     let value = this.#value - this.#step;
-    value = value < this.#min ? this.#min : value;
     this.#setValue(value);
   };
 
-  #handleNextClick = () => {
+  #nextClickHandler = () => {
     let value = this.#value + this.#step;
-    value = value > this.#max ? this.#max : value;
     this.#setValue(value);
+  };
+
+  #valueInputBlurHandler = (event) => {
+    const inputEl = event.currentTarget;
+    const value = inputEl.valueAsNumber;
+
+    if (Number.isNaN(value)) {
+      inputEl.value = this.#value;
+      return;
+    }
+
+    this.value = value;
+    inputEl.value = this.#value;
   };
 
   // ---------------------------------------------------------------------------
@@ -268,7 +297,21 @@ export class Slider extends Elm {
   // ---------------------------------------------------------------------------
 
   #updateUIState() {
-    const rangeEl = this.dom.get("range");
+    const mainEl = this.dom.get("main");
+    const actionsEl = this.dom.get("actions");
+
+    const [prevEl, nextEl, rangeEl, valueEl] = getBySelector(
+      mainEl,
+      '[data-role="prev"]',
+      '[data-role="next"]',
+      '[data-role="range"]',
+      '[data-role="value"]',
+    );
+
+    const valueInputEl = getBySelector(actionsEl, '[data-role="value-input"]');
+
+    prevEl.textContent = this.#prevText;
+    nextEl.textContent = this.#nextText;
 
     rangeEl.min = this.#min;
     rangeEl.max = this.#max;
@@ -277,7 +320,10 @@ export class Slider extends Elm {
 
     rangeEl.style.setProperty("--range-progress", `${this.progress}%`);
 
-    const valueEl = this.dom.get("value");
+    valueInputEl.min = this.#min;
+    valueInputEl.max = this.#max;
+    valueInputEl.step = this.#step;
+    valueInputEl.value = this.#value;
 
     if (this.#value === this.#min && isNonBlankString(this.#minValueText)) {
       valueEl.textContent = this.#minValueText;
@@ -292,15 +338,15 @@ export class Slider extends Elm {
       valueEl.textContent = `${this.percent}%`;
     }
 
-    const rootElWidth = this.rootElement.clientWidth;
-    const prevElWidth = this.dom.get("prev").offsetWidth;
-    const nextElWidth = this.dom.get("next").offsetWidth;
+    const mainWidth = mainEl.clientWidth;
+    const prevElWidth = prevEl.offsetWidth;
+    const nextElWidth = nextEl.offsetWidth;
 
-    const rawLeft = this.ratio * rootElWidth;
+    const rawLeft = this.ratio * mainWidth;
 
     const valueElWidth = valueEl.offsetWidth;
     const minLeft = prevElWidth + valueElWidth / 2;
-    const maxLeft = rootElWidth - nextElWidth - valueElWidth / 2;
+    const maxLeft = mainWidth - nextElWidth - valueElWidth / 2;
 
     const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
 
@@ -309,12 +355,21 @@ export class Slider extends Elm {
   }
 }
 
+export class CompactSlider extends Slider {
+  constructor(root, options = {}) {
+    super(root, {
+      ...options,
+      defaultRootClass: "slider slider-compact",
+    });
+  }
+}
+
 /**
  * -60 dB ≈ gain 0.001
  * 0 dB = gain 1
  * +12 dB ≈ gain 3.98
  */
-export class GainSlider extends Slider {
+export class GainCompactSlider extends CompactSlider {
   constructor(root, options = {}) {
     super(root, {
       step: 0.5,
