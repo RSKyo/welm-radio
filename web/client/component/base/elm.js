@@ -5,23 +5,19 @@ import {
   assertStringPlainObject,
 } from "./assert.js";
 import { resolveElement } from "./elm-helper.js";
-import { ElmDom } from "./elm-dom.js";
-import { ElmValueState } from "./elm-state.js";
-import { ElmHandlerRegistry } from "./elm-handler.js";
+import { ElmHandler } from "./elm-handler.js";
+import { ElmEvent } from "./elm-event.js";
 
 export class Elm {
   #rootElement;
-  #dom;
   #options = {};
   #dataset = {};
-  #handlerRegistry = new ElmHandlerRegistry();
-  #valueState = new ElmValueState();
-  // event
+  #handler = new ElmHandler();
+  #event = new ElmEvent();
   #rootElementResizeObserver;
 
   constructor(root, options = {}) {
     this.#rootElement = resolveElement(root);
-    this.#dom = new ElmDom(this.#rootElement);
 
     this.#initOptions(options);
     this.#initDataset();
@@ -70,10 +66,6 @@ export class Elm {
     return this.#rootElement;
   }
 
-  get dom() {
-    return this.#dom;
-  }
-
   get options() {
     return { ...this.#options };
   }
@@ -82,12 +74,12 @@ export class Elm {
     return { ...this.#dataset };
   }
 
-  get handlerRegistry() {
-    return this.#handlerRegistry;
+  get handler() {
+    return this.#handler;
   }
 
-  get valueState() {
-    return this.#valueState;
+  get event() {
+    return this.#event;
   }
 
   /** resize observer management */
@@ -97,15 +89,15 @@ export class Elm {
     this.#rootElementResizeObserver = null;
 
     if (handler == null) {
-      this.#handlerRegistry.remove("resize");
+      this.#handler.delete("resize");
       return;
     }
 
     assertFunction(handler, "handler");
-    this.#handlerRegistry.set("resize", handler);
+    this.#handler.set("resize", handler);
 
     this.#rootElementResizeObserver = new ResizeObserver(() => {
-      this.#handlerRegistry.emit("resize", {});
+      this.#handler.emit("resize", {});
     });
 
     this.#rootElementResizeObserver.observe(this.#rootElement);
@@ -147,11 +139,9 @@ export class Elm {
     this.#rootElementResizeObserver?.disconnect();
     this.#rootElementResizeObserver = null;
 
-    this.#handlerRegistry.clear();
-    this.#valueState.clear();
-    this.#dom.destroy();
+    this.#handler.delete();
+    this.#event.off();
 
-    this.#dom = null;
     this.#rootElement = null;
   }
 }

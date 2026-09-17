@@ -2,11 +2,11 @@ import {
   assertHtmlElement,
   assertNonBlankString,
   assertFunction,
-  assertBoolean,
   assertPlainObject,
+  assertValueIn,
 } from "./assert.js";
 
-export class EventRegistry {
+export class ElmEvent {
   #events = [];
 
   on(
@@ -68,7 +68,7 @@ export class EventRegistry {
     });
   }
 
-  off({ element, type = null, handler = null, subtree = false } = {}) {
+  off({ element, type = null, handler = null, scope = "self" } = {}) {
     if (element != null) {
       assertHtmlElement(element, "element");
     }
@@ -81,17 +81,25 @@ export class EventRegistry {
       assertFunction(handler, "handler");
     }
 
-    assertBoolean(subtree, "subtree");
+    assertValueIn(scope, ["self", "subtree", "descendants"], "scope");
 
     for (let i = this.#events.length - 1; i >= 0; i--) {
       const event = this.#events[i];
 
-      if (
-        element != null &&
-        event.element !== element &&
-        !(subtree && element.contains(event.element))
-      ) {
-        continue;
+      if (element != null) {
+        if (scope === "self") {
+          if (event.element !== element) {
+            continue;
+          }
+        } else if (scope === "subtree") {
+          if (event.element !== element && !element.contains(event.element)) {
+            continue;
+          }
+        } else if (scope === "descendants") {
+          if (event.element === element || !element.contains(event.element)) {
+            continue;
+          }
+        }
       }
 
       if (type != null && event.type !== type) {
@@ -107,7 +115,7 @@ export class EventRegistry {
     }
   }
 
-  replace(oldElement, newElement) {
+  migrate(oldElement, newElement) {
     assertHtmlElement(oldElement, "oldElement");
     assertHtmlElement(newElement, "newElement");
 

@@ -23,7 +23,9 @@ export class ItemsElm extends Elm {
   #valueField = "value";
   #textField = "text";
   #items = [];
+  #elements = new Map();
   #itemValueState = new ElmValueState();
+  #emptyElement = null;
 
   constructor(root, options = {}) {
     super(root, options);
@@ -64,24 +66,33 @@ export class ItemsElm extends Elm {
   // empty element
   // -----------------------------------------------------------------------------
 
-  #updateEmptyElement() {
+  // Override this method to customize the empty state element.
+  createEmptyElement() {
+    return emptyTemplate.cloneNode(true);
+  }
+
+  #updateEmptyUIState() {
     const show = this.#items.length === 0;
-    const exists = this.dom.has(EMPTY_KEY);
+
+    const exists =
+      this.#emptyElement != null &&
+      this.rootElement.contains(this.#emptyElement);
+
+    if (!exists) {
+      this.#emptyElement = null;
+    }
 
     if (show === exists) {
       return;
     }
 
     if (show) {
-      this.dom.add(EMPTY_KEY, this.createEmptyElement());
+      this.#emptyElement = this.createEmptyElement();
+      this.rootElement.append(this.#emptyElement);
     } else {
-      this.dom.remove(EMPTY_KEY);
+      this.#emptyElement.remove();
+      this.#emptyElement = null;
     }
-  }
-
-  // Override this method to customize the empty state element.
-  createEmptyElement() {
-    return emptyTemplate.cloneNode(true);
   }
 
   // -----------------------------------------------------------------------------
@@ -114,12 +125,6 @@ export class ItemsElm extends Elm {
     // set items
     this.#setItems(items);
 
-    // update the state value after setting new items
-    this.#updateItemValueState();
-
-    // perform any additional actions after setting items
-    this.afterSetItems(this.#items);
-
     // render items
     this.#setItemsRender(this.#items);
   }
@@ -128,28 +133,26 @@ export class ItemsElm extends Elm {
     this.#items = isNullishOrEmpty(items)
       ? []
       : items.map((item) => ({ ...item }));
+
+    this.afterSetItems(this.#items);
   }
 
   #setItemsRender(items) {
-    this.dom.clear();
-    this.beforeRenderItems(items);
-
-    this.#updateEmptyElement();
+    // clear root element
+    this.event.off({ element: this.rootElement, scope: "descendants" });
+    this.rootElement.replaceChildren();
 
     for (const item of items) {
       this.renderItem(item);
     }
+
     this.afterRenderItems(items);
 
-    this.#updateEmptyElement();
+    this.#updateEmptyUIState();
   }
 
   afterSetItems(items) {
     // Override this method to perform actions after setting items.
-  }
-
-  beforeRenderItems(items) {
-    // Override this method to perform actions before rendering items.
   }
 
   renderItem(item) {
@@ -177,9 +180,6 @@ export class ItemsElm extends Elm {
     // add item
     const addedItem = this.#addItem(item);
 
-    // perform any additional actions after adding an item
-    this.afterAddItem(addedItem);
-
     // render the added item
     this.#addItemRender(addedItem);
 
@@ -191,14 +191,16 @@ export class ItemsElm extends Elm {
     const addedItem = { ...item };
     this.#items.push(addedItem);
 
+    this.afterAddItem(addedItem);
+
     return addedItem;
   }
 
   // Render a single added item.
   #addItemRender(addedItem) {
-    this.#updateEmptyElement();
     this.renderItem(addedItem);
-    this.#updateEmptyElement();
+
+    this.#updateEmptyUIState();
   }
 
   afterAddItem(addedItem) {
@@ -222,9 +224,6 @@ export class ItemsElm extends Elm {
     // update item
     const updatedItem = this.#updateItem(item);
 
-    // perform any additional actions after updating an item
-    this.afterUpdateItem(updatedItem);
-
     // render the updated item
     this.#updateItemRender(updatedItem);
 
@@ -240,18 +239,19 @@ export class ItemsElm extends Elm {
 
     this.#items[index] = updatedItem;
 
+    this.afterUpdateItem(updatedItem);
+
     return updatedItem;
+  }
+
+  afterUpdateItem(updatedItem) {
+    // Override this method to perform actions after updating an item.
   }
 
   // render the updated item
   #updateItemRender(updatedItem) {
     this.renderUpdatedItem(updatedItem);
-    this.afterRenderUpdatedItem(updatedItem);
-    this.#updateEmptyElement();
-  }
-
-  afterUpdateItem(updatedItem) {
-    // Override this method to perform actions after updating an item.
+    this.#updateEmptyUIState();
   }
 
   // render updated item
@@ -259,10 +259,6 @@ export class ItemsElm extends Elm {
     throw new Error(
       "renderUpdatedItem method must be implemented by subclass.",
     );
-  }
-
-  afterRenderUpdatedItem(updatedItem) {
-    // Override this method to perform actions after rendering the updated item.
   }
 
   // -----------------------------------------------------------------------------
@@ -277,11 +273,7 @@ export class ItemsElm extends Elm {
     // remove item
     const removedItem = this.#removeItem(value);
 
-    // update the state value after removing an item
-    this.#updateItemValueState();
-
     // perform any additional actions after removing an item
-    this.afterRemoveItem(removedItem);
 
     // render the removed item
     this.#removeItemRender(removedItem);
@@ -300,27 +292,23 @@ export class ItemsElm extends Elm {
       return true;
     });
 
-    return removedItem;
-  }
+    this.afterRemoveItem(removedItem);
 
-  #removeItemRender(removedItem) {
-    this.#updateEmptyElement();
-    this.renderRemovedItem(removedItem);
-    this.afterRenderRemovedItem(removedItem);
-    this.#updateEmptyElement();
+    return removedItem;
   }
 
   afterRemoveItem(removedItem) {
     // Override this method to perform actions after removing an item.
   }
 
+  #removeItemRender(removedItem) {
+    this.renderRemovedItem(removedItem);
+    this.#updateEmptyUIState();
+  }
+
   renderRemovedItem(removedItem) {
     const value = removedItem[this.#valueField];
     this.dom.remove(value);
-  }
-
-  afterRenderRemovedItem(removedItem) {
-    // Override this method to perform actions after rendering the removed item.
   }
 
   // -----------------------------------------------------------------------------
