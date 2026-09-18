@@ -1,10 +1,10 @@
 import { Elm } from "./base/elm.js";
 import {
-  isNullishOrEmpty,
-  assertNonBlankString,
-  assertNonBlankStringArray,
-  assertNoDuplicateValues,
-} from "./base/assert.js";
+  createElementByHTML,
+  isEqualValue,
+  getBySelector,
+} from "./base/elm-helper.js";
+import { assertString, assertNonBlankStringArray } from "./base/assert.js";
 
 const MAIN_TEMPLATE = `
 <div class="combobox-main" data-role="main">
@@ -28,7 +28,7 @@ const dropdownItemTemplate = createElementByHTML(DROPDOWN_ITEM_TEMPLATE);
 
 export class Combobox extends Elm {
   // state
-  #value;
+  #value = "";
   #dropdownValues = [];
 
   constructor(root, options = {}) {
@@ -37,18 +37,8 @@ export class Combobox extends Elm {
       defaultRootClass: "combobox",
     });
 
-    this.#init();
     this.#render();
     this.#bindEvents();
-  }
-
-  // -----------------------------------------------------------------------------
-  // initialization
-  // -----------------------------------------------------------------------------
-
-  #init() {
-    this.valueState.define("value", null, 1);
-    this.valueState.define("dropdownValues", null, 2);
   }
 
   // -----------------------------------------------------------------------------
@@ -56,37 +46,126 @@ export class Combobox extends Elm {
   // -----------------------------------------------------------------------------
 
   get value() {
-    return this.valueState.get("value");
+    return this.#value;
   }
 
   set value(value) {
-    assertNonBlankString(value, "value");
-    this.valueState.set("value", value);
+    assertString(value);
+
+    const oldValue = this.#value;
+    const newValue = value;
+
+    if (isEqualValue(oldValue, newValue)) {
+      return;
+    }
+
+    this.#value = newValue;
+
+    this.#updateInputValue();
+    this.#updateSelectedState();
+
+    this.#emitChange(newValue);
   }
 
   get dropdownValues() {
-    return this.valueState.get("dropdownValues");
+    return [...this.#dropdownValues];
   }
 
   set dropdownValues(values) {
-    assertNonBlankStringArray(values, "values");
-    this.valueState.set("dropdownValues", values);
-  }
+    assertNonBlankStringArray(values);
 
+    const oldValue = this.#dropdownValues;
+    const newValue = [...values];
+
+    if (isEqualValue(oldValue, newValue)) {
+      return;
+    }
+
+    this.#dropdownValues = newValue;
+
+    this.#renderDropdownValues(newValue);
+  }
 
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
 
   set onChange(handler) {
-    this.handlerRegistry.set("onChange", handler);
+    this.handler.set("changeHandler", handler);
   }
 
-  #emitChange(newValue) {
-    this.handlerRegistry.emit("onChange", {
+  #emitChange(value) {
+    this.handler.emit("changeHandler", {
       elm: this,
-      value: newValue,
+      value,
     });
+  }
+
+  // -----------------------------------------------------------------------------
+  // bind events
+  // -----------------------------------------------------------------------------
+
+  #bindEvents() {
+    const [inputEl, dropdownEl] = getBySelector(
+      this.rootElement,
+      '[data-role="input"]',
+      '[data-role="dropdown"]',
+    );
+
+    this.event.on(inputEl, "focus", this.#inputFocusHandler);
+    this.event.on(inputEl, "blur", this.#inputBlurHandler);
+    this.event.on(inputEl, "change", this.#inputChangeHandler);
+
+    this.event.on(dropdownEl, "mousedown", this.#dropdownMouseDownHandler);
+    this.event.on(dropdownEl, "click", this.#dropdownClickHandler, {
+      selector: '[data-role="dropdown-item"]',
+    });
+  }
+
+  #inputFocusHandler = () => {
+    this.rootElement.classList.add("is-open");
+  };
+
+  #inputBlurHandler = () => {
+    this.rootElement.classList.remove("is-open");
+  };
+
+  #inputChangeHandler = (event) => {
+    const value = event.target.value.trim();
+    this.value = value;
+  };
+
+  #dropdownMouseDownHandler = (event) => {
+    event.preventDefault();
+  };
+
+  #dropdownClickHandler = (event, { element }) => {
+    const value = element.dataset.value;
+    this.value = value;
+
+    const inputEl = getBySelector(this.rootElement, '[data-role="input"]');
+    inputEl.blur();
+  };
+
+  // ---------------------------------------------------------------------------
+  // update ui state
+  // ---------------------------------------------------------------------------
+
+  #updateInputValue() {
+    const inputEl = getBySelector(this.rootElement, '[data-role="input"]');
+    inputEl.value = this.#value ?? "";
+  }
+
+  #updateSelectedState() {
+    const dropdownEl = getBySelector(
+      this.rootElement,
+      '[data-role="dropdown"]',
+    );
+
+    for (const itemEl of dropdownEl.children) {
+      const value = itemEl.dataset.value;
+      itemEl.classList.toggle("is-selected", this.#value === value);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -94,91 +173,25 @@ export class Combobox extends Elm {
   // ---------------------------------------------------------------------------
 
   #render() {
-    this.dom.add("main",mainTemplate.cloneNode(true));
+    this.rootElement.append(mainTemplate.cloneNode(true));
   }
 
   #renderDropdownValues(values) {
-    const dropdownEl = this.dom.getBySelector("main",'[data-role="dropdown"]');
-    this.dom.clear("dropdown");
+    const dropdownEl = getBySelector(
+      this.rootElement,
+      '[data-role="dropdown"]',
+    );
+
+    dropdownEl.replaceChildren();
 
     for (const value of values) {
-      const dropdownItemEl = this.resolveElement(DROPDOWN_ITEM_TEMPLATE);
+      const dropdownItemEl = dropdownItemTemplate.cloneNode(true);
 
       dropdownItemEl.textContent = value;
       dropdownItemEl.dataset.value = value;
 
-      this.dom.add(`dropdown-${value}`, dropdownItemEl, "dropdown");
+      dropdownEl.append(dropdownItemEl);
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // events
-  // ---------------------------------------------------------------------------
-
-
-  /** bind events */
-
-  #bindEvents() {
-    this.valueState.afterValueStateSet = this.#afterValueStateSet;
-
-    this.dom.on("input", "focus", this.#handleInputFocus);
-    this.dom.on("input", "blur", this.#handleInputBlur);
-    this.dom.on("input", "change", this.#handleInputChange);
-
-    this.dom.on("dropdown", "mousedown", this.#handleDropdownMouseDown);
-    this.dom.on("dropdown", "click", this.#handleDropdownClick);
-  }
-
-  #afterValueStateSet({ key, newValue }) {
-    if (key === "value") {
-      this.#updateInputValue();
-      this.#updateSelectedState();
-
-      this.#emitChange(newValue);
-      return;
-    }
-
-    if (key === "dropdownValues") {
-      this.#renderDropdownValues(newValue);
-    }
-  }
-
-  #handleInputFocus = () => {
-    this.rootElement.classList.add("is-open");
-  };
-
-  #handleInputBlur = () => {
-    this.rootElement.classList.remove("is-open");
-  };
-
-  #handleInputChange = (event) => {
-    const value = event.target.value.trim();
-    this.value = value;
-  };
-
-  #handleDropdownMouseDown = (event) => {
-    event.preventDefault();
-  };
-
-  #handleDropdownClick = (event) => {
-    this.closestElement(event, '[data-role="dropdown-item"]', (element) => {
-      this.value = element.dataset.value;
-      this.dom.get("input").blur();
-    });
-  };
-
-  /** update ui states */
-
-  #updateInputValue() {
-    const inputElement = this.dom.get("input");
-    inputElement.value = this.#value ?? "";
-  }
-
-  #updateSelectedState() {
-    this.#dropdownValues.forEach((value) => {
-      const dropdownItemEl = this.dom.get(`dropdown-${value}`);
-      dropdownItemEl.classList.toggle("is-selected", this.#value === value);
-    });
   }
 }
 

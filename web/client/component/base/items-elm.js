@@ -10,10 +10,13 @@ import {
   assertFunction,
   assertNonEmptyNonBlankStringArray,
 } from "./assert.js";
-import { createElementByHTML, normalizeArray } from "./elm-helper.js";
-import { ElmValueState } from "./elm-state.js";
+import {
+  createElementByHTML,
+  normalizeArray,
+  normalizeValue,
+  assertValueForMode,
+} from "./elm-helper.js";
 
-const EMPTY_KEY = "__empty__";
 const EMPTY_TEMPLATE = `
 <div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No items</div>
 `;
@@ -24,7 +27,6 @@ export class ItemsElm extends Elm {
   #textField = "text";
   #items = [];
   #elements = new Map();
-  #itemValueState = new ElmValueState();
   #emptyElement = null;
 
   constructor(root, options = {}) {
@@ -39,15 +41,6 @@ export class ItemsElm extends Elm {
       assertNonBlankString(value, assertionSubject);
       this.#textField = value;
     });
-
-    this.#itemValueState.beforeValueStateSet = (state) => {
-      this.#validateItemValueState(state);
-      this.beforeItemValueStateSet(state);
-    };
-
-    this.#itemValueState.afterValueStateSet = (state) => {
-      this.afterItemValueStateSet(state);
-    };
   }
 
   get textField() {
@@ -56,10 +49,6 @@ export class ItemsElm extends Elm {
 
   get valueField() {
     return this.#valueField;
-  }
-
-  get itemValueState() {
-    return this.#itemValueState;
   }
 
   // -----------------------------------------------------------------------------
@@ -73,14 +62,7 @@ export class ItemsElm extends Elm {
 
   #updateEmptyUIState() {
     const show = this.#items.length === 0;
-
-    const exists =
-      this.#emptyElement != null &&
-      this.rootElement.contains(this.#emptyElement);
-
-    if (!exists) {
-      this.#emptyElement = null;
-    }
+    const exists = this.#emptyElement != null;
 
     if (show === exists) {
       return;
@@ -122,10 +104,7 @@ export class ItemsElm extends Elm {
       }
     }
 
-    // set items
     this.#setItems(items);
-
-    // render items
     this.#setItemsRender(this.#items);
   }
 
@@ -137,10 +116,18 @@ export class ItemsElm extends Elm {
     this.afterSetItems(this.#items);
   }
 
+  afterSetItems(items) {
+    // Override this method to perform actions after setting items.
+  }
+
   #setItemsRender(items) {
     // clear root element
     this.event.off({ element: this.rootElement, scope: "descendants" });
     this.rootElement.replaceChildren();
+    this.#elements.clear();
+    this.#emptyElement = null;
+
+    this.beforeRenderItems(items);
 
     for (const item of items) {
       this.renderItem(item);
@@ -151,12 +138,21 @@ export class ItemsElm extends Elm {
     this.#updateEmptyUIState();
   }
 
-  afterSetItems(items) {
-    // Override this method to perform actions after setting items.
+  beforeRenderItems(items) {
+    // Override this method to perform actions before rendering items.
   }
 
   renderItem(item) {
-    throw new Error("renderItem must be implemented by the subclass.");
+    // add the item element to the DOM
+    const element = this.createItemElement(item);
+    this.rootElement.append(element);
+
+    // store the element in the internal map for later reference
+    this.#elements.set(item[this.#valueField], element);
+  }
+
+  createItemElement(item) {
+    throw new Error("createItemElement must be implemented by the subclass.");
   }
 
   afterRenderItems(items) {
@@ -186,7 +182,6 @@ export class ItemsElm extends Elm {
     return { ...addedItem };
   }
 
-  // Add a single item to the internal list.
   #addItem(item) {
     const addedItem = { ...item };
     this.#items.push(addedItem);
@@ -196,15 +191,14 @@ export class ItemsElm extends Elm {
     return addedItem;
   }
 
-  // Render a single added item.
+  afterAddItem(addedItem) {
+    // Override this method to perform actions after adding an item.
+  }
+
   #addItemRender(addedItem) {
     this.renderItem(addedItem);
 
     this.#updateEmptyUIState();
-  }
-
-  afterAddItem(addedItem) {
-    // Override this method to perform actions after adding an item.
   }
 
   // -----------------------------------------------------------------------------
@@ -251,14 +245,20 @@ export class ItemsElm extends Elm {
   // render the updated item
   #updateItemRender(updatedItem) {
     this.renderUpdatedItem(updatedItem);
+
     this.#updateEmptyUIState();
   }
 
   // render updated item
   renderUpdatedItem(updatedItem) {
-    throw new Error(
-      "renderUpdatedItem method must be implemented by subclass.",
-    );
+    // replace the old element with the new element in the DOM
+    const oldElement = this.#elements.get(updatedItem[this.#valueField]);
+    const newElement = this.createItemElement(updatedItem);
+    this.event.migrate(oldElement, newElement);
+    oldElement.replaceWith(newElement);
+
+    // update the internal map with the new element
+    this.#elements.set(updatedItem[this.#valueField], newElement);
   }
 
   // -----------------------------------------------------------------------------
@@ -272,8 +272,6 @@ export class ItemsElm extends Elm {
 
     // remove item
     const removedItem = this.#removeItem(value);
-
-    // perform any additional actions after removing an item
 
     // render the removed item
     this.#removeItemRender(removedItem);
@@ -303,45 +301,50 @@ export class ItemsElm extends Elm {
 
   #removeItemRender(removedItem) {
     this.renderRemovedItem(removedItem);
+
     this.#updateEmptyUIState();
   }
 
   renderRemovedItem(removedItem) {
     const value = removedItem[this.#valueField];
-    this.dom.remove(value);
+
+    // remove element from the DOM
+    const element = this.#elements.get(value);
+    this.event.off({ element, scope: "subtree" });
+    element.remove();
+
+    // remove element from internal map
+    this.#elements.delete(value);
   }
 
   // -----------------------------------------------------------------------------
   // item access
   // -----------------------------------------------------------------------------
 
-  getItemByValue(value, mode = null) {
-    if (isNullishOrEmpty(value)) {
-      return null;
-    }
+  getItemByValue(value, mode = 1) {
+    assertValueForMode(value, mode);
+    const normalizedValue = normalizeValue(value, mode);
 
-    if (mode != null) {
-      if (![1, 2].includes(mode)) {
-        throw new Error(`Invalid mode: ${mode}. Mode must be 1 or 2.`);
-      }
-    } else {
-      mode = 1;
+    if (normalizedValue == null) {
+      return null;
     }
 
     const assertionSubject = this.#valueField;
 
     if (mode === 1) {
-      assertNonBlankString(value, assertionSubject);
-      assertValueExists(value, this.itemValues, assertionSubject);
+      assertNonBlankString(normalizedValue, assertionSubject);
+      assertValueExists(normalizedValue, this.itemValues, assertionSubject);
 
-      const item = this.#items.find((item) => item[this.#valueField] === value);
+      const item = this.#items.find(
+        (item) => item[this.#valueField] === normalizedValue,
+      );
       return { ...item };
     }
 
-    assertNonEmptyNonBlankStringArray(value, assertionSubject);
+    assertNonEmptyNonBlankStringArray(normalizedValue, assertionSubject);
 
     const items = this.#items.filter((item) =>
-      value.includes(item[this.#valueField]),
+      normalizedValue.includes(item[this.#valueField]),
     );
     return items.map((item) => ({ ...item }));
   }
@@ -351,7 +354,7 @@ export class ItemsElm extends Elm {
 
     this.#items.forEach((item, index) => {
       const value = item[this.#valueField];
-      const element = this.dom.has(value) ? this.dom.get(value) : null;
+      const element = this.#elements.get(value) ?? null;
 
       callback({
         item: { ...item },
@@ -369,53 +372,5 @@ export class ItemsElm extends Elm {
 
   get itemValues() {
     return this.#items.map((item) => item[this.#valueField]);
-  }
-
-  #updateItemValueState() {
-    const itemValues = this.itemValues;
-
-    this.#itemValueState.forEach(({ key, value }) => {
-      const filteredValue = this.#filterItemValue(value, itemValues);
-      this.#itemValueState.setValue(key, filteredValue);
-    });
-  }
-
-  #filterItemValue(value, itemValues = []) {
-    if (isNullishOrEmpty(value) || isNullishOrEmpty(itemValues)) {
-      return null;
-    }
-
-    const [normalizedValues, isArray] = normalizeArray(value);
-
-    const filteredValues = normalizedValues.filter((v) =>
-      itemValues.includes(v),
-    );
-
-    if (filteredValues.length === 0) {
-      return null;
-    }
-
-    return isArray ? filteredValues : filteredValues[0];
-  }
-
-  #validateItemValueState({ newValue }) {
-    if (isNullishOrEmpty(newValue)) {
-      return;
-    }
-
-    const itemValues = this.itemValues;
-    const [normalizedValues] = normalizeArray(newValue);
-
-    for (const value of normalizedValues) {
-      assertValueExists(value, itemValues, "value");
-    }
-  }
-
-  beforeItemValueStateSet(state) {
-    // Override in subclass if needed.
-  }
-
-  afterItemValueStateSet(state) {
-    // Override in subclass if needed.
   }
 }

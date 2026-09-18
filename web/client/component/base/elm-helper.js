@@ -1,5 +1,6 @@
 import {
   isNullish,
+  isNullishOrEmpty,
   isHtmlElement,
   assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
@@ -8,6 +9,7 @@ import {
   assertElementMatches,
   assertElementContains,
   assertNonEmptyNonBlankStringArray,
+  assertNoDuplicateValues,
 } from "./assert.js";
 
 export function createElementByHTML(html, assertionSubject = "html") {
@@ -109,6 +111,58 @@ export function normalizeArray(value) {
     return [[], false];
   }
   return Array.isArray(value) ? [value, true] : [[value], false];
+}
+
+export function normalizeValue(value, mode = 1) {
+  if (isNullishOrEmpty(value)) {
+    return null;
+  }
+
+  return mode === 2 ? [...value] : value;
+}
+
+export function assertValueForMode(value, mode = 1) {
+  if (![1, 2].includes(mode)) {
+    throw new Error(`invalid mode: ${mode}`);
+  }
+
+  if (value == null) {
+    return;
+  }
+
+  if (mode === 1) {
+    if (Array.isArray(value)) {
+      throw new Error("value must not be an array when mode is 1");
+    }
+
+    return;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error("value must be an array when mode is 2");
+  }
+
+  if (value.length === 0) {
+    return;
+  }
+
+  assertNoDuplicateValues(value, "value");
+}
+
+export function filterValue(value, values) {
+  if (isNullishOrEmpty(value) || isNullishOrEmpty(values)) {
+    return null;
+  }
+
+  const [normalizedValues, isArray] = normalizeArray(value);
+
+  const filteredValues = normalizedValues.filter((v) => values.includes(v));
+
+  if (filteredValues.length === 0) {
+    return null;
+  }
+
+  return isArray ? filteredValues : filteredValues[0];
 }
 
 export function isEqualValue(value1, value2) {

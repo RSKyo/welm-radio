@@ -3,7 +3,13 @@ import {
   assertPositiveInteger,
   assertValueIn,
 } from "./base/assert.js";
-import { createElementByHTML } from "./base/elm-helper.js";
+import {
+  createElementByHTML,
+  normalizeValue,
+  assertValueForMode,
+  isEqualValue,
+  filterValue,
+} from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 
 const ITEM_TEMPLATE = `
@@ -24,6 +30,7 @@ const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
 
 export class ChipGroup extends ItemsElm {
   // state
+  #selectedValue = null;
   #selectedValueMode = 2;
   #showActions = true;
   #showActionsMinCount = 3;
@@ -57,20 +64,33 @@ export class ChipGroup extends ItemsElm {
       assertPositiveInteger(value, assertionSubject);
       this.#showActionsMinCount = value;
     });
-
-    this.itemValueState.define("selectedValue", null, this.#selectedValueMode);
   }
 
   // -----------------------------------------------------------------------------
   // get/set state value
   // -----------------------------------------------------------------------------
 
+  get selectedValueMode() {
+    return this.#selectedValueMode;
+  }
+
   get selectedValue() {
-    return this.itemValueState.getValue("selectedValue");
+    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
   }
 
   set selectedValue(value) {
-    this.itemValueState.setValue("selectedValue", value);
+    assertValueForMode(value, this.#selectedValueMode);
+    const oldValue = this.#selectedValue;
+    const newValue = normalizeValue(value, this.#selectedValueMode);
+
+    if (isEqualValue(newValue, oldValue)) {
+      return;
+    }
+
+    this.#selectedValue = newValue;
+
+    this.#updateSelectedValueUIState();
+    this.#emitSelectedValueChange(newValue);
   }
 
   // -----------------------------------------------------------------------------
@@ -78,14 +98,14 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedValueChange(handler) {
-    this.handlerRegistry.set("onSelectedValueChange", handler);
+    this.handler.set("selectedValueChangeHandler", handler);
   }
 
-  #emitSelectedValueChange(newValue) {
-    this.handlerRegistry.emit("onSelectedValueChange", {
+  #emitSelectedValueChange(value) {
+    this.handler.emit("selectedValueChangeHandler", {
       elm: this,
-      item: this.getItemByValue(newValue, this.#selectedValueMode),
-      value: newValue,
+      item: this.getItemByValue(value, this.#selectedValueMode),
+      value,
     });
   }
 
@@ -94,15 +114,15 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("click", this.#itemClickHandler, {
+    this.event.on(this.rootElement, "click", this.#itemClickHandler, {
       selector: '[data-role="item"]',
     });
 
-    this.dom.onRoot("click", this.#selectAllClickHandler, {
+    this.event.on(this.rootElement, "click", this.#selectAllClickHandler, {
       selector: '[data-action="select-all"]',
     });
 
-    this.dom.onRoot("click", this.#unselectClickHandler, {
+    this.event.on(this.rootElement, "click", this.#unselectClickHandler, {
       selector: '[data-action="unselect"]',
     });
   }
@@ -155,15 +175,17 @@ export class ChipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  afterItemValueStateSet({ key, newValue }) {
-    if (key === "selectedValue") {
-      this.#updateSelectedValueUIState();
-      this.#emitSelectedValueChange(newValue);
-    }
+  afterSetItems(items) {
+    this.#selectedValue = filterValue(this.#selectedValue, this.itemValues);
   }
 
   // override
-  renderItem(item) {
+  afterRemoveItem(removedItem) {
+    this.#selectedValue = filterValue(this.#selectedValue, this.itemValues);
+  }
+
+  // override
+  createItemElement(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
 
@@ -171,7 +193,7 @@ export class ChipGroup extends ItemsElm {
     itemElement.dataset.value = value;
     itemElement.querySelector("[data-role='text']").textContent = text || value;
 
-    this.dom.add(value, itemElement);
+    return itemElement;
   }
 
   // override
@@ -182,20 +204,10 @@ export class ChipGroup extends ItemsElm {
       items.length >= this.#showActionsMinCount
     ) {
       const actionsElement = actionsTemplate.cloneNode(true);
-      this.dom.add("__actions__", actionsElement);
+      this.rootElement.append(actionsElement);
     }
 
     this.#updateSelectedValueUIState();
-  }
-
-  // override
-  renderUpdatedItem(updatedItem) {
-    const value = updatedItem[this.valueField];
-    const text = updatedItem[this.textField];
-
-    const itemElement = this.dom.get(value);
-
-    itemElement.querySelector("[data-role='text']").textContent = text || value;
   }
 }
 

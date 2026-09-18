@@ -1,5 +1,11 @@
 import { assertBoolean, assertValueIn } from "./base/assert.js";
-import { createElementByHTML } from "./base/elm-helper.js";
+import {
+  createElementByHTML,
+  normalizeValue,
+  assertValueForMode,
+  isEqualValue,
+  filterValue,
+} from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 
 const ITEM_TEMPLATE = `
@@ -17,7 +23,9 @@ const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
 
 export class ItemList extends ItemsElm {
   // state
+  #selectedValue = null;
   #selectedValueMode = 1;
+  #checkedValue = null;
   #checkedValueMode = 2;
   #showCheckboxes = true;
 
@@ -27,7 +35,7 @@ export class ItemList extends ItemsElm {
       defaultRootClass: "item-list",
     });
 
-    this.#init(options);
+    this.#init();
     this.#bindEvents();
   }
 
@@ -50,29 +58,56 @@ export class ItemList extends ItemsElm {
       assertBoolean(value, assertionSubject);
       this.#showCheckboxes = value;
     });
-
-    this.itemValueState.define("selectedValue", null, this.#selectedValueMode);
-    this.itemValueState.define("checkedValue", null, this.#checkedValueMode);
   }
 
   // -----------------------------------------------------------------------------
   // get/set state value
   // -----------------------------------------------------------------------------
 
+  get selectedValueMode() {
+    return this.#selectedValueMode;
+  }
+
   get selectedValue() {
-    return this.itemValueState.getValue("selectedValue");
+    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
   }
 
   set selectedValue(value) {
-    this.itemValueState.setValue("selectedValue", value);
+    assertValueForMode(value, this.#selectedValueMode);
+    const oldValue = this.#selectedValue;
+    const newValue = normalizeValue(value, this.#selectedValueMode);
+
+    if (isEqualValue(newValue, oldValue)) {
+      return;
+    }
+
+    this.#selectedValue = newValue;
+
+    this.#updateSelectedValueUIState();
+    this.#emitSelectedValueChange(newValue);
+  }
+
+  get checkedValueMode() {
+    return this.#checkedValueMode;
   }
 
   get checkedValue() {
-    return this.itemValueState.getValue("checkedValue");
+    return normalizeValue(this.#checkedValue, this.#checkedValueMode);
   }
 
   set checkedValue(value) {
-    this.itemValueState.setValue("checkedValue", value);
+    assertValueForMode(value, this.#checkedValueMode);
+    const oldValue = this.#checkedValue;
+    const newValue = normalizeValue(value, this.#checkedValueMode);
+
+    if (isEqualValue(newValue, oldValue)) {
+      return;
+    }
+
+    this.#checkedValue = newValue;
+
+    this.#updateCheckedValueUIState();
+    this.#emitCheckedValueChange(newValue);
   }
 
   checkAll() {
@@ -94,44 +129,38 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedValueChange(handler) {
-    this.handlerRegistry.set("onSelectedValueChange", handler);
+    this.handler.set("selectedValueChangeHandler", handler);
   }
 
-  #emitSelectedValueChange(newValue) {
-    this.handlerRegistry.emit("onSelectedValueChange", {
+  #emitSelectedValueChange(value) {
+    this.handler.emit("selectedValueChangeHandler", {
       elm: this,
-      item: this.getItemByValue(newValue, this.#selectedValueMode),
-      value: newValue,
+      item: this.getItemByValue(value, this.#selectedValueMode),
+      value,
     });
   }
 
   set onCheckedValueChange(handler) {
-    this.handlerRegistry.set("onCheckedValueChange", handler);
+    this.handler.set("checkedValueChangeHandler", handler);
   }
 
-  #emitCheckedValueChange(newValue) {
-    const item =
-      this.#checkedValueMode === 1
-        ? this.getItemByValue(newValue, this.#checkedValueMode)
-        : newValue.map((v) => this.getItemByValue(v, this.#checkedValueMode));
-
-    this.handlerRegistry.emit("onCheckedValueChange", {
+  #emitCheckedValueChange(value) {
+    this.handler.emit("checkedValueChangeHandler", {
       elm: this,
-      item,
-      value: newValue,
+      item: this.getItemByValue(value, this.#checkedValueMode),
+      value: value,
     });
   }
 
   set onDoubleClick(handler) {
-    this.handlerRegistry.set("onDoubleClick", handler);
+    this.handler.set("doubleClickHandler", handler);
   }
 
-  #emitDoubleClick(state) {
-    const { newValue } = state;
-
-    this.handlerRegistry.emit("onDoubleClick", {
+  #emitDoubleClick(value) {
+    this.handler.emit("doubleClickHandler", {
       elm: this,
-      value: newValue,
+      item: this.getItemByValue(value, 1),
+      value,
     });
   }
 
@@ -140,23 +169,24 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("contextmenu", this.#contextClickHandler, {
+    this.event.on(this.rootElement, "click", this.#contextClickHandler, {
       selector: '[data-role="content"]',
     });
 
     if (this.#showCheckboxes) {
-      this.dom.onRoot("click", this.#checkboxClickHandler, {
+      this.event.on(this.rootElement, "click", this.#checkboxClickHandler, {
         selector: '[data-role="checkbox"]',
       });
     }
 
-    this.dom.onRoot("dblclick", this.#itemDblclickHandler, {
+    this.event.on(this.rootElement, "dblclick", this.#itemDblclickHandler, {
       selector: '[data-role="item"]',
     });
   }
 
   #contextClickHandler = (event, { element }) => {
-    const value = element.dataset.value;
+    const itemElement = element.closest('[data-role="item"]');
+    const value = itemElement.dataset.value;
 
     if (this.#selectedValueMode === 1) {
       this.selectedValue = value;
@@ -172,7 +202,8 @@ export class ItemList extends ItemsElm {
   };
 
   #checkboxClickHandler = (event, { element }) => {
-    const value = element?.dataset.value;
+    const itemElement = element.closest('[data-role="item"]');
+    const value = itemElement.dataset.value;
 
     if (this.#checkedValueMode === 1) {
       this.checkedValue = value;
@@ -190,7 +221,7 @@ export class ItemList extends ItemsElm {
   #itemDblclickHandler = (event, { element }) => {
     const value = element.dataset.value;
 
-    this.#emitDoubleClick({ newValue: value });
+    this.#emitDoubleClick(value);
   };
 
   // ---------------------------------------------------------------------------
@@ -219,7 +250,7 @@ export class ItemList extends ItemsElm {
       let checked = false;
       if (this.#checkedValueMode === 1) {
         checked = this.checkedValue === value;
-      } else if (this.#checkedValueMode === 2) {
+      } else {
         checked = this.checkedValue?.includes(value) ?? false;
       }
 
@@ -237,21 +268,21 @@ export class ItemList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  afterItemValueStateSet({ key, newValue }) {
-    if (key === "selectedValue") {
-      this.#updateSelectedValueUIState();
-      this.#emitSelectedValueChange(newValue);
-      return;
-    }
-
-    if (key === "checkedValue") {
-      this.#updateCheckedValueUIState();
-      this.#emitCheckedValueChange(newValue);
-    }
+  afterSetItems(items) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#checkedValue = filterValue(this.#checkedValue, itemValues);
   }
 
   // override
-  renderItem(item) {
+  afterRemoveItem(removedItem) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#checkedValue = filterValue(this.#checkedValue, itemValues);
+  }
+
+  // override
+  createItemElement(item) {
     const value = item[this.valueField];
     const text = item[this.textField];
 
@@ -261,22 +292,12 @@ export class ItemList extends ItemsElm {
 
     itemElement.classList.toggle("no-check", !this.#showCheckboxes);
 
-    this.dom.add(value, itemElement);
+    return itemElement;
   }
 
   // override
   afterRenderItems(items) {
     this.#updateSelectedValueUIState();
     this.#updateCheckedValueUIState();
-  }
-
-  // override
-  renderUpdatedItem(updatedItem) {
-    const value = updatedItem[this.valueField];
-    const text = updatedItem[this.textField];
-
-    const itemElement = this.dom.get(value);
-
-    itemElement.querySelector("[data-role='text']").textContent = text || value;
   }
 }
