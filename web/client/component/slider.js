@@ -54,8 +54,8 @@ export class Slider extends Elm {
   #prevText = "-";
   #nextText = "+";
   #suffix = "%";
-  #minValueText;
-  #maxValueText;
+  #minValueText = null;
+  #maxValueText = null;
   #fixed = 2;
   #percentBase = null;
   #min = 0;
@@ -63,6 +63,13 @@ export class Slider extends Elm {
   #step = 1;
   #value = 0;
   #showActions = false;
+  // element
+  #mainEl = null;
+  #rangeEl = null;
+  #prevEl = null;
+  #nextEl = null;
+  #valueEl = null;
+  #valueInputEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -152,7 +159,7 @@ export class Slider extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // get/set state value
+  // state(read-only)
   // -----------------------------------------------------------------------------
 
   get min() {
@@ -170,6 +177,28 @@ export class Slider extends Elm {
   get fixed() {
     return this.#fixed;
   }
+
+  get ratio() {
+    return (this.#value - this.#min) / (this.#max - this.#min);
+  }
+
+  get progress() {
+    return Number((this.ratio * 100).toFixed(this.#fixed));
+  }
+
+  get percent() {
+    if (this.#percentBase == null) {
+      return this.progress;
+    }
+
+    return Number(
+      ((this.#value / this.#percentBase) * 100).toFixed(this.#fixed),
+    );
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-write)
+  // -----------------------------------------------------------------------------
 
   get value() {
     return this.#value;
@@ -193,50 +222,19 @@ export class Slider extends Elm {
     this.#emitChange(this.#value);
   }
 
-  get ratio() {
-    return (this.#value - this.#min) / (this.#max - this.#min);
-  }
-
-  get progress() {
-    return Number((this.ratio * 100).toFixed(this.#fixed));
-  }
-
-  get percent() {
-    if (this.#percentBase == null) {
-      return this.progress;
-    }
-
-    return Number(
-      ((this.#value / this.#percentBase) * 100).toFixed(this.#fixed),
-    );
-  }
-
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
 
   set onChange(handler) {
-    this.handlerRegistry.set("onChange", handler);
+    this.handler.set("changeHandler", handler);
   }
 
-  #emitChange(newValue) {
-    this.handlerRegistry.emit("onChange", {
+  #emitChange(value) {
+    this.handler.emit("changeHandler", {
       elm: this,
-      value: newValue,
+      value,
     });
-  }
-
-  // -----------------------------------------------------------------------------
-  // render
-  // -----------------------------------------------------------------------------
-
-  #render() {
-    this.dom.add("main", mainTemplate.cloneNode(true));
-    if (this.#showActions) {
-      this.dom.add("actions", actionsTemplate.cloneNode(true));
-    }
-
-    this.#updateUIState();
   }
 
   // -----------------------------------------------------------------------------
@@ -248,20 +246,12 @@ export class Slider extends Elm {
       this.#updateUIState();
     };
 
-    this.dom.onRoot("input", this.#rangeInputHandler, {
-      selector: '[data-role="range"]',
-    });
-    this.dom.onRoot("click", this.#prevClickHandler, {
-      selector: '[data-role="prev"]',
-    });
-    this.dom.onRoot("click", this.#nextClickHandler, {
-      selector: '[data-role="next"]',
-    });
+    this.event.on(this.#rangeEl, "input", this.#rangeInputHandler);
+    this.event.on(this.#prevEl, "click", this.#prevClickHandler);
+    this.event.on(this.#nextEl, "click", this.#nextClickHandler);
 
     if (this.#showActions) {
-      this.dom.on("actions", "blur", this.#valueInputBlurHandler, {
-        listenerSelector: '[data-role="value-input"]',
-      });
+      this.event.on(this.#valueInputEl, "blur", this.#valueInputBlurHandler);
     }
   }
 
@@ -297,61 +287,91 @@ export class Slider extends Elm {
   // ---------------------------------------------------------------------------
 
   #updateUIState() {
-    const mainEl = this.dom.get("main");
-    const actionsEl = this.dom.get("actions");
+    this.#rangeEl.style.setProperty("--range-progress", `${this.progress}%`);
 
-    const [prevEl, nextEl, rangeEl, valueEl] = getBySelector(
-      mainEl,
-      '[data-role="prev"]',
-      '[data-role="next"]',
-      '[data-role="range"]',
-      '[data-role="value"]',
-    );
-
-    const valueInputEl = getBySelector(actionsEl, '[data-role="value-input"]');
-
-    prevEl.textContent = this.#prevText;
-    nextEl.textContent = this.#nextText;
-
-    rangeEl.min = this.#min;
-    rangeEl.max = this.#max;
-    rangeEl.step = this.#step;
-    rangeEl.value = this.#value;
-
-    rangeEl.style.setProperty("--range-progress", `${this.progress}%`);
-
-    valueInputEl.min = this.#min;
-    valueInputEl.max = this.#max;
-    valueInputEl.step = this.#step;
-    valueInputEl.value = this.#value;
-
+    // valueEl
     if (this.#value === this.#min && isNonBlankString(this.#minValueText)) {
-      valueEl.textContent = this.#minValueText;
+      this.#valueEl.textContent = this.#minValueText;
     } else if (
       this.#value === this.#max &&
       isNonBlankString(this.#maxValueText)
     ) {
-      valueEl.textContent = this.#maxValueText;
+      this.#valueEl.textContent = this.#maxValueText;
     } else if (this.#percentBase == null) {
-      valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
+      this.#valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
     } else {
-      valueEl.textContent = `${this.percent}%`;
+      this.#valueEl.textContent = `${this.percent}%`;
     }
 
-    const mainWidth = mainEl.clientWidth;
-    const prevElWidth = prevEl.offsetWidth;
-    const nextElWidth = nextEl.offsetWidth;
+    // valueEl left
+    const mainWidth = this.#mainEl.clientWidth;
+    const prevElWidth = this.#prevEl.offsetWidth;
+    const nextElWidth = this.#nextEl.offsetWidth;
 
     const rawLeft = this.ratio * mainWidth;
 
-    const valueElWidth = valueEl.offsetWidth;
+    const valueElWidth = this.#valueEl.offsetWidth;
     const minLeft = prevElWidth + valueElWidth / 2;
     const maxLeft = mainWidth - nextElWidth - valueElWidth / 2;
 
     const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
 
-    valueEl.style.left = `${left}px`;
-    valueEl.style.transform = "translateX(-50%)";
+    this.#valueEl.style.left = `${left}px`;
+    this.#valueEl.style.transform = "translateX(-50%)";
+
+    // valueInputEl
+    if (this.#showActions) {
+      this.#valueInputEl.value = this.#value;
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // render
+  // -----------------------------------------------------------------------------
+
+  #render() {
+    // main
+    const mainEl = mainTemplate.cloneNode(true);
+    const [rangeEl, prevEl, nextEl, valueEl] = getBySelector(
+      mainEl,
+      '[data-role="range"]',
+      '[data-role="prev"]',
+      '[data-role="next"]',
+      '[data-role="value"]',
+    );
+
+    rangeEl.min = this.#min;
+    rangeEl.max = this.#max;
+    rangeEl.step = this.#step;
+    rangeEl.value = this.#value;
+    prevEl.textContent = this.#prevText;
+    nextEl.textContent = this.#nextText;
+
+    this.#mainEl = mainEl;
+    this.#rangeEl = rangeEl;
+    this.#prevEl = prevEl;
+    this.#nextEl = nextEl;
+    this.#valueEl = valueEl;
+
+    // actions
+    const actionsEl = actionsTemplate.cloneNode(true);
+    const valueInputEl = getBySelector(actionsEl, '[data-role="value-input"]');
+
+    if (this.#showActions) {
+      valueInputEl.min = this.#min;
+      valueInputEl.max = this.#max;
+      valueInputEl.step = this.#step;
+    }
+
+    this.#valueInputEl = valueInputEl;
+
+    // add to the root element
+    this.rootElement.appendChild(mainEl);
+    if (this.#showActions) {
+      this.rootElement.appendChild(actionsEl);
+    }
+
+    this.#updateUIState();
   }
 }
 

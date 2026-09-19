@@ -51,7 +51,10 @@ export class Combobox extends Elm {
 
   set value(value) {
     assertString(value);
+    this.#setValue(value);
+  }
 
+  #setValue(value) {
     const oldValue = this.#value;
     const newValue = value;
 
@@ -73,7 +76,10 @@ export class Combobox extends Elm {
 
   set dropdownValues(values) {
     assertNonBlankStringArray(values);
+    this.#setDropdownValues(values);
+  }
 
+  #setDropdownValues(values) {
     const oldValue = this.#dropdownValues;
     const newValue = [...values];
 
@@ -132,7 +138,7 @@ export class Combobox extends Elm {
 
   #inputChangeHandler = (event) => {
     const value = event.target.value.trim();
-    this.value = value;
+    this.#setValue(value);
   };
 
   #dropdownMouseDownHandler = (event) => {
@@ -141,7 +147,7 @@ export class Combobox extends Elm {
 
   #dropdownClickHandler = (event, { element }) => {
     const value = element.dataset.value;
-    this.value = value;
+    this.#setValue(value);
 
     const inputEl = getBySelector(this.rootElement, '[data-role="input"]');
     inputEl.blur();

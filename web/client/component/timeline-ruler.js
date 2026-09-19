@@ -1,31 +1,11 @@
 import { Elm } from "./base/elm.js";
-import { TimelineTrackList } from "./timeline-track-list.js";
 import {
-  assertInteger,
-  isHtmlElement,
-  assertHtmlElement,
   assertTimeInSeconds,
   assertNumber,
-  isNullishOrEmpty,
-  assertBoolean,
-  assertNonBlankString,
-  assertFunction,
-  assertPositiveInteger,
-  assertValueIn,
   assertPositive,
   assertNonNegative,
 } from "./base/assert.js";
-
-const PIXELS_PER_INTERVAL = 100;
-const MIN_TIME_UNIT = 0.005;
-
-const ROOT_CLASS = "timeline-ruler";
-const BASE_ZOOM = 100;
-const MIN_ZOOM = 10;
-const MAX_ZOOM = 500;
-const BASE_PIXELS_PER_SECOND = 50;
-const MIN_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MIN_ZOOM) / BASE_ZOOM;
-const MAX_PIXELS_PER_SECOND = (BASE_PIXELS_PER_SECOND * MAX_ZOOM) / BASE_ZOOM;
+import { createElementByHTML } from "./base/elm-helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">
@@ -34,67 +14,117 @@ const TICK_TEMPLATE = `
 </div>
 `;
 
+const tickTemplate = createElementByHTML(TICK_TEMPLATE);
+
 export class TimelineRuler extends Elm {
-  // templates
-  #tickTemplate;
-  // state
-  #duration = 0;
-  #pixelsPerSecond = BASE_PIXELS_PER_SECOND;
+  // state(read-only)
+  #basePixelsPerInterval = 100;
+  #baseTimeUnit = 0.005;
+  #baseZoom = 100;
+  #minZoom = 10;
+  #maxZoom = 500;
+  #basePixelsPerSecond = 50;
+  #minPixelsPerSecond;
+  #maxPixelsPerSecond;
+  // state(read-write)
+  #pixelsPerSecond;
+  #duration;
   #width;
-  #trackList;
-  // event
-  #onPixelsPerSecondChange;
-  #onWidthChange;
 
   constructor(root, options = {}) {
     super(root, {
-      rootClass: ROOT_CLASS,
+      ...options,
+      defaultRootClass: "timeline-ruler",
     });
 
-    this.#initTickTemplate();
-    this.#width = this.#calculateWidth();
+    this.#init();
     this.#render();
-    this.#bindEvents();
-  }
-
-  #initTickTemplate(target) {
-    this.#tickTemplate = this.resolveElement(TICK_TEMPLATE, "TICK_TEMPLATE");
   }
 
   // -----------------------------------------------------------------------------
-  // state
+  // initialization
   // -----------------------------------------------------------------------------
 
-  /** duration in seconds  */
+  #init() {
+    this.resolveOption("basePixelsPerInterval", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#basePixelsPerInterval = value;
+    });
 
-  get duration() {
-    return this.#duration;
+    this.resolveOption("baseTimeUnit", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#baseTimeUnit = value;
+    });
+
+    this.resolveOption("baseZoom", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#baseZoom = value;
+    });
+
+    this.resolveOption("minZoom", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#minZoom = value;
+    });
+
+    this.resolveOption("maxZoom", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#maxZoom = value;
+    });
+
+    this.resolveOption("basePixelsPerSecond", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#basePixelsPerSecond = value;
+    });
+
+    this.#minPixelsPerSecond =
+      (this.#basePixelsPerSecond * this.#minZoom) / this.#baseZoom;
+    this.#maxPixelsPerSecond =
+      (this.#basePixelsPerSecond * this.#maxZoom) / this.#baseZoom;
+
+    this.#pixelsPerSecond = this.#basePixelsPerSecond;
+    this.#duration = 0;
+    this.#width = this.#calculateWidth();
   }
 
-  set duration(value) {
-    assertTimeInSeconds(value, "duration");
+  // -----------------------------------------------------------------------------
+  // state(read-only)
+  // -----------------------------------------------------------------------------
 
-    if (value === this.#duration) {
-      return;
-    }
-
-    this.#duration = value;
-
-    const calculatedWidth = this.#calculateWidth();
-    if (calculatedWidth !== this.#width) {
-      this.#width = calculatedWidth;
-      this.#render();
-
-      this.#onWidthChange?.({
-        elm: this,
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
-    }
+  get basePixelsPerInterval() {
+    return this.#basePixelsPerInterval;
   }
 
-  /** pixels per second */
+  get baseTimeUnit() {
+    return this.#baseTimeUnit;
+  }
+
+  get baseZoom() {
+    return this.#baseZoom;
+  }
+
+  get minZoom() {
+    return this.#minZoom;
+  }
+
+  get maxZoom() {
+    return this.#maxZoom;
+  }
+
+  get basePixelsPerSecond() {
+    return this.#basePixelsPerSecond;
+  }
+
+  get minPixelsPerSecond() {
+    return this.#minPixelsPerSecond;
+  }
+
+  get maxPixelsPerSecond() {
+    return this.#maxPixelsPerSecond;
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-write)
+  // -----------------------------------------------------------------------------
 
   get pixelsPerSecond() {
     return this.#pixelsPerSecond;
@@ -102,39 +132,51 @@ export class TimelineRuler extends Elm {
 
   set pixelsPerSecond(value) {
     assertNonNegative(value, "pixelsPerSecond");
-
-    if (value === this.#pixelsPerSecond) {
-      return;
-    }
-    // clamp the value within the allowed range
-    const pixelsPerSecond = Math.min(
-      Math.max(value, MIN_PIXELS_PER_SECOND),
-      MAX_PIXELS_PER_SECOND,
-    );
-    this.#pixelsPerSecond = pixelsPerSecond;
-
-    const calculatedWidth = this.#calculateWidth();
-    if (calculatedWidth !== this.#width) {
-      this.#width = calculatedWidth;
-
-      this.#onWidthChange?.({
-        elm: this,
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
-    }
-    this.#render();
-
-    this.#onPixelsPerSecondChange?.({
-      elm: this,
-      duration: this.#duration,
-      pixelsPerSecond: this.#pixelsPerSecond,
-      width: this.#width,
-    });
+    this.#setPixelsPerSecond(value);
   }
 
-  /** width in pixels */
+  #setPixelsPerSecond(value) {
+    const newValue = Math.min(
+      Math.max(value, this.#minPixelsPerSecond),
+      this.#maxPixelsPerSecond,
+    );
+
+    if (newValue === this.#pixelsPerSecond) {
+      return;
+    }
+
+    this.#pixelsPerSecond = newValue;
+
+    const newWidth = this.#calculateWidth();
+    if (newWidth !== this.#width) {
+      this.#width = newWidth;
+      this.#render();
+      this.#emitPixelsPerSecondChange();
+      this.#emitWidthChange();
+    } else {
+      this.#render();
+      this.#emitPixelsPerSecondChange();
+    }
+  }
+
+  get duration() {
+    return this.#duration;
+  }
+
+  set duration(value) {
+    assertTimeInSeconds(value, "duration");
+    this.#setDuration(value);
+  }
+
+  #setDuration(value) {
+    if (value === this.#duration) {
+      return;
+    }
+
+    this.#duration = value;
+
+    this.#setWidth();
+  }
 
   get width() {
     return this.#width;
@@ -142,28 +184,32 @@ export class TimelineRuler extends Elm {
 
   set width(value) {
     assertNonNegative(value, "width");
-
-    const calculatedWidth = this.#calculateWidth(value);
-    if (calculatedWidth !== this.#width) {
-      this.#width = calculatedWidth;
-      this.#render();
-
-      this.#onWidthChange?.({
-        elm: this,
-        duration: this.#duration,
-        pixelsPerSecond: this.#pixelsPerSecond,
-        width: this.#width,
-      });
-    }
+    this.#setWidth(value);
   }
 
-  #calculateWidth(width) {
-    const containerWidth =
-      width ?? this.rootElement.parentElement?.clientWidth ?? 0;
+  #setWidth(value = 0) {
+    const newWidth = this.#calculateWidth(value);
+
+    if (newWidth === this.#width) {
+      return;
+    }
+
+    this.#width = newWidth;
+    this.#render();
+
+    this.#emitWidthChange();
+  }
+
+  #calculateWidth(width = 0) {
+    const containerWidth = this.rootElement.parentElement?.clientWidth ?? 0;
     const durationWidth = this.#duration * this.#pixelsPerSecond;
 
-    return Number(Math.max(containerWidth, durationWidth).toFixed(2));
+    return Number(Math.max(width, containerWidth, durationWidth).toFixed(2));
   }
+
+  // -----------------------------------------------------------------------------
+  // time and coordinate conversion
+  // -----------------------------------------------------------------------------
 
   /** time to x coordinate conversion */
 
@@ -180,31 +226,34 @@ export class TimelineRuler extends Elm {
     return Number((x / this.#pixelsPerSecond).toFixed(3));
   }
 
-  #getRulerInterval() {
-    let intervalSeconds = PIXELS_PER_INTERVAL / this.#pixelsPerSecond;
+  // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
 
-    if (intervalSeconds <= MIN_TIME_UNIT) {
-      intervalSeconds = MIN_TIME_UNIT;
-    } else {
-      const remainder = intervalSeconds % MIN_TIME_UNIT;
-      if (remainder !== 0) {
-        intervalSeconds = intervalSeconds - remainder;
-        if (remainder >= MIN_TIME_UNIT / 2) {
-          intervalSeconds += MIN_TIME_UNIT;
-        }
-      }
-    }
-
-    let intervalPixels = intervalSeconds * this.#pixelsPerSecond;
-
-    return {
-      intervalSeconds: Number(intervalSeconds.toFixed(3)),
-      intervalPixels: Number(intervalPixels.toFixed(2)),
-    };
+  set onPixelsPerSecondChange(handler) {
+    this.handler.set("pixelsPerSecondChangeHandler", handler);
   }
 
-  get trackList() {
-    return this.#trackList;
+  #emitPixelsPerSecondChange() {
+    this.handler.emit("pixelsPerSecondChangeHandler", {
+      elm: this,
+      duration: this.#duration,
+      pixelsPerSecond: this.#pixelsPerSecond,
+      width: this.#width,
+    });
+  }
+
+  set onWidthChange(handler) {
+    this.handler.set("widthChangeHandler", handler);
+  }
+
+  #emitWidthChange() {
+    this.handler.emit("widthChangeHandler", {
+      elm: this,
+      duration: this.#duration,
+      pixelsPerSecond: this.#pixelsPerSecond,
+      width: this.#width,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -212,9 +261,9 @@ export class TimelineRuler extends Elm {
   // ---------------------------------------------------------------------------
 
   #render() {
-    this.dom.clear();
-
+    this.rootElement.replaceChildren();
     this.rootElement.style.width = `${this.#width}px`;
+
     this.#renderTicks(this.#width);
   }
 
@@ -231,69 +280,64 @@ export class TimelineRuler extends Elm {
       const x = index * intervalPixels;
 
       // major tick
-      const tickElement = this.#tickTemplate.cloneNode(true);
-      tickElement.style.left = `${x}px`;
-      tickElement.classList.add("is-major");
+      const tickEl = tickTemplate.cloneNode(true);
+      tickEl.style.left = `${x}px`;
+      tickEl.classList.add("is-major");
 
-      const textElement = tickElement.querySelector(
-        ".timeline-ruler-tick-text",
-      );
+      const textElement = tickEl.querySelector(".timeline-ruler-tick-text");
       textElement.textContent = formatTime(seconds);
 
-      this.dom.add(`tick${index}`, tickElement);
+      this.rootElement.append(tickEl);
 
       // minor ticks
-      for (let minorIndex = 1; minorIndex <= subdivisionCount; minorIndex++) {
+      for (let minorIndex = 1; minorIndex < subdivisionCount; minorIndex++) {
         const minorX = x + minorIndex * minorIntervalPixels;
         if (minorX > width) {
           break;
         }
 
-        const minorTickElement = this.#tickTemplate.cloneNode(true);
+        const minorTickEl = tickTemplate.cloneNode(true);
 
-        minorTickElement.style.left = `${minorX}px`;
+        minorTickEl.style.left = `${minorX}px`;
         if (minorIndex === subdivisionCount / 2) {
-          minorTickElement.classList.add("is-middle");
+          minorTickEl.classList.add("is-middle");
         } else {
-          minorTickElement.classList.add("is-minor");
+          minorTickEl.classList.add("is-minor");
         }
 
-        const minorTextElement = minorTickElement.querySelector(
+        const minorTextElement = minorTickEl.querySelector(
           ".timeline-ruler-tick-text",
         );
 
         minorTextElement.remove();
 
-        this.dom.add(`tick${index}-minor${minorIndex}`, minorTickElement);
+        this.rootElement.append(minorTickEl);
       }
     }
   }
 
-  // -----------------------------------------------------------------------------
-  // events
-  // -----------------------------------------------------------------------------
+  #getRulerInterval() {
+    let intervalSeconds = this.#basePixelsPerInterval / this.#pixelsPerSecond;
 
-  set onPixelsPerSecondChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onPixelsPerSecondChange = handler;
-      return;
+    if (intervalSeconds <= this.#baseTimeUnit) {
+      intervalSeconds = this.#baseTimeUnit;
+    } else {
+      const remainder = intervalSeconds % this.#baseTimeUnit;
+      if (remainder !== 0) {
+        intervalSeconds = intervalSeconds - remainder;
+        if (remainder >= this.#baseTimeUnit / 2) {
+          intervalSeconds += this.#baseTimeUnit;
+        }
+      }
     }
 
-    this.#onPixelsPerSecondChange = null;
+    let intervalPixels = intervalSeconds * this.#pixelsPerSecond;
+
+    return {
+      intervalSeconds: Number(intervalSeconds.toFixed(3)),
+      intervalPixels: Number(intervalPixels.toFixed(2)),
+    };
   }
-
-  set onWidthChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onWidthChange = handler;
-      return;
-    }
-
-    this.#onWidthChange = null;
-  }
-
-  #bindEvents() {}
 }
 
 function formatTime(seconds) {

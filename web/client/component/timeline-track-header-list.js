@@ -1,17 +1,15 @@
+import { assertNonNegative, assertValueIn } from "./base/assert.js";
+import {
+  createElementByHTML,
+  normalizeValue,
+  assertValueForMode,
+  isEqualValue,
+  filterValue,
+} from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 import { CompactCombobox } from "./combobox.js";
 import { GainCompactSlider } from "./slider.js";
-import {
-  isNullishOrEmpty,
-  assertBoolean,
-  assertNonBlankString,
-  assertFunction,
-  assertPositiveInteger,
-  assertValueIn,
-  assertElementMatches,
-} from "./base/assert.js";
 
-const ROOT_CLASS = "timeline-track-header-list";
 const ITEM_TEMPLATE = `
 <div class="timeline-track-header" data-role="item">
   <div data-role="timeline-track-header-name"></div>
@@ -19,10 +17,12 @@ const ITEM_TEMPLATE = `
 </div>
 `;
 
+const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+
 export class TimelineTrackHeaderList extends ItemsElm {
   // state
-  #elms = [];
-  #selectedValue;
+  #itemElms = [];
+  #selectedValue = null;
   #selectedValueMode = 1;
   // ruler
   #timelineRuler;
@@ -32,67 +32,56 @@ export class TimelineTrackHeaderList extends ItemsElm {
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: ROOT_CLASS,
+      defaultRootClass: "timeline-track-header-list",
     });
 
-    this.#initOptions(options);
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // options
+  // state(read-only)
   // -----------------------------------------------------------------------------
 
-  #initOptions(options) {}
+  get selectedValueMode() {
+    return this.#selectedValueMode;
+  }
 
   // -----------------------------------------------------------------------------
-  // selected value
+  // state(read-write)
   // -----------------------------------------------------------------------------
 
   get selectedValue() {
-    if (isNullishOrEmpty(this.#selectedValue)) {
-      return null;
-    }
-    return this.#selectedValueMode === 2
-      ? [...this.#selectedValue]
-      : this.#selectedValue;
+    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
   }
 
   set selectedValue(value) {
-    this.assertModeValue(value, this.#selectedValueMode);
-
+    assertValueForMode(value, this.#selectedValueMode);
     const oldValue = this.#selectedValue;
-    if (isNullishOrEmpty(value)) {
-      this.#selectedValue = null;
-    } else {
-      this.assertItemValueExists(value);
-      this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
-    }
+    const newValue = normalizeValue(value, this.#selectedValueMode);
 
-    const newValue = this.#selectedValue;
-    if (!this.isEqualValue(newValue, oldValue)) {
-      this.#updateSelectedState();
-
-      this.#onSelectedChange?.({
-        elm: this,
-        value: newValue,
-      });
-    }
-  }
-
-  // -----------------------------------------------------------------------------
-  // events
-  // -----------------------------------------------------------------------------
-
-  set onSelectedChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onSelectedChange = handler;
+    if (isEqualValue(newValue, oldValue)) {
       return;
     }
 
-    // handler can be null to remove the event listener
-    this.#onSelectedChange = null;
+    this.#selectedValue = newValue;
+
+    this.#updateSelectedUIState();
+    this.#emitSelectedChange(newValue);
+  }
+
+  // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
+
+  set onSelectedChange(handler) {
+    this.handler.set("selectedChangeHandler", handler);
+  }
+
+  #emitSelectedChange(value) {
+    this.handler.emit("selectedChangeHandler", {
+      elm: this,
+      value,
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -100,39 +89,39 @@ export class TimelineTrackHeaderList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("click", this.#handleRootClick);
+    this.event.on(this.rootElement, "click", this.#itemClickHandler, {
+      selector: '[data-role="item"]',
+    });
   }
 
-  #handleRootClick = (event) => {
-    this.closestElement(event, '[data-role="item"]', (element) => {
-      const value = element.dataset.value;
+  #itemClickHandler = (event, { element }) => {
+    const value = element.dataset.value;
 
-      if (this.#selectedValueMode === 1) {
-        this.selectedValue = value;
-        return;
-      }
+    if (this.#selectedValueMode === 1) {
+      this.selectedValue = value;
+      return;
+    }
 
-      const oldValue = this.#selectedValue ?? [];
-      const newValue = oldValue.includes(value)
-        ? oldValue.filter((v) => v !== value)
-        : [...oldValue, value];
+    const oldValue = this.#selectedValue ?? [];
+    const newValue = oldValue.includes(value)
+      ? oldValue.filter((v) => v !== value)
+      : [...oldValue, value];
 
-      this.selectedValue = newValue;
-    });
+    this.selectedValue = newValue;
   };
 
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateSelectedState() {
+  #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
       let selected = false;
       if (this.#selectedValueMode === 1) {
         selected = this.#selectedValue === value;
-      } else if (this.#selectedValueMode === 2) {
+      } else {
         selected = this.#selectedValue?.includes(value) ?? false;
       }
 
@@ -145,41 +134,46 @@ export class TimelineTrackHeaderList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  renderItem(item) {
+  afterSetItems(items) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+  }
+
+  // override
+  afterRemoveItem(removedItem) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+  }
+
+  // override
+  createItemElement(item) {
     const value = item[this.valueField];
-    const text = item[this.textField];
-    const tooltip = item[this.tooltipField];
 
-    const trackHeaderEl = this.resolveElement(ITEM_TEMPLATE, "ITEM_TEMPLATE");
-    trackHeaderEl.dataset.value = value;
+    const itemEl = itemTemplate.cloneNode(true);
+    itemEl.dataset.value = value;
 
-    const nameEl = trackHeaderEl.querySelector(
+    const [nameEl, gainEl] = queryBySelector(
+      itemEl,
       '[data-role="timeline-track-header-name"]',
-    );
-    const gainEl = trackHeaderEl.querySelector(
       '[data-role="timeline-track-header-gain"]',
     );
 
     const nameElm = new CompactCombobox(nameEl);
     nameElm.dropdownValues = getTrackNames();
 
-    const gainSlider = new GainCompactSlider(gainEl);
+    const gainSliderElm = new GainCompactSlider(gainEl);
 
-    const elm = {
+    this.#itemElms.push({
       name: nameElm,
-      gain: gainSlider,
-    };
-    this.#elms.push(elm);
+      gain: gainSliderElm,
+    });
 
-    this.dom.add(value, trackHeaderEl);
+    return itemEl;
   }
 
-  // Override
-  onItemsChange(items) {}
-
   // override
-  afterRender(items) {
-    // this.#updateSelectedState();
+  afterRenderItems(items) {
+    this.#updateSelectedUIState();
   }
 }
 

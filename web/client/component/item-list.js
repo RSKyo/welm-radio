@@ -61,12 +61,20 @@ export class ItemList extends ItemsElm {
   }
 
   // -----------------------------------------------------------------------------
-  // get/set state value
+  // state(read-only)
   // -----------------------------------------------------------------------------
 
   get selectedValueMode() {
     return this.#selectedValueMode;
   }
+
+  get checkedValueMode() {
+    return this.#checkedValueMode;
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-write)
+  // -----------------------------------------------------------------------------
 
   get selectedValue() {
     return normalizeValue(this.#selectedValue, this.#selectedValueMode);
@@ -83,12 +91,8 @@ export class ItemList extends ItemsElm {
 
     this.#selectedValue = newValue;
 
-    this.#updateSelectedValueUIState();
-    this.#emitSelectedValueChange(newValue);
-  }
-
-  get checkedValueMode() {
-    return this.#checkedValueMode;
+    this.#updateSelectedUIState();
+    this.#emitSelectedChange(newValue);
   }
 
   get checkedValue() {
@@ -106,7 +110,7 @@ export class ItemList extends ItemsElm {
 
     this.#checkedValue = newValue;
 
-    this.#updateCheckedValueUIState();
+    this.#updateCheckedUIState();
     this.#emitCheckedValueChange(newValue);
   }
 
@@ -128,24 +132,24 @@ export class ItemList extends ItemsElm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedValueChange(handler) {
-    this.handler.set("selectedValueChangeHandler", handler);
+  set onSelectedChange(handler) {
+    this.handler.set("selectedChangeHandler", handler);
   }
 
-  #emitSelectedValueChange(value) {
-    this.handler.emit("selectedValueChangeHandler", {
+  #emitSelectedChange(value) {
+    this.handler.emit("selectedChangeHandler", {
       elm: this,
       item: this.getItemByValue(value, this.#selectedValueMode),
       value,
     });
   }
 
-  set onCheckedValueChange(handler) {
-    this.handler.set("checkedValueChangeHandler", handler);
+  set onCheckedChange(handler) {
+    this.handler.set("checkedChangeHandler", handler);
   }
 
   #emitCheckedValueChange(value) {
-    this.handler.emit("checkedValueChangeHandler", {
+    this.handler.emit("checkedChangeHandler", {
       elm: this,
       item: this.getItemByValue(value, this.#checkedValueMode),
       value: value,
@@ -228,7 +232,7 @@ export class ItemList extends ItemsElm {
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateSelectedValueUIState() {
+  #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
@@ -243,7 +247,7 @@ export class ItemList extends ItemsElm {
     });
   }
 
-  #updateCheckedValueUIState() {
+  #updateCheckedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
@@ -297,7 +301,7 @@ export class ItemList extends ItemsElm {
 
   // override
   afterRenderItems(items) {
-    this.#updateSelectedValueUIState();
-    this.#updateCheckedValueUIState();
+    this.#updateSelectedUIState();
+    this.#updateCheckedUIState();
   }
 }

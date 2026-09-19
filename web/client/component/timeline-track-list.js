@@ -1,122 +1,137 @@
-import { ItemsElm } from "./base/items-elm.js";
+import { assertNonNegative, assertValueIn } from "./base/assert.js";
 import {
-  isNullishOrEmpty,
-  assertBoolean,
-  assertNonBlankString,
-  assertFunction,
-  assertPositiveInteger,
-  assertValueIn,
-  assertElementMatches,
-} from "./base/assert.js";
+  createElementByHTML,
+  normalizeValue,
+  assertValueForMode,
+  isEqualValue,
+  filterValue,
+} from "./base/elm-helper.js";
+import { ItemsElm } from "./base/items-elm.js";
 
-const ROOT_CLASS = "timeline-track-list";
 const ITEM_TEMPLATE = `
 <div class="timeline-track" data-role="item">
 </div>
 `;
 
+const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+
 export class TimelineTrackList extends ItemsElm {
-  // templates
-  #itemTemplate;
   // state
-  #selectedValue;
+  #selectedValue = null;
   #selectedValueMode = 1;
-  // ruler
-  #timelineRuler;
-  // event
-  #onSelectedChange;
+  #pixelsPerSecond = 0;
+  #width = 0;
 
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      rootClass: ROOT_CLASS,
+      defaultRootClass: "timeline-track-list",
     });
 
-    this.#initOptions(options);
-    this.#initItemTemplate(options.itemTemplate);
+    this.#init();
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // options
+  // initialization
   // -----------------------------------------------------------------------------
 
-  #initOptions(options) {
-    if (options.timelineRuler == null) {
-      throw new Error("timelineRuler is required");
-    }
-    this.#timelineRuler = options.timelineRuler;
+  #init() {
+    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
+      assertValueIn(value, [1, 2], assertionSubject);
+      this.#selectedValueMode = value;
+    });
+
+    this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#pixelsPerSecond = value;
+    });
+
+    this.resolveOption("width", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#width = value;
+    });
   }
 
   // -----------------------------------------------------------------------------
-  // templates
+  // state(read-only)
   // -----------------------------------------------------------------------------
 
-  #initItemTemplate(target) {
-    if (target == null) {
-      this.#itemTemplate = this.resolveElement(
-        ITEM_TEMPLATE,
-        "ITEM_TEMPLATE",
-      );
-      return;
-    }
-
-    const assertionSubject = "options.itemTemplate";
-    assertNonBlankString(target, assertionSubject);
-    const itemTemplate = this.resolveElement(target, assertionSubject);
-    assertElementMatches(itemTemplate, '[data-role="item"]', assertionSubject);
-
-    this.#itemTemplate = itemTemplate;
+  get selectedValueMode() {
+    return this.#selectedValueMode;
   }
 
   // -----------------------------------------------------------------------------
-  // selected value
+  // state(read-write)
   // -----------------------------------------------------------------------------
 
   get selectedValue() {
-    if (isNullishOrEmpty(this.#selectedValue)) {
-      return null;
-    }
-    return this.#selectedValueMode === 2
-      ? [...this.#selectedValue]
-      : this.#selectedValue;
+    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
   }
 
   set selectedValue(value) {
-    this.assertModeValue(value, this.#selectedValueMode);
-
+    assertValueForMode(value, this.#selectedValueMode);
     const oldValue = this.#selectedValue;
-    if (isNullishOrEmpty(value)) {
-      this.#selectedValue = null;
-    } else {
-      this.assertItemValueExists(value);
-      this.#selectedValue = this.#selectedValueMode === 2 ? [...value] : value;
-    }
+    const newValue = normalizeValue(value, this.#selectedValueMode);
 
-    const newValue = this.#selectedValue;
-    if (!this.isEqualValue(newValue, oldValue)) {
-      this.#updateSelectedState();
-
-      this.#onSelectedChange?.({
-        elm: this,
-        value: newValue,
-      });
-    }
-  }
-
-  // -----------------------------------------------------------------------------
-  // events
-  // -----------------------------------------------------------------------------
-
-  set onSelectedChange(handler) {
-    if (handler != null) {
-      assertFunction(handler, "handler");
-      this.#onSelectedChange = handler;
+    if (isEqualValue(newValue, oldValue)) {
       return;
     }
 
-    // handler can be null to remove the event listener
-    this.#onSelectedChange = null;
+    this.#selectedValue = newValue;
+
+    this.#updateSelectedUIState();
+    this.#emitSelectedChange(newValue);
+  }
+
+  get pixelsPerSecond() {
+    return this.#pixelsPerSecond;
+  }
+
+  set pixelsPerSecond(value) {
+    assertNonNegative(value, "pixelsPerSecond");
+    this.#setPixelsPerSecond(value);
+  }
+
+  #setPixelsPerSecond(value) {
+    if (value === this.#pixelsPerSecond) {
+      return;
+    }
+
+    this.#pixelsPerSecond = value;
+  }
+
+  get width() {
+    return this.#width;
+  }
+
+  set width(value) {
+    assertNonNegative(value, "width");
+    this.#setWidth(value);
+  }
+
+  #setWidth(value) {
+    if (value === this.#width) {
+      return;
+    }
+
+    this.#width = value;
+    this.#updateWidthUIState();
+  }
+
+  // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
+
+  set onSelectedChange(handler) {
+    this.handler.set("selectedChangeHandler", handler);
+  }
+
+  #emitSelectedChange(value) {
+    this.handler.emit("selectedChangeHandler", {
+      elm: this,
+      value,
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -124,39 +139,39 @@ export class TimelineTrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.dom.onRoot("click", this.#handleRootClick);
+    this.event.on(this.rootElement, "click", this.#itemClickHandler, {
+      selector: '[data-role="item"]',
+    });
   }
 
-  #handleRootClick = (event, { targetClosest }) => {
-    targetClosest('[data-role="item"]', ({ target }) => {
-      const value = target.dataset.value;
+  #itemClickHandler = (event, { element }) => {
+    const value = element.dataset.value;
 
-      if (this.#selectedValueMode === 1) {
-        this.selectedValue = value;
-        return;
-      }
+    if (this.#selectedValueMode === 1) {
+      this.selectedValue = value;
+      return;
+    }
 
-      const oldValue = this.#selectedValue ?? [];
-      const newValue = oldValue.includes(value)
-        ? oldValue.filter((v) => v !== value)
-        : [...oldValue, value];
+    const oldValue = this.#selectedValue ?? [];
+    const newValue = oldValue.includes(value)
+      ? oldValue.filter((v) => v !== value)
+      : [...oldValue, value];
 
-      this.selectedValue = newValue;
-    });
+    this.selectedValue = newValue;
   };
 
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
 
-  #updateSelectedState() {
+  #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
 
       let selected = false;
       if (this.#selectedValueMode === 1) {
         selected = this.#selectedValue === value;
-      } else if (this.#selectedValueMode === 2) {
+      } else {
         selected = this.#selectedValue?.includes(value) ?? false;
       }
 
@@ -164,11 +179,10 @@ export class TimelineTrackList extends ItemsElm {
     });
   }
 
-  updateWidth(width) {
-    // const width = this.#timelineRuler.width;
+  #updateWidthUIState() {
     this.eachItem(({ element }) => {
       if (!element) return;
-      element.style.width = `${width}px`;
+      element.style.width = `${this.#width}px`;
     });
   }
 
@@ -177,27 +191,31 @@ export class TimelineTrackList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  renderItem(item) {
-    const width = this.#timelineRuler.width;
-    const value = item[this.valueField];
-    const text = item[this.textField];
-    const tooltip = item[this.tooltipField];
-
-    const itemElement = this.#itemTemplate.cloneNode(true);
-    itemElement.dataset.value = value;
-    itemElement.style.width = `${width}px`;
-    itemElement.textContent = value;
-
-    this.dom.add(value, itemElement);
+  afterSetItems(items) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
   }
-
-  // Override
-  onItemsChange(items) {}
 
   // override
-  afterRender(items) {
-    // this.#updateSelectedState();
+  afterRemoveItem(removedItem) {
+    const itemValues = this.itemValues;
+    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+  }
+
+  // override
+  createItemElement(item) {
+    const value = item[this.valueField];
+
+    const itemEl = itemTemplate.cloneNode(true);
+    itemEl.dataset.value = value;
+    itemEl.style.width = `${this.#width}px`;
+    itemEl.textContent = value;
+
+    return itemEl;
+  }
+
+  // override
+  afterRenderItems(items) {
+    this.#updateSelectedUIState();
   }
 }
-
-
