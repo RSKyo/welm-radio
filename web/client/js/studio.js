@@ -1,9 +1,9 @@
 import { toast, safeRun, on, getElement } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
-// import { TimelineRuler } from "../component/timeline-ruler.js";
-// import { TimelineTrackHeaderList } from "../component/timeline-track-header-list.js";
-// import { TimelineTrackList } from "../component/timeline-track-list.js";
+import { TimelineRuler } from "../component/timeline-ruler.js";
+import { TimelineTrackHeaderList } from "../component/timeline-track-header-list.js";
+import { TimelineTrackList } from "../component/timeline-track-list.js";
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -20,25 +20,24 @@ const timelineCursorLabelEl = getElement(".timeline-cursor-label");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
-const sliderElm = new Slider("#timeline-zoom", {
-  suffix: "px",
+const zoomElm = new Slider("#zoom", {
   percentBase: 50,
   min: 5,
   max: 250,
   step: 1,
   value: 50,
-  showActions: true,
 });
 
-// const timelineRulerElm = new TimelineRuler("#timeline-ruler");
+const rulerElm = new TimelineRuler("#ruler");
 
-// const timelineTrackHeaderListElm = new TimelineTrackHeaderList("#timeline-track-header-list", {
-//   valueField: "id",
-// });
-// const timelineTrackListElm = new TimelineTrackList("#timeline-track-list", {
-//   valueField: "id",
-//   timelineRuler: timelineRulerElm,
-// });
+const trackHeaderElm = new TimelineTrackHeaderList("#track-header", {
+  valueField: "id",
+});
+const trackElm = new TimelineTrackList("#track", {
+  valueField: "id",
+  pixelsPerSecond: rulerElm.pixelsPerSecond,
+  width: timelineBodyEl.clientWidth,
+});
 
 // -----------------------------------------------------------------------------
 // State
@@ -56,66 +55,73 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on(sliderElm, "change", sliderChange);
+  on(zoomElm, "change", zoomChange);
 
-  // on(timelineEl, "resize", timelineResize);
-  // on(timelineEl, "mousemove", timelineMousemove);
-  // on(timelineBodyEl, "scroll", timelineBodyScroll);
-  // on(timelineRulerElm, "widthChange", timelineRulerWidthChange);
+  on(timelineBodyEl, "scroll", timelineBodyScroll);
+  on(timelineBodyEl, "mousemove", timelineBodyMousemove);
 
-  // on(timelineTrackHeaderListElm, "selectedChange", timelineTrackHeaderListSelectedChange);
-  // on(timelineTrackListElm, "selectedChange", timelineTrackListSelectedChange);
+  on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
+  on(rulerElm, "widthChange", rulerWidthChange);
+  on(rulerElm, "mousemove", rulerMousemove);
+
+  // on(trackHeaderElm, "selectedChange", timelineTrackHeaderListSelectedChange);
+  // on(trackElm, "selectedChange", timelineTrackListSelectedChange);
 
   // on(addTrackBtn, "click", addTrack);
 }
 
 async function initData() {
-  // timelineTrackListElm.timelineRuler = timelineRulerElm;
+  // trackElm.timelineRuler = rulerElm;
 }
 
 // -----------------------------------------------------------------------------
 // Event Handlers
 // -----------------------------------------------------------------------------
 
-function sliderChange({ value }) {
-  // timelineRulerElm.pixelsPerSecond = value;
+function zoomChange({ value }) {
+  rulerElm.pixelsPerSecond = value;
 }
 
-// function timelineResize() {
-//   timelineRulerElm.width = timelineEl.clientWidth;
-// }
+function timelineBodyScroll() {
+  timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
+}
 
-// function timelineMousemove(event) {
-//   const timelineRect = timelineEl.getBoundingClientRect();
+function timelineBodyMousemove(event) {
+  const timelineBodyRect = timelineBodyEl.getBoundingClientRect();
 
-//   let x = event.clientX - timelineRect.left;
-//   x = Math.max(x, 0);
+  let x = event.clientX - timelineBodyRect.left;
+  x = Math.max(x, 0);
 
-//   timelineCursorEl.style.left = `${Math.round(x)}px`;
-//   const seconds = timelineRulerElm.xToTime(x);
-//   timelineCursorLabelEl.textContent = `${seconds}s`;
-// }
+  timelineCursorEl.style.left = `${Math.round(x)}px`;
+  const seconds = rulerElm.xToTime(x);
+  timelineCursorLabelEl.textContent = `${seconds}s`;
+}
 
-// function timelineBodyScroll() {
-//   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
-// }
+function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
+  trackElm.pixelsPerSecond = pixelsPerSecond;
+}
 
-// function timelineRulerWidthChange({ width }) {
-//   timelineTrackListElm.updateWidth(width);
-// }
+function rulerWidthChange({ width }) {
+  trackElm.width = width;
+}
+
+function rulerMousemove({ x, formatSeconds }) {
+  timelineCursorEl.style.left = `${Math.round(x)}px`;
+  timelineCursorLabelEl.textContent = `${formatSeconds}`;
+}
 
 // function timelineTrackHeaderListSelectedChange({value}){
-//   timelineTrackListElm.selectedValue = value;
+//   trackElm.selectedValue = value;
 // }
 
 // function timelineTrackListSelectedChange({value}) {
-//   timelineTrackHeaderListElm.selectedValue = value;
+//   trackHeaderElm.selectedValue = value;
 // }
 
 // function addTrack() {
 //   const newTrack = createDefaultTrack();
-//   timelineTrackListElm.addItem(newTrack);
-//   timelineTrackHeaderListElm.addItem(newTrack);
+//   trackElm.addItem(newTrack);
+//   trackHeaderElm.addItem(newTrack);
 // }
 
 // -----------------------------------------------------------------------------

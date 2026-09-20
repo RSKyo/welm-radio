@@ -31,6 +31,8 @@ export class TimelineRuler extends Elm {
   #duration;
   #width;
 
+  #containerResizeObserver;
+
   constructor(root, options = {}) {
     super(root, {
       ...options,
@@ -39,6 +41,7 @@ export class TimelineRuler extends Elm {
 
     this.#init();
     this.#render();
+    this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
@@ -256,6 +259,43 @@ export class TimelineRuler extends Elm {
     });
   }
 
+  set onMousemove(handler) {
+    this.handler.set("mousemoveHandler", handler);
+  }
+
+  #emitMousemove(event) {
+    const rulerRect = event.currentTarget.getBoundingClientRect();
+
+    let x = event.clientX - rulerRect.left;
+    let y = event.clientY - rulerRect.top;
+    y = Math.max(y, 0);
+    x = Math.max(x, 0);
+
+    const seconds = this.xToTime(x);
+    const formatSeconds = formatTime(seconds);
+
+    this.handler.emit("mousemoveHandler", {
+      elm: this,
+      event,
+      x,
+      y,
+      seconds,
+      formatSeconds,
+    });
+  }
+
+  #bindEvents() {
+    if (this.rootElement.parentElement != null) {
+      this.event.onResizeObserve(this.rootElement.parentElement, () => {
+        this.#setWidth();
+      });
+    }
+
+    this.event.on(this.rootElement, "mousemove", (event) => {
+      this.#emitMousemove(event);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // render
   // ---------------------------------------------------------------------------
@@ -341,15 +381,50 @@ export class TimelineRuler extends Elm {
 }
 
 function formatTime(seconds) {
-  if (seconds < 60) {
-    return `${Number(seconds.toFixed(3))}s`;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainSeconds = seconds % 60;
+
+  const secondText = remainSeconds
+    .toFixed(3)
+    .replace(/\.?0+$/, "")
+    .padStart(2, "0");
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${secondText}`;
   }
 
-  const minutes = Math.floor(seconds / 60);
-  const remainSeconds = seconds - minutes * 60;
+  return `${minutes}:${secondText}`;
+}
 
-  return `${minutes}:${String(Number(remainSeconds.toFixed(3))).padStart(
-    2,
-    "0",
-  )}`;
+function parseTime(timeText) {
+  const parts = timeText.split(":").map(Number);
+
+  if (parts.some(Number.isNaN)) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  let hours = 0;
+  let minutes;
+  let seconds;
+
+  if (parts.length === 2) {
+    [minutes, seconds] = parts;
+  } else if (parts.length === 3) {
+    [hours, minutes, seconds] = parts;
+  } else {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  if (
+    hours < 0 ||
+    minutes < 0 ||
+    minutes >= 60 ||
+    seconds < 0 ||
+    seconds >= 60
+  ) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
 }

@@ -8,6 +8,7 @@ import {
 
 export class ElmEvent {
   #events = [];
+  #resizeEvents = [];
 
   on(
     element,
@@ -162,5 +163,37 @@ export class ElmEvent {
     }
 
     return element;
+  }
+
+  onResizeObserve(element, handler) {
+    assertHtmlElement(element, "element");
+    assertFunction(handler, "handler");
+
+    const existingEvent = this.#resizeEvents.find(
+      (event) => event.element === element,
+    );
+
+    if (existingEvent) {
+      existingEvent.resizeObserver.disconnect();
+
+      existingEvent.resizeObserver = new ResizeObserver(() => {
+        handler();
+      });
+      existingEvent.handler = handler;
+
+      existingEvent.resizeObserver.observe(element);
+    } else {
+      const resizeObserver = new ResizeObserver(() => {
+        handler();
+      });
+
+      resizeObserver.observe(element);
+
+      this.#resizeEvents.push({
+        element,
+        resizeObserver,
+        handler,
+      });
+    }
   }
 }
