@@ -4,6 +4,7 @@ import {
   assertNumber,
   assertPositive,
   assertNonNegative,
+  assertHtmlElement,
 } from "./base/assert.js";
 import { createElementByHTML } from "./base/elm-helper.js";
 
@@ -30,8 +31,8 @@ export class TimelineRuler extends Elm {
   #pixelsPerSecond;
   #duration;
   #width;
-
-  #containerResizeObserver;
+  // element
+  #interactionElement;
 
   constructor(root, options = {}) {
     super(root, {
@@ -87,6 +88,23 @@ export class TimelineRuler extends Elm {
     this.#pixelsPerSecond = this.#basePixelsPerSecond;
     this.#duration = 0;
     this.#width = this.#calculateWidth();
+
+    this.resolveOption("interactionElement", (value, assertionSubject) => {
+      assertHtmlElement(value, assertionSubject);
+      this.#interactionElement = value;
+
+      const rootLeft = this.rootElement.getBoundingClientRect().left;
+      const interactionLeft =
+        this.#interactionElement.getBoundingClientRect().left;
+
+      // for floating point precision, allow a small tolerance
+      const epsilon = 0.01;
+      if (Math.abs(rootLeft - interactionLeft) > epsilon) {
+        throw new Error(
+          "interactionElement must be aligned with the root element",
+        );
+      }
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -264,10 +282,10 @@ export class TimelineRuler extends Elm {
   }
 
   #emitMousemove(event) {
-    const rulerRect = event.currentTarget.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
 
-    let x = event.clientX - rulerRect.left;
-    let y = event.clientY - rulerRect.top;
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
     y = Math.max(y, 0);
     x = Math.max(x, 0);
 
@@ -294,6 +312,12 @@ export class TimelineRuler extends Elm {
     this.event.on(this.rootElement, "mousemove", (event) => {
       this.#emitMousemove(event);
     });
+
+    if (this.#interactionElement != null) {
+      this.event.on(this.#interactionElement, "mousemove", (event) => {
+        this.#emitMousemove(event);
+      });
+    }
   }
 
   // ---------------------------------------------------------------------------

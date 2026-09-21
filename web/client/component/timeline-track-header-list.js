@@ -5,6 +5,7 @@ import {
   assertValueForMode,
   isEqualValue,
   filterValue,
+  getBySelector,
 } from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 import { CompactCombobox } from "./combobox.js";
@@ -152,7 +153,7 @@ export class TimelineTrackHeaderList extends ItemsElm {
     const itemEl = itemTemplate.cloneNode(true);
     itemEl.dataset.value = value;
 
-    const [nameEl, gainEl] = queryBySelector(
+    const [nameEl, gainEl] = getBySelector(
       itemEl,
       '[data-role="timeline-track-header-name"]',
       '[data-role="timeline-track-header-gain"]',

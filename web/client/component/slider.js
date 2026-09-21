@@ -397,7 +397,6 @@ export class GainCompactSlider extends CompactSlider {
       ...options,
       min: -60,
       max: 12,
-      percentBase: null,
       suffix: "dB",
       minValueText: "-∞",
     });

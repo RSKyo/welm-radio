@@ -28,7 +28,9 @@ const zoomElm = new Slider("#zoom", {
   value: 50,
 });
 
-const rulerElm = new TimelineRuler("#ruler");
+const rulerElm = new TimelineRuler("#ruler",{
+  interactionElement: timelineBodyEl,
+});
 
 const trackHeaderElm = new TimelineTrackHeaderList("#track-header", {
   valueField: "id",
@@ -58,16 +60,16 @@ function bindEvents() {
   on(zoomElm, "change", zoomChange);
 
   on(timelineBodyEl, "scroll", timelineBodyScroll);
-  on(timelineBodyEl, "mousemove", timelineBodyMousemove);
 
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
   on(rulerElm, "mousemove", rulerMousemove);
 
-  // on(trackHeaderElm, "selectedChange", timelineTrackHeaderListSelectedChange);
-  // on(trackElm, "selectedChange", timelineTrackListSelectedChange);
+  
 
-  // on(addTrackBtn, "click", addTrack);
+  on(addTrackBtn, "click", addTrack);
+  on(trackHeaderElm, "selectedChange", trackHeaderSelectedChange);
+  on(trackElm, "selectedChange",trackSelectedChange);
 }
 
 async function initData() {
@@ -86,16 +88,6 @@ function timelineBodyScroll() {
   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
 
-function timelineBodyMousemove(event) {
-  const timelineBodyRect = timelineBodyEl.getBoundingClientRect();
-
-  let x = event.clientX - timelineBodyRect.left;
-  x = Math.max(x, 0);
-
-  timelineCursorEl.style.left = `${Math.round(x)}px`;
-  const seconds = rulerElm.xToTime(x);
-  timelineCursorLabelEl.textContent = `${seconds}s`;
-}
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   trackElm.pixelsPerSecond = pixelsPerSecond;
@@ -110,19 +102,21 @@ function rulerMousemove({ x, formatSeconds }) {
   timelineCursorLabelEl.textContent = `${formatSeconds}`;
 }
 
-// function timelineTrackHeaderListSelectedChange({value}){
-//   trackElm.selectedValue = value;
-// }
 
-// function timelineTrackListSelectedChange({value}) {
-//   trackHeaderElm.selectedValue = value;
-// }
 
-// function addTrack() {
-//   const newTrack = createDefaultTrack();
-//   trackElm.addItem(newTrack);
-//   trackHeaderElm.addItem(newTrack);
-// }
+function addTrack() {
+  const newTrack = createDefaultTrack();
+  trackElm.addItem(newTrack);
+  trackHeaderElm.addItem(newTrack);
+}
+
+function trackHeaderSelectedChange({value}){
+  trackElm.selectedValue = value;
+}
+
+function trackSelectedChange({value}) {
+  trackHeaderElm.selectedValue = value;
+}
 
 // -----------------------------------------------------------------------------
 // Page Logic
