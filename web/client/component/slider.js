@@ -306,7 +306,12 @@ export class Slider extends Elm {
     } else if (this.#value === 0 && isNonBlankString(this.#zeroValueText)) {
       this.#valueEl.textContent = this.#zeroValueText;
     } else if (this.#percentBase == null) {
-      this.#valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
+      this.#valueEl.textContent = this.formatValue({
+        min: this.#min,
+        max: this.#max,
+        value: this.#value,
+        suffix: this.#suffix,
+      });
     } else {
       this.#valueEl.textContent = `${this.percent}%`;
     }
@@ -331,6 +336,11 @@ export class Slider extends Elm {
     if (this.#showActions) {
       this.#valueInputEl.value = this.#value;
     }
+  }
+
+  // can be overridden by subclasses to format the value display
+  formatValue({ min, max, value, suffix }) {
+    return `${value > 0 ? "+" : ""}${value}${suffix}`;
   }
 
   // -----------------------------------------------------------------------------
@@ -444,5 +454,11 @@ export class CompactPanSlider extends CompactSlider {
       maxValueText: "R",
       zeroValueText: "C",
     });
+  }
+
+  // override
+  formatValue({ min, max, value, suffix }) {
+    const amount = Math.round(Math.abs(value) * 100);
+    return value < 0 ? `L${amount}` : `R${amount}`;
   }
 }
