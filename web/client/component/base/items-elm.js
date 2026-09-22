@@ -90,72 +90,76 @@ export class ItemsElm extends Elm {
     return this.#items.map((item) => ({ ...item }));
   }
 
-  setItems(items) {
+  setItems(items, assertionSubject = "items") {
     // check
     if (!isNullishOrEmpty(items)) {
-      assertPlainObjectArray(items, "items", this.#valueField);
-      assertNoDuplicatePlainObjectValues(items, this.#valueField, "items");
+      assertPlainObjectArray(items, assertionSubject, this.#valueField);
+      assertNoDuplicatePlainObjectValues(
+        items,
+        this.#valueField,
+        assertionSubject,
+      );
 
       for (const item of items) {
         assertNonBlankString(
           item[this.#valueField],
-          `the value of field "${this.#valueField}"`,
+          `${assertionSubject}."${this.#valueField}"`,
         );
       }
     }
 
-    this.#setItems(items);
-    this.#setItemsRender(this.#items);
+    this.#setItems(items, assertionSubject);
+    this.#setItemsRender(this.#items, assertionSubject);
   }
 
-  #setItems(items) {
+  #setItems(items, assertionSubject = "items") {
     this.#items = isNullishOrEmpty(items)
       ? []
       : items.map((item) => ({ ...item }));
 
-    this.afterSetItems(this.#items);
+    this.afterSetItems(this.#items, assertionSubject);
   }
 
-  afterSetItems(items) {
+  afterSetItems(items, assertionSubject = "items") {
     // Override this method to perform actions after setting items.
   }
 
-  #setItemsRender(items) {
+  #setItemsRender(items, assertionSubject = "items") {
     // clear root element
     this.event.off({ element: this.rootElement, scope: "descendants" });
     this.rootElement.replaceChildren();
     this.#elements.clear();
     this.#emptyElement = null;
 
-    this.beforeRenderItems(items);
+    this.beforeRenderItems(items, assertionSubject);
 
     for (const item of items) {
-      this.renderItem(item);
+      this.renderItem(item, `${assertionSubject}.item`);
     }
 
-    this.afterRenderItems(items);
+    this.afterRenderItems(items, assertionSubject);
 
     this.#updateEmptyUIState();
   }
 
-  beforeRenderItems(items) {
+  beforeRenderItems(items, assertionSubject = "items") {
     // Override this method to perform actions before rendering items.
   }
 
-  renderItem(item) {
+  renderItem(item, assertionSubject = "item") {
     // add the item element to the DOM
-    const element = this.createItemElement(item);
+    const element = this.createItemElement(item, assertionSubject);
     this.rootElement.append(element);
 
     // store the element in the internal map for later reference
     this.#elements.set(item[this.#valueField], element);
   }
 
-  createItemElement(item) {
+  createItemElement(item, assertionSubject = "item") {
     throw new Error("createItemElement must be implemented by the subclass.");
   }
 
-  afterRenderItems(items) {
+  afterRenderItems(items, assertionSubject = "items") {
     // Override this method to perform actions after rendering items.
   }
 
@@ -163,40 +167,43 @@ export class ItemsElm extends Elm {
   // add item
   // -----------------------------------------------------------------------------
 
-  addItem(item) {
+  addItem(item, assertionSubject = "item") {
     // check
-    assertPlainObject(item, "item", this.#valueField);
+    assertPlainObject(item, assertionSubject, this.#valueField);
 
-    const assertionSubject = `item."${this.#valueField}"`;
     const value = item[this.#valueField];
 
-    assertNonBlankString(value, assertionSubject);
-    assertValueNotExists(value, this.itemValues, assertionSubject);
+    assertNonBlankString(value, `${assertionSubject}.${this.#valueField}`);
+    assertValueNotExists(
+      value,
+      this.itemValues,
+      `${assertionSubject}.${this.#valueField}`,
+    );
 
     // add item
-    const addedItem = this.#addItem(item);
+    const addedItem = this.#addItem(item, assertionSubject);
 
     // render the added item
-    this.#addItemRender(addedItem);
+    this.#addItemRender(addedItem, assertionSubject);
 
     return { ...addedItem };
   }
 
-  #addItem(item) {
+  #addItem(item, assertionSubject = "item") {
     const addedItem = { ...item };
     this.#items.push(addedItem);
 
-    this.afterAddItem(addedItem);
+    this.afterAddItem(addedItem, assertionSubject);
 
     return addedItem;
   }
 
-  afterAddItem(addedItem) {
+  afterAddItem(addedItem, assertionSubject = "item") {
     // Override this method to perform actions after adding an item.
   }
 
-  #addItemRender(addedItem) {
-    this.renderItem(addedItem);
+  #addItemRender(addedItem, assertionSubject = "item") {
+    this.renderItem(addedItem, assertionSubject);
 
     this.#updateEmptyUIState();
   }
@@ -205,27 +212,30 @@ export class ItemsElm extends Elm {
   // update item
   // -----------------------------------------------------------------------------
 
-  updateItem(item) {
+  updateItem(item, assertionSubject = "item") {
     // check
-    assertPlainObject(item, "item", this.#valueField);
+    assertPlainObject(item, assertionSubject, this.#valueField);
 
-    const assertionSubject = `item."${this.#valueField}"`;
     const value = item[this.#valueField];
 
-    assertNonBlankString(value, assertionSubject);
-    assertValueExists(value, this.itemValues, assertionSubject);
+    assertNonBlankString(value, `${assertionSubject}.${this.#valueField}`);
+    assertValueExists(
+      value,
+      this.itemValues,
+      `${assertionSubject}.${this.#valueField}`,
+    );
 
     // update item
-    const updatedItem = this.#updateItem(item);
+    const updatedItem = this.#updateItem(item, assertionSubject);
 
     // render the updated item
-    this.#updateItemRender(updatedItem);
+    this.#updateItemRender(updatedItem, assertionSubject);
 
     return { ...updatedItem };
   }
 
   // Update the item in the internal list.
-  #updateItem(item) {
+  #updateItem(item, assertionSubject = "item") {
     const updatedItem = { ...item };
     const index = this.#items.findIndex(
       (findItem) => findItem[this.#valueField] === item[this.#valueField],
@@ -233,24 +243,24 @@ export class ItemsElm extends Elm {
 
     this.#items[index] = updatedItem;
 
-    this.afterUpdateItem(updatedItem);
+    this.afterUpdateItem(updatedItem, assertionSubject);
 
     return updatedItem;
   }
 
-  afterUpdateItem(updatedItem) {
+  afterUpdateItem(updatedItem, assertionSubject = "item") {
     // Override this method to perform actions after updating an item.
   }
 
   // render the updated item
-  #updateItemRender(updatedItem) {
-    this.renderUpdatedItem(updatedItem);
+  #updateItemRender(updatedItem, assertionSubject = "item") {
+    this.renderUpdatedItem(updatedItem, assertionSubject);
 
     this.#updateEmptyUIState();
   }
 
   // render updated item
-  renderUpdatedItem(updatedItem) {
+  renderUpdatedItem(updatedItem, assertionSubject = "item") {
     // replace the old element with the new element in the DOM
     const oldElement = this.#elements.get(updatedItem[this.#valueField]);
     const newElement = this.createItemElement(updatedItem);
@@ -265,8 +275,7 @@ export class ItemsElm extends Elm {
   // remove item
   // -----------------------------------------------------------------------------
 
-  removeItem(value) {
-    const assertionSubject = this.#valueField;
+  removeItem(value, assertionSubject = this.#valueField) {
     assertNonBlankString(value, assertionSubject);
     assertValueExists(value, this.itemValues, assertionSubject);
 
@@ -274,13 +283,13 @@ export class ItemsElm extends Elm {
     const removedItem = this.#removeItem(value);
 
     // render the removed item
-    this.#removeItemRender(removedItem);
+    this.#removeItemRender(removedItem, assertionSubject);
 
     return { ...removedItem };
   }
 
   // Remove the item from the internal list by its value.
-  #removeItem(value) {
+  #removeItem(value, assertionSubject = this.#valueField) {
     let removedItem = null;
     this.#items = this.#items.filter((item) => {
       if (item[this.#valueField] === value) {
@@ -290,22 +299,22 @@ export class ItemsElm extends Elm {
       return true;
     });
 
-    this.afterRemoveItem(removedItem);
+    this.afterRemoveItem(removedItem, assertionSubject);
 
     return removedItem;
   }
 
-  afterRemoveItem(removedItem) {
+  afterRemoveItem(removedItem, assertionSubject = this.#valueField) {
     // Override this method to perform actions after removing an item.
   }
 
-  #removeItemRender(removedItem) {
-    this.renderRemovedItem(removedItem);
+  #removeItemRender(removedItem, assertionSubject = this.#valueField) {
+    this.renderRemovedItem(removedItem, assertionSubject);
 
     this.#updateEmptyUIState();
   }
 
-  renderRemovedItem(removedItem) {
+  renderRemovedItem(removedItem, assertionSubject = this.#valueField) {
     const value = removedItem[this.#valueField];
 
     // remove element from the DOM

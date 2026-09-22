@@ -149,7 +149,7 @@ export function assertPlainObjectArray(arr, assertionSubject = "arr", ...fields)
     throw new Error(`${assertionSubject} must be an array of plain objects`);
   }
 
-  assertFieldsInPlainObjectArray(arr, ...fields);
+  assertFieldsInPlainObjectArray(arr, assertionSubject, ...fields);
 }
 
 export function assertNonEmptyPlainObjectArray(
@@ -161,7 +161,7 @@ export function assertNonEmptyPlainObjectArray(
     throw new Error(`${assertionSubject} must be a non-empty array of plain objects`);
   }
 
-  assertFieldsInPlainObjectArray(arr, ...fields);
+  assertFieldsInPlainObjectArray(arr, assertionSubject, ...fields);
 }
 
 export function assertPlainObjectOrArray(
@@ -176,7 +176,7 @@ export function assertPlainObjectOrArray(
   }
 
   const objs = is.isArray(value) ? value : [value];
-  assertFieldsInPlainObjectArray(objs, ...fields);
+  assertFieldsInPlainObjectArray(objs, assertionSubject, ...fields);
 }
 
 export function assertPlainObjectOrNonEmptyArray(
@@ -191,13 +191,13 @@ export function assertPlainObjectOrNonEmptyArray(
   }
 
   const objs = is.isArray(value) ? value : [value];
-  assertFieldsInPlainObjectArray(objs, ...fields);
+  assertFieldsInPlainObjectArray(objs, assertionSubject, ...fields);
 }
 
-function assertFieldsInPlainObjectArray(arr, ...fields) {
+function assertFieldsInPlainObjectArray(arr, assertionSubject = "arr", ...fields) {
   for (const obj of arr) {
     for (const field of fields) {
-      assertKeyExists(field, obj, "field");
+      assertKeyExists(field, obj, `${assertionSubject}.${field}`);
     }
   }
 }
@@ -210,7 +210,7 @@ export function assertPlainObject(obj, assertionSubject = "obj", ...fields) {
   }
 
   for (const field of fields) {
-    assertKeyExists(field, obj, "field");
+    assertKeyExists(field, obj, `${assertionSubject}.${field}`);
   }
 }
 

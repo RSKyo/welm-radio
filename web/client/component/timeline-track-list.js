@@ -1,4 +1,8 @@
-import { assertNonNegative, assertValueIn } from "./base/assert.js";
+import {
+  assertNonNegative,
+  assertPositive,
+  assertValueIn,
+} from "./base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
@@ -50,6 +54,14 @@ export class TimelineTrackList extends ItemsElm {
     this.resolveOption("width", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#width = value;
+    });
+
+    this.resolveOption("height", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.rootElement.style.setProperty(
+        "--timeline-track-height",
+        `${value}px`,
+      );
     });
   }
 

@@ -4,6 +4,8 @@ import { isEqualValue } from "./base/elm-helper.js";
 
 export class ToggleButton extends Elm {
   // state(read-only)
+  #activeText = "On";
+  #inactiveText = "Off";
   #activeValue = true;
   #inactiveValue = false;
   #activeColor = null;
@@ -13,8 +15,8 @@ export class ToggleButton extends Elm {
 
   constructor(root, options = {}) {
     super(root, {
-      ...options,
       defaultRootClass: "toggle-button",
+      ...options,
     });
 
     this.#init();
@@ -27,6 +29,16 @@ export class ToggleButton extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
+    this.resolveOption("activeText", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#activeText = value;
+    });
+
+    this.resolveOption("inactiveText", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#inactiveText = value;
+    });
+
     this.resolveOption("activeValue", (value) => {
       this.#activeValue = value;
     });
@@ -35,12 +47,22 @@ export class ToggleButton extends Elm {
       this.#inactiveValue = value;
     });
 
+    if (isEqualValue(this.#activeValue, this.#inactiveValue)) {
+      throw new Error("activeValue and inactiveValue must be different");
+    }
+
+    this.#value = this.#inactiveValue;
+
     this.resolveOption("activeColor", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
+
       this.#activeColor = value;
+
+      this.rootElement.style.setProperty("--toggle-button-active-color", value);
     });
 
-    this.resolveOption("value", (value) => {
+    this.resolveOption("value", (value, assertionSubject) => {
+      this.#assertValue(value, assertionSubject);
       this.#value = value;
     });
   }
@@ -61,6 +83,10 @@ export class ToggleButton extends Elm {
     return this.#activeColor;
   }
 
+  get active() {
+    return isEqualValue(this.#value, this.#activeValue);
+  }
+
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------
@@ -74,12 +100,7 @@ export class ToggleButton extends Elm {
   }
 
   #setValue(value) {
-    if (
-      !isEqualValue(value, this.#activeValue) &&
-      !isEqualValue(value, this.#inactiveValue)
-    ) {
-      throw new Error("value must be activeValue or inactiveValue");
-    }
+    this.#assertValue(value, "value");
 
     if (isEqualValue(value, this.#value)) {
       return;
@@ -89,10 +110,6 @@ export class ToggleButton extends Elm {
 
     this.#updateUIState();
     this.#emitChange();
-  }
-
-  get active() {
-    return isEqualValue(this.#value, this.#activeValue);
   }
 
   // -----------------------------------------------------------------------------
@@ -117,9 +134,7 @@ export class ToggleButton extends Elm {
 
   #bindEvents() {
     this.event.on(this.rootElement, "click", () => {
-      this.value = this.active
-        ? this.#inactiveValue
-        : this.#activeValue;
+      this.#setValue(this.active ? this.#inactiveValue : this.#activeValue);
     });
   }
 
@@ -132,10 +147,28 @@ export class ToggleButton extends Elm {
 
     this.rootElement.classList.toggle("is-active", active);
 
-    if (this.#activeColor != null) {
-      this.rootElement.style.backgroundColor = active
-        ? this.#activeColor
-        : "";
+    this.rootElement.textContent = active
+      ? this.#activeText
+      : this.#inactiveText;
+  }
+
+  #assertValue(value, assertionSubject = "value") {
+    if (
+      !isEqualValue(value, this.#activeValue) &&
+      !isEqualValue(value, this.#inactiveValue)
+    ) {
+      throw new Error(
+        `${assertionSubject} must be activeValue or inactiveValue`,
+      );
     }
+  }
+}
+
+export class CompactToggleButton extends ToggleButton {
+  constructor(root, options = {}) {
+    super(root, {
+      ...options,
+      defaultRootClass: "toggle-button toggle-button-compact",
+    });
   }
 }

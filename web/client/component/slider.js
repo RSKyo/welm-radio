@@ -56,6 +56,7 @@ export class Slider extends Elm {
   #suffix = "%";
   #minValueText = null;
   #maxValueText = null;
+  #zeroValueText = null;
   #fixed = 2;
   #percentBase = null;
   #min = 0;
@@ -73,8 +74,8 @@ export class Slider extends Elm {
 
   constructor(root, options = {}) {
     super(root, {
-      ...options,
       defaultRootClass: "slider",
+      ...options,
     });
 
     this.#init();
@@ -110,6 +111,11 @@ export class Slider extends Elm {
     this.resolveOption("maxValueText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#maxValueText = value;
+    });
+
+    this.resolveOption("zeroValueText", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#zeroValueText = value;
     });
 
     this.resolveOption("fixed", (value, assertionSubject) => {
@@ -297,6 +303,8 @@ export class Slider extends Elm {
       isNonBlankString(this.#maxValueText)
     ) {
       this.#valueEl.textContent = this.#maxValueText;
+    } else if (this.#value === 0 && isNonBlankString(this.#zeroValueText)) {
+      this.#valueEl.textContent = this.#zeroValueText;
     } else if (this.#percentBase == null) {
       this.#valueEl.textContent = `${this.#value > 0 ? "+" : ""}${this.#value}${this.#suffix}`;
     } else {
@@ -389,7 +397,7 @@ export class CompactSlider extends Slider {
  * 0 dB = gain 1
  * +12 dB ≈ gain 3.98
  */
-export class GainCompactSlider extends CompactSlider {
+export class CompactGainSlider extends CompactSlider {
   constructor(root, options = {}) {
     super(root, {
       step: 0.5,
@@ -416,5 +424,25 @@ export class GainCompactSlider extends CompactSlider {
 
   gainToDb(gain) {
     return Math.max(20 * Math.log10(gain), this.min);
+  }
+}
+
+/**
+ * -1 = full left
+ *  0 = center
+ * +1 = full right
+ */
+export class CompactPanSlider extends CompactSlider {
+  constructor(root, options = {}) {
+    super(root, {
+      step: 0.01,
+      value: 0,
+      ...options,
+      min: -1,
+      max: 1,
+      minValueText: "L",
+      maxValueText: "R",
+      zeroValueText: "C",
+    });
   }
 }

@@ -34,11 +34,13 @@ const rulerElm = new TimelineRuler("#ruler",{
 
 const trackHeaderElm = new TimelineTrackHeaderList("#track-header", {
   valueField: "id",
+  height: 120,
 });
 const trackElm = new TimelineTrackList("#track", {
   valueField: "id",
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   width: timelineBodyEl.clientWidth,
+  height: 120,
 });
 
 // -----------------------------------------------------------------------------
@@ -106,8 +108,8 @@ function rulerMousemove({ x, formatSeconds }) {
 
 function addTrack() {
   const newTrack = createDefaultTrack();
-  trackElm.addItem(newTrack);
-  trackHeaderElm.addItem(newTrack);
+  trackElm.addItem(newTrack,"track item");
+  trackHeaderElm.addItem(newTrack,"track header item");
 }
 
 function trackHeaderSelectedChange({value}){
@@ -126,9 +128,9 @@ function createDefaultTrack(options = {}) {
     id: crypto.randomUUID(),
     name: "",
     gain: 1,
+    locked: false,
     muted: false,
     pan: 0,
-    locked: false,
     description: "",
   };
 }

@@ -1,4 +1,8 @@
-import { assertNonNegative, assertValueIn } from "./base/assert.js";
+import {
+  assertPositive,
+  assertPlainObject,
+  assertValueIn,
+} from "./base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
@@ -9,12 +13,18 @@ import {
 } from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 import { CompactCombobox } from "./combobox.js";
-import { GainCompactSlider } from "./slider.js";
+import { CompactGainSlider, CompactPanSlider } from "./slider.js";
+import { CompactToggleButton } from "./toggle-button.js";
 
 const ITEM_TEMPLATE = `
 <div class="timeline-track-header" data-role="item">
-  <div data-role="timeline-track-header-name"></div>
-  <div data-role="timeline-track-header-gain"></div>
+  <div data-role="name"></div>
+  <div data-role="gain"></div>
+  <div style="display: flex; gap: 4px;">
+    <div style="flex: 1;" data-role="lock"></div>
+    <div style="flex: 1;" data-role="muted"></div>
+  </div>
+  <div data-role="pan"></div>
 </div>
 `;
 
@@ -22,13 +32,9 @@ const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
 
 export class TimelineTrackHeaderList extends ItemsElm {
   // state
-  #itemElms = [];
+  #itemElms = new Map();
   #selectedValue = null;
   #selectedValueMode = 1;
-  // ruler
-  #timelineRuler;
-  // event
-  #onSelectedChange;
 
   constructor(root, options = {}) {
     super(root, {
@@ -36,7 +42,27 @@ export class TimelineTrackHeaderList extends ItemsElm {
       defaultRootClass: "timeline-track-header-list",
     });
 
+    this.#init();
     this.#bindEvents();
+  }
+
+  // -----------------------------------------------------------------------------
+  // initialization
+  // -----------------------------------------------------------------------------
+
+  #init() {
+    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
+      assertValueIn(value, [1, 2], assertionSubject);
+      this.#selectedValueMode = value;
+    });
+
+    this.resolveOption("height", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.rootElement.style.setProperty(
+        "--timeline-track-header-height",
+        `${value}px`,
+      );
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -138,35 +164,77 @@ export class TimelineTrackHeaderList extends ItemsElm {
   afterSetItems(items) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#itemElms.clear();
   }
 
   // override
   afterRemoveItem(removedItem) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#itemElms.delete(removedItem[this.valueField]);
   }
 
   // override
-  createItemElement(item) {
+  createItemElement(item, assertionSubject = "item") {
+    assertPlainObject(
+      item,
+      assertionSubject,
+      this.valueField,
+      "name",
+      "gain",
+      "locked",
+      "muted",
+      "pan",
+    );
+
     const value = item[this.valueField];
 
     const itemEl = itemTemplate.cloneNode(true);
     itemEl.dataset.value = value;
 
-    const [nameEl, gainEl] = getBySelector(
+    const [nameEl, gainEl, lockEl, mutedEl, panEl] = getBySelector(
       itemEl,
-      '[data-role="timeline-track-header-name"]',
-      '[data-role="timeline-track-header-gain"]',
+      '[data-role="name"]',
+      '[data-role="gain"]',
+      '[data-role="lock"]',
+      '[data-role="muted"]',
+      '[data-role="pan"]',
     );
 
     const nameElm = new CompactCombobox(nameEl);
     nameElm.dropdownValues = getTrackNames();
+    nameElm.value = item.name;
 
-    const gainSliderElm = new GainCompactSlider(gainEl);
+    const gainSliderElm = new CompactGainSlider(gainEl);
+    gainSliderElm.value = gainSliderElm.gainToDb(item.gain);
 
-    this.#itemElms.push({
+    const lockToggleElm = new CompactToggleButton(lockEl, {
+      activeValue: true,
+      inactiveValue: false,
+      activeText: "Locked",
+      inactiveText: "Unlocked",
+      activeColor: "#CAAD5F",
+    });
+    lockToggleElm.value = item.locked;
+
+    const mutedToggleElm = new CompactToggleButton(mutedEl, {
+      activeValue: true,
+      inactiveValue: false,
+      activeText: "Muted",
+      inactiveText: "Unmuted",
+      activeColor: "#CC543A",
+    });
+    mutedToggleElm.value = item.muted;
+
+    const panSliderElm = new CompactPanSlider(panEl);
+    panSliderElm.value = item.pan;
+
+    this.#itemElms.set(value, {
       name: nameElm,
       gain: gainSliderElm,
+      lock: lockToggleElm,
+      muted: mutedToggleElm,
+      pan: panSliderElm,
     });
 
     return itemEl;

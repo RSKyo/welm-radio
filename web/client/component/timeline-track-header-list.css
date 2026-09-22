@@ -1,4 +1,6 @@
 .timeline-track-header-list {
+    --timeline-track-header-height: 100px;
+
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6,8 +8,8 @@
 
 .timeline-track-header {
   position: relative;
-  min-height: 100px;
-  height: 100px;
+  min-height: var(--timeline-track-header-height, 100px);
+  height: var(--timeline-track-header-height, 100px);
   padding: 4px 8px;
   border: 0;
   border-radius: 4px;
@@ -16,7 +18,7 @@
 
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .timeline-track-header:nth-child(even) {

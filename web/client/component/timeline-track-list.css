@@ -1,4 +1,6 @@
 .timeline-track-list {
+  --timeline-track-height: 100px;
+
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6,8 +8,8 @@
 
 .timeline-track {
   position: relative;
-  min-height: 100px;
-  height: 100px;
+  min-height: var(--timeline-track-height, 100px);
+  height: var(--timeline-track-height, 100px);
   padding: 4px 0;
   border: 0;
   border-radius: 4px;

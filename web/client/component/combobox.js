@@ -33,8 +33,8 @@ export class Combobox extends Elm {
 
   constructor(root, options = {}) {
     super(root, {
-      ...options,
       defaultRootClass: "combobox",
+      ...options,
     });
 
     this.#render();
