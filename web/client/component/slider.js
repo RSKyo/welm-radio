@@ -17,6 +17,11 @@ const MAIN_TEMPLATE = `
       data-role="prev"
   >
   </button>
+  <div
+      class="slider-label"
+      data-role="label"
+  >
+  </div>
   <button
       type="button"
       class="slider-next"
@@ -51,9 +56,10 @@ const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
 
 export class Slider extends Elm {
   // state
+  #labelText = "";
   #prevText = "-";
   #nextText = "+";
-  #suffix = "%";
+  #suffix = null;
   #minValueText = null;
   #maxValueText = null;
   #zeroValueText = null;
@@ -88,6 +94,11 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
+    this.resolveOption("labelText", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#labelText = value;
+    });
+
     this.resolveOption("prevText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#prevText = value;
@@ -162,6 +173,11 @@ export class Slider extends Elm {
     if (this.#max <= this.#min) {
       throw new Error("max must be greater than min");
     }
+
+    this.resolveOption("primaryColor", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.rootElement.style.setProperty("--slider-primary-color", value);
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -305,15 +321,15 @@ export class Slider extends Elm {
       this.#valueEl.textContent = this.#maxValueText;
     } else if (this.#value === 0 && isNonBlankString(this.#zeroValueText)) {
       this.#valueEl.textContent = this.#zeroValueText;
-    } else if (this.#percentBase == null) {
+    } else if (this.#suffix === "%") {
+      this.#valueEl.textContent = this.percent + "%";
+    } else {
       this.#valueEl.textContent = this.formatValue({
         min: this.#min,
         max: this.#max,
         value: this.#value,
         suffix: this.#suffix,
       });
-    } else {
-      this.#valueEl.textContent = `${this.percent}%`;
     }
 
     // valueEl left
@@ -340,7 +356,7 @@ export class Slider extends Elm {
 
   // can be overridden by subclasses to format the value display
   formatValue({ min, max, value, suffix }) {
-    return `${value > 0 ? "+" : ""}${value}${suffix}`;
+    return `${value}${suffix ?? ""}`;
   }
 
   // -----------------------------------------------------------------------------
@@ -350,20 +366,26 @@ export class Slider extends Elm {
   #render() {
     // main
     const mainEl = mainTemplate.cloneNode(true);
-    const [rangeEl, prevEl, nextEl, valueEl] = getBySelector(
+    const [labelEl, rangeEl, prevEl, nextEl, valueEl] = getBySelector(
       mainEl,
+      '[data-role="label"]',
       '[data-role="range"]',
       '[data-role="prev"]',
       '[data-role="next"]',
       '[data-role="value"]',
+      
     );
+
+    labelEl.textContent = this.#labelText;
 
     rangeEl.min = this.#min;
     rangeEl.max = this.#max;
     rangeEl.step = this.#step;
     rangeEl.value = this.#value;
+    
     prevEl.textContent = this.#prevText;
     nextEl.textContent = this.#nextText;
+    
 
     this.#mainEl = mainEl;
     this.#rangeEl = rangeEl;

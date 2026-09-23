@@ -9,11 +9,15 @@ import {
   assertValueForMode,
   isEqualValue,
   filterValue,
+  getBySelector,
 } from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
+import { TimelineClipGroup } from "./timeline-clip-group.js";
 
 const ITEM_TEMPLATE = `
 <div class="timeline-track" data-role="item">
+  <div data-role="clip-group">
+  </div>
 </div>
 `;
 
@@ -25,6 +29,7 @@ export class TimelineTrackList extends ItemsElm {
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #width = 0;
+  #itemClipGroupMap = new Map();
 
   constructor(root, options = {}) {
     super(root, {
@@ -111,6 +116,10 @@ export class TimelineTrackList extends ItemsElm {
     }
 
     this.#pixelsPerSecond = value;
+
+    for (const clipGroupElm of this.#itemClipGroupMap.values()) {
+      clipGroupElm.pixelsPerSecond = value;
+    }
   }
 
   get width() {
@@ -206,12 +215,24 @@ export class TimelineTrackList extends ItemsElm {
   afterSetItems(items) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+
+    for (const clipGroupElm of this.#itemClipGroupMap.values()) {
+      clipGroupElm.destroy();
+    }
+
+    this.#itemClipGroupMap.clear();
   }
 
   // override
   afterRemoveItem(removedItem) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+
+    const value = removedItem[this.valueField];
+    const clipGroupElm = this.#itemClipGroupMap.get(value);
+
+    clipGroupElm?.destroy();
+    this.#itemClipGroupMap.delete(value);
   }
 
   // override
@@ -221,7 +242,14 @@ export class TimelineTrackList extends ItemsElm {
     const itemEl = itemTemplate.cloneNode(true);
     itemEl.dataset.value = value;
     itemEl.style.width = `${this.#width}px`;
-    itemEl.textContent = value;
+
+    const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
+
+    const clipGroupElm = new TimelineClipGroup(clipGroupEl, {
+      pixelsPerSecond: this.#pixelsPerSecond,
+    });
+
+    this.#itemClipGroupMap.set(value, clipGroupElm);
 
     return itemEl;
   }
@@ -229,5 +257,18 @@ export class TimelineTrackList extends ItemsElm {
   // override
   afterRenderItems(items) {
     this.#updateSelectedUIState();
+  }
+  // ---------------------------------------------------------------------------
+  // add clip to track
+  // ---------------------------------------------------------------------------
+
+  addClip(trackValue, clip) {
+    const clipGroupElm = this.#itemClipGroupMap.get(trackValue);
+
+    if (!clipGroupElm) {
+      throw new Error(`track not found: ${trackValue}`);
+    }
+
+    clipGroupElm.addItem(clip);
   }
 }

@@ -1,6 +1,6 @@
 import {
+  assertNonNegative,
   assertPositive,
-  assertPlainObject,
   assertValueIn,
 } from "./base/assert.js";
 import {
@@ -9,37 +9,26 @@ import {
   assertValueForMode,
   isEqualValue,
   filterValue,
-  getBySelector,
 } from "./base/elm-helper.js";
 import { ItemsElm } from "./base/items-elm.js";
-import { CompactCombobox } from "./combobox.js";
-import { CompactGainSlider, CompactPanSlider } from "./slider.js";
-import { CompactToggleButton } from "./toggle-button.js";
 
 const ITEM_TEMPLATE = `
-<div class="timeline-track-header" data-role="item">
-  <div data-role="name"></div>
-  <div data-role="gain"></div>
-  <div data-role="pan"></div>
-  <div style="display: flex; gap: 4px;">
-    <div style="flex: 1;" data-role="lock"></div>
-    <div style="flex: 1;" data-role="muted"></div>
-  </div>
+<div class="timeline-clip" data-role="item">
 </div>
 `;
 
 const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
 
-export class TimelineTrackHeaderList extends ItemsElm {
+export class TimelineClipGroup extends ItemsElm {
   // state
   #selectedValue = null;
   #selectedValueMode = 1;
-  #itemElmsMap = new Map();
+  #pixelsPerSecond = 0;
 
   constructor(root, options = {}) {
     super(root, {
       ...options,
-      defaultRootClass: "timeline-track-header-list",
+      defaultRootClass: "timeline-clip-group",
     });
 
     this.#init();
@@ -56,12 +45,9 @@ export class TimelineTrackHeaderList extends ItemsElm {
       this.#selectedValueMode = value;
     });
 
-    this.resolveOption("height", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.rootElement.style.setProperty(
-        "--timeline-track-header-height",
-        `${value}px`,
-      );
+    this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#pixelsPerSecond = value;
     });
   }
 
@@ -95,6 +81,24 @@ export class TimelineTrackHeaderList extends ItemsElm {
     this.#updateSelectedUIState();
     this.#emitSelectedChange(newValue);
   }
+
+  get pixelsPerSecond() {
+    return this.#pixelsPerSecond;
+  }
+
+  set pixelsPerSecond(value) {
+    assertNonNegative(value, "pixelsPerSecond");
+    this.#setPixelsPerSecond(value);
+  }
+
+  #setPixelsPerSecond(value) {
+    if (value === this.#pixelsPerSecond) {
+      return;
+    }
+
+    this.#pixelsPerSecond = value;
+  }
+
 
   // -----------------------------------------------------------------------------
   // registered events
@@ -164,84 +168,20 @@ export class TimelineTrackHeaderList extends ItemsElm {
   afterSetItems(items) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#itemElmsMap.clear();
   }
 
   // override
   afterRemoveItem(removedItem) {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#itemElmsMap.delete(removedItem[this.valueField]);
   }
 
   // override
-  createItemElement(item, assertionSubject = "item") {
-    assertPlainObject(
-      item,
-      assertionSubject,
-      this.valueField,
-      "name",
-      "gain",
-      "locked",
-      "muted",
-      "pan",
-    );
-
+  createItemElement(item) {
     const value = item[this.valueField];
 
     const itemEl = itemTemplate.cloneNode(true);
     itemEl.dataset.value = value;
-
-    const [nameEl, gainEl, lockEl, mutedEl, panEl] = getBySelector(
-      itemEl,
-      '[data-role="name"]',
-      '[data-role="gain"]',
-      '[data-role="lock"]',
-      '[data-role="muted"]',
-      '[data-role="pan"]',
-    );
-
-    const nameElm = new CompactCombobox(nameEl);
-    nameElm.dropdownValues = getTrackNames();
-    nameElm.value = item.name;
-
-    const gainSliderElm = new CompactGainSlider(gainEl, {
-      labelText: "Gain",
-      primaryColor: "#51A8DD",
-    });
-    gainSliderElm.value = gainSliderElm.gainToDb(item.gain);
-
-    const lockToggleElm = new CompactToggleButton(lockEl, {
-      activeValue: true,
-      inactiveValue: false,
-      activeText: "Locked",
-      inactiveText: "Unlocked",
-      activeColor: "#B4A582",
-    });
-    lockToggleElm.value = item.locked;
-
-    const mutedToggleElm = new CompactToggleButton(mutedEl, {
-      activeValue: true,
-      inactiveValue: false,
-      activeText: "Muted",
-      inactiveText: "Unmuted",
-      activeColor: "#A96360",
-    });
-    mutedToggleElm.value = item.muted;
-
-    const panSliderElm = new CompactPanSlider(panEl, {
-      labelText: "Pan",
-      primaryColor: "#8B81C3",
-    });
-    panSliderElm.value = item.pan;
-
-    this.#itemElmsMap.set(value, {
-      name: nameElm,
-      gain: gainSliderElm,
-      lock: lockToggleElm,
-      muted: mutedToggleElm,
-      pan: panSliderElm,
-    });
 
     return itemEl;
   }
@@ -250,8 +190,4 @@ export class TimelineTrackHeaderList extends ItemsElm {
   afterRenderItems(items) {
     this.#updateSelectedUIState();
   }
-}
-
-function getTrackNames() {
-  return ["主持人", "嘉宾", "背景音乐", "环境音", "音效", "标识音"];
 }

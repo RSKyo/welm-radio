@@ -26,6 +26,8 @@ const zoomElm = new Slider("#zoom", {
   max: 250,
   step: 1,
   value: 50,
+  suffix: "%",
+  primaryColor: "#787878",
 });
 
 const rulerElm = new TimelineRuler("#ruler",{

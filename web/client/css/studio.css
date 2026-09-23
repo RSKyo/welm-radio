@@ -11,6 +11,7 @@
   position: relative;
   background-color: var(--color-surface);
 }
+
 .timeline-header {
   overflow: hidden;
   min-width: 0;
@@ -30,6 +31,7 @@
   margin: 0 !important;
   cursor: default;
 }
+
 .timeline-cursor {
   position: absolute;
   top: 0;
