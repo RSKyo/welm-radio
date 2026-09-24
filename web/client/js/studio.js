@@ -1,15 +1,16 @@
 import { toast, safeRun, on, getElement } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
-import { TimelineRuler } from "../component/timeline-ruler.js";
-import { TimelineTrackHeaderList } from "../component/timeline-track-header-list.js";
-import { TimelineTrackList } from "../component/timeline-track-list.js";
+import { TimelineRuler } from "../component/timeline/ruler.js";
+import { TrackHeaderList } from "../component/timeline/track-header-list.js";
+import { TrackList } from "../component/timeline/track-list.js";
 
 // -----------------------------------------------------------------------------
 // Elements
 // -----------------------------------------------------------------------------
 
 const addTrackBtn = getElement("#add-track");
+const addClipBtn = getElement("#add-clip");
 
 const timelineEl = getElement(".timeline");
 const timelineHeaderEl = getElement(".timeline-header");
@@ -30,18 +31,17 @@ const zoomElm = new Slider("#zoom", {
   primaryColor: "#787878",
 });
 
-const rulerElm = new TimelineRuler("#ruler",{
+const rulerElm = new TimelineRuler("#ruler", {
   interactionElement: timelineBodyEl,
 });
 
-const trackHeaderElm = new TimelineTrackHeaderList("#track-header", {
-  valueField: "id",
+const trackHeaderListElm = new TrackHeaderList("#track-header", {
+  valueField: "trackId",
   height: 120,
 });
-const trackElm = new TimelineTrackList("#track", {
-  valueField: "id",
-  pixelsPerSecond: rulerElm.pixelsPerSecond,
-  width: timelineBodyEl.clientWidth,
+const trackListElm = new TrackList("#track", {
+  valueField: "trackId",
+  timelineRuler: rulerElm,
   height: 120,
 });
 
@@ -65,19 +65,17 @@ function bindEvents() {
 
   on(timelineBodyEl, "scroll", timelineBodyScroll);
 
-  on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
-  on(rulerElm, "widthChange", rulerWidthChange);
   on(rulerElm, "mousemove", rulerMousemove);
 
-  
-
   on(addTrackBtn, "click", addTrack);
-  on(trackHeaderElm, "selectedChange", trackHeaderSelectedChange);
-  on(trackElm, "selectedChange",trackSelectedChange);
+  on(addClipBtn, "click", addClip);
+
+  on(trackHeaderListElm, "selectedChange", trackHeaderSelectedChange);
+  on(trackListElm, "selectedChange", trackSelectedChange);
 }
 
 async function initData() {
-  // trackElm.timelineRuler = rulerElm;
+  // trackListElm.timelineRuler = rulerElm;
 }
 
 // -----------------------------------------------------------------------------
@@ -92,34 +90,31 @@ function timelineBodyScroll() {
   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
 
-
-function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
-  trackElm.pixelsPerSecond = pixelsPerSecond;
-}
-
-function rulerWidthChange({ width }) {
-  trackElm.width = width;
-}
-
 function rulerMousemove({ x, formatSeconds }) {
   timelineCursorEl.style.left = `${Math.round(x)}px`;
   timelineCursorLabelEl.textContent = `${formatSeconds}`;
 }
 
-
-
 function addTrack() {
   const newTrack = createDefaultTrack();
-  trackElm.addItem(newTrack,"track item");
-  trackHeaderElm.addItem(newTrack,"track header item");
+  trackListElm.addItem(newTrack, "track item");
+  trackHeaderListElm.addItem(newTrack, "track header item");
 }
 
-function trackHeaderSelectedChange({value}){
-  trackElm.selectedValue = value;
+function trackHeaderSelectedChange({ value }) {
+  trackListElm.selectedValue = value;
 }
 
-function trackSelectedChange({value}) {
-  trackHeaderElm.selectedValue = value;
+function trackSelectedChange({ value }) {
+  trackHeaderListElm.selectedValue = value;
+}
+
+function addClip() {
+  const trackValue = trackListElm.selectedValue;
+  if (trackValue === null) return;
+
+  const newClip = createDefaultClip();
+  trackListElm.addClip(trackValue, newClip);
 }
 
 // -----------------------------------------------------------------------------
@@ -127,12 +122,21 @@ function trackSelectedChange({value}) {
 // -----------------------------------------------------------------------------
 function createDefaultTrack(options = {}) {
   return {
-    id: crypto.randomUUID(),
+    trackId: crypto.randomUUID(),
     name: "",
     gain: 1,
+    pan: 0,
     locked: false,
     muted: false,
-    pan: 0,
-    description: "",
+  };
+}
+
+function createDefaultClip(options = {}) {
+  return {
+    clipId: crypto.randomUUID(),
+    title: "",
+    audioStart: 0,
+    audioEnd: 20,
+    clipStart: 10,
   };
 }

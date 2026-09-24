@@ -1,15 +1,15 @@
-.timeline-track-list {
-  --timeline-track-height: 100px;
+.track-list {
+  --track-height: 100px;
 
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.timeline-track {
+.track {
   position: relative;
-  min-height: var(--timeline-track-height, 100px);
-  height: var(--timeline-track-height, 100px);
+  min-height: var(--track-height, 100px);
+  height: var(--track-height, 100px);
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -17,9 +17,9 @@
   background: var(--color-surface);
 }
 
-.timeline-track:nth-child(even) {
+.track:nth-child(even) {
   background: var(--color-surface-sunken);
 }
-.timeline-track.is-selected {
+.track.is-selected {
   background: var(--color-selected);
 }

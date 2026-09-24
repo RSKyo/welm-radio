@@ -1,15 +1,15 @@
-.timeline-track-header-list {
-    --timeline-track-header-height: 100px;
+.track-header-list {
+    --track-header-height: 100px;
 
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.timeline-track-header {
+.track-header {
   position: relative;
-  min-height: var(--timeline-track-header-height, 100px);
-  height: var(--timeline-track-header-height, 100px);
+  min-height: var(--track-header-height, 100px);
+  height: var(--track-header-height, 100px);
   padding: 4px 8px;
   border: 0;
   border-radius: 4px;
@@ -21,9 +21,9 @@
   gap: 8px;
 }
 
-.timeline-track-header:nth-child(even) {
+.track-header:nth-child(even) {
   background: var(--color-surface-sunken);
 }
-.timeline-track-header.is-selected {
+.track-header.is-selected {
   background: var(--color-selected);
 }

@@ -1,12 +1,12 @@
-import { Elm } from "./base/elm.js";
+import { Elm } from "../base/elm.js";
 import {
   assertTimeInSeconds,
   assertNumber,
   assertPositive,
   assertNonNegative,
   assertHtmlElement,
-} from "./base/assert.js";
-import { createElementByHTML } from "./base/elm-helper.js";
+} from "../base/assert.js";
+import { createElementByHTML } from "../base/elm-helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">

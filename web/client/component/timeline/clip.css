@@ -1,0 +1,39 @@
+.clip {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+
+  min-width: 2px;
+
+  padding: 4px 6px;
+
+  border: 1px solid #8eb9df;
+  border-radius: 4px;
+
+  background: #cfe5f7;
+  color: #35536d;
+
+  font-size: 12px;
+  line-height: 1.2;
+
+  cursor: pointer;
+  user-select: none;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  box-sizing: border-box;
+}
+
+.clip:hover {
+  border-color: #6da4d3;
+  background: #c3def3;
+}
+
+.clip.is-selected {
+  border-color: #3b82c4;
+  background: #afd4f1;
+
+  box-shadow: 0 0 0 1px rgb(59 130 196 / 0.18);
+}
