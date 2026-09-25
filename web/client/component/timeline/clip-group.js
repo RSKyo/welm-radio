@@ -25,6 +25,7 @@ export class ClipGroup extends ItemsElm {
   #selectedValue = null;
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
+  #duration = 0;
 
   #itemClipMap = new Map();
 
@@ -53,14 +54,8 @@ export class ClipGroup extends ItemsElm {
   // state(read-only)
   // -----------------------------------------------------------------------------
 
-  get clipGroupEnd() {
-    let clipGroupEnd = 0;
-
-    for (const clipElm of this.#itemClipMap.values()) {
-      clipGroupEnd = Math.max(clipGroupEnd, clipElm.clipEnd);
-    }
-
-    return clipGroupEnd;
+  get duration() {
+    return this.#duration;
   }
 
   // -----------------------------------------------------------------------------
@@ -119,6 +114,17 @@ export class ClipGroup extends ItemsElm {
     this.handler.emit("selectedChangeHandler", {
       elm: this,
       value,
+    });
+  }
+
+  set onDurationChange(handler) {
+    this.handler.set("durationChangeHandler", handler);
+  }
+
+  #emitDurationChange(duration) {
+    this.handler.emit("durationChangeHandler", {
+      elm: this,
+      duration,
     });
   }
 
@@ -196,6 +202,15 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
+  afterUpdateItem(updatedItem) {
+    const value = updatedItem[this.valueField];
+    const clipElm = this.#itemClipMap.get(value);
+
+    clipElm?.destroy();
+    this.#itemClipMap.delete(value);
+  }
+
+  // override
   createItemElement(item) {
     const value = item[this.valueField];
 
@@ -219,5 +234,42 @@ export class ClipGroup extends ItemsElm {
   // override
   afterRenderItems(items) {
     this.#updateSelectedUIState();
+  }
+
+  // override
+  afterRenderItem(addedItem) {
+    this.#updateDuration();
+  }
+
+  // override
+  afterRenderUpdatedItem(updatedItem) {
+    this.#updateDuration();
+  }
+
+  // override
+  afterRenderRemovedItem(removedItem) {
+    this.#updateDuration();
+  }
+
+  #updateDuration() {
+    const newDuration = this.#getClipGroupEnd();
+
+    if (newDuration === this.#duration) {
+      return;
+    }
+
+    this.#duration = newDuration;
+
+    this.#emitDurationChange(this.#duration);
+  }
+
+  #getClipGroupEnd() {
+    let clipGroupEnd = 0;
+
+    for (const clipElm of this.#itemClipMap.values()) {
+      clipGroupEnd = Math.max(clipGroupEnd, clipElm.clipEnd);
+    }
+
+    return clipGroupEnd;
   }
 }

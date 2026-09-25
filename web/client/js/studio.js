@@ -37,12 +37,13 @@ const rulerElm = new TimelineRuler("#ruler", {
 
 const trackHeaderListElm = new TrackHeaderList("#track-header", {
   valueField: "trackId",
-  height: 120,
+  trackHeight: 120,
 });
 const trackListElm = new TrackList("#track", {
   valueField: "trackId",
-  timelineRuler: rulerElm,
-  height: 120,
+  pixelsPerSecond: rulerElm.pixelsPerSecond,
+  width: rulerElm.width,
+  trackHeight: 120,
 });
 
 // -----------------------------------------------------------------------------
@@ -65,13 +66,16 @@ function bindEvents() {
 
   on(timelineBodyEl, "scroll", timelineBodyScroll);
 
-  on(rulerElm, "mousemove", rulerMousemove);
+  on(rulerElm, "pointerTimeChange", rulerMousemove);
+  on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
+  on(rulerElm, "widthChange", rulerWidthChange);
 
   on(addTrackBtn, "click", addTrack);
   on(addClipBtn, "click", addClip);
 
-  on(trackHeaderListElm, "selectedChange", trackHeaderSelectedChange);
-  on(trackListElm, "selectedChange", trackSelectedChange);
+  on(trackHeaderListElm, "selectedChange", trackHeaderListSelectedChange);
+  on(trackListElm, "selectedChange", trackListSelectedChange);
+  on(trackListElm, "durationChange", trackListDurationChange);
 }
 
 async function initData() {
@@ -90,9 +94,17 @@ function timelineBodyScroll() {
   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
 
-function rulerMousemove({ x, formatSeconds }) {
+function rulerMousemove({ x, seconds,formatSeconds }) {
   timelineCursorEl.style.left = `${Math.round(x)}px`;
   timelineCursorLabelEl.textContent = `${formatSeconds}`;
+}
+
+function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
+  trackListElm.pixelsPerSecond = pixelsPerSecond;
+}
+
+function rulerWidthChange({ width }) {
+  trackListElm.width = width;
 }
 
 function addTrack() {
@@ -101,12 +113,16 @@ function addTrack() {
   trackHeaderListElm.addItem(newTrack, "track header item");
 }
 
-function trackHeaderSelectedChange({ value }) {
+function trackHeaderListSelectedChange({ value }) {
   trackListElm.selectedValue = value;
 }
 
-function trackSelectedChange({ value }) {
+function trackListSelectedChange({ value }) {
   trackHeaderListElm.selectedValue = value;
+}
+
+function trackListDurationChange({ duration }) {
+  rulerElm.duration = duration;
 }
 
 function addClip() {

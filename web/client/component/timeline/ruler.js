@@ -32,6 +32,8 @@ export class TimelineRuler extends Elm {
   #duration;
   #width;
   // element
+  #mouseX = null;
+  #mouseY = null;
   #interactionElement;
 
   constructor(root, options = {}) {
@@ -277,47 +279,66 @@ export class TimelineRuler extends Elm {
     });
   }
 
-  set onMousemove(handler) {
-    this.handler.set("mousemoveHandler", handler);
+  set onPointerTimeChange(handler) {
+    this.handler.set("pointerTimeChangeHandler", handler);
   }
 
-  #emitMousemove(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
+  #emitPointerTimeChange(event) {
+    const element = event.currentTarget;
 
-    let x = event.clientX - rect.left;
-    let y = event.clientY - rect.top;
-    y = Math.max(y, 0);
-    x = Math.max(x, 0);
-
-    const seconds = this.xToTime(x);
+    const contentX = this.#mouseX + element.scrollLeft;
+    const seconds = this.xToTime(contentX);
     const formatSeconds = formatTime(seconds);
 
-    this.handler.emit("mousemoveHandler", {
+    this.handler.emit("pointerTimeChangeHandler", {
       elm: this,
       event,
-      x,
-      y,
+      x: this.#mouseX,
+      y: this.#mouseY,
+      contentX,
       seconds,
       formatSeconds,
     });
   }
 
   #bindEvents() {
-    if (this.rootElement.parentElement != null) {
-      this.event.onResizeObserve(this.rootElement.parentElement, () => {
+    const parentElement = this.rootElement.parentElement;
+
+    if (parentElement != null) {
+      this.event.onResizeObserve(parentElement, () => {
         this.#setWidth();
       });
     }
 
-    this.event.on(this.rootElement, "mousemove", (event) => {
-      this.#emitMousemove(event);
+    this.event.on(parentElement, "mousemove", (event) => {
+      this.#mousemove(event);
+      this.#emitPointerTimeChange(event);
     });
 
     if (this.#interactionElement != null) {
       this.event.on(this.#interactionElement, "mousemove", (event) => {
-        this.#emitMousemove(event);
+        this.#mousemove(event);
+        this.#emitPointerTimeChange(event);
+      });
+
+      this.event.on(this.#interactionElement, "scroll", (event) => {
+        this.#emitPointerTimeChange(event);
       });
     }
+  }
+
+  #mousemove(event) {
+    const element = event.currentTarget;
+    const rect = element.getBoundingClientRect();
+
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
+
+    x = Math.max(x, 0);
+    y = Math.max(y, 0);
+
+    this.#mouseX = x;
+    this.#mouseY = y;
   }
 
   // ---------------------------------------------------------------------------

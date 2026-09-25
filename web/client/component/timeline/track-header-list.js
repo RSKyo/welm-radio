@@ -34,7 +34,9 @@ export class TrackHeaderList extends ItemsElm {
   // state
   #selectedValue = null;
   #selectedValueMode = 1;
+  #trackHeight = 0;
   #itemElmsMap = new Map();
+  
 
   constructor(root, options = {}) {
     super(root, {
@@ -51,13 +53,10 @@ export class TrackHeaderList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
-      assertValueIn(value, [1, 2], assertionSubject);
-      this.#selectedValueMode = value;
-    });
 
-    this.resolveOption("height", (value, assertionSubject) => {
+    this.resolveOption("trackHeight", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
+      this.#trackHeight = value;
       this.rootElement.style.setProperty(
         "--track-header-height",
         `${value}px`,

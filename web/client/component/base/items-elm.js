@@ -135,6 +135,7 @@ export class ItemsElm extends Elm {
 
     for (const item of items) {
       this.renderItem(item, `${assertionSubject}.item`);
+      this.afterRenderItem(item, `${assertionSubject}.item`);
     }
 
     this.afterRenderItems(items, assertionSubject);
@@ -157,6 +158,10 @@ export class ItemsElm extends Elm {
 
   createItemElement(item, assertionSubject = "item") {
     throw new Error("createItemElement must be implemented by the subclass.");
+  }
+
+  afterRenderItem(item, assertionSubject = "item") {
+    // Override this method to perform actions after rendering an item.
   }
 
   afterRenderItems(items, assertionSubject = "items") {
@@ -204,7 +209,7 @@ export class ItemsElm extends Elm {
 
   #addItemRender(addedItem, assertionSubject = "item") {
     this.renderItem(addedItem, assertionSubject);
-
+    this.afterRenderItem(addedItem, assertionSubject);
     this.#updateEmptyUIState();
   }
 
@@ -255,7 +260,7 @@ export class ItemsElm extends Elm {
   // render the updated item
   #updateItemRender(updatedItem, assertionSubject = "item") {
     this.renderUpdatedItem(updatedItem, assertionSubject);
-
+    this.afterRenderUpdatedItem(updatedItem, assertionSubject);
     this.#updateEmptyUIState();
   }
 
@@ -269,6 +274,10 @@ export class ItemsElm extends Elm {
 
     // update the internal map with the new element
     this.#elements.set(updatedItem[this.#valueField], newElement);
+  }
+
+  afterRenderUpdatedItem(updatedItem, assertionSubject = "item") {
+    // Override this method to perform actions after updating an item.
   }
 
   // -----------------------------------------------------------------------------
@@ -310,7 +319,7 @@ export class ItemsElm extends Elm {
 
   #removeItemRender(removedItem, assertionSubject = this.#valueField) {
     this.renderRemovedItem(removedItem, assertionSubject);
-
+    this.afterRenderRemovedItem(removedItem, assertionSubject);
     this.#updateEmptyUIState();
   }
 
@@ -324,6 +333,10 @@ export class ItemsElm extends Elm {
 
     // remove element from internal map
     this.#elements.delete(value);
+  }
+
+  afterRenderRemovedItem(removedItem, assertionSubject = this.#valueField) {
+    // Override this method to perform actions after rendering a removed item.
   }
 
   // -----------------------------------------------------------------------------
