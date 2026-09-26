@@ -1,20 +1,16 @@
 .clip {
+  --clip-height: 40px;
+
   position: absolute;
-  top: 4px;
-  bottom: 4px;
 
   min-width: 2px;
-
-  padding: 4px 6px;
+  height: var(--clip-height);
 
   border: 1px solid #8eb9df;
   border-radius: 4px;
 
   background: #cfe5f7;
   color: #35536d;
-
-  font-size: 12px;
-  line-height: 1.2;
 
   cursor: pointer;
   user-select: none;

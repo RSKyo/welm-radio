@@ -153,6 +153,8 @@ function createDefaultClip(options = {}) {
     title: "",
     audioStart: 0,
     audioEnd: 20,
+    trimStart: 0,
+    trimEnd: 20,
     clipStart: 10,
   };
 }

@@ -218,13 +218,13 @@ export class ClipGroup extends ItemsElm {
     itemEl.dataset.value = value;
 
     const clipElm = new Clip(itemEl, {
-      id: item.clipId,
-      title: item.title,
-      audioStart: item.audioStart,
-      audioEnd: item.audioEnd,
-      clipStart: item.clipStart,
+      ...item,
       pixelsPerSecond: this.#pixelsPerSecond,
     });
+
+    clipElm.onClipEndChange = () => {
+      this.#updateDuration();
+    };
 
     this.#itemClipMap.set(value, clipElm);
 

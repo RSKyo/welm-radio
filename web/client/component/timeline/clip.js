@@ -1,12 +1,6 @@
 import { Elm } from "../base/elm.js";
 import { assertNonNegative, assertPositive } from "../base/assert.js";
-import {
-  createElementByHTML,
-  normalizeValue,
-  assertValueForMode,
-  isEqualValue,
-  filterValue,
-} from "../base/elm-helper.js";
+import { createElementByHTML } from "../base/elm-helper.js";
 
 const MAIN_TEMPLATE = `
 <div data-role="main">
@@ -19,12 +13,17 @@ export class Clip extends Elm {
   // state(read-only)
   #id = "";
   #title = "";
-
-  // state(read-write)
   #audioStart = 0;
   #audioEnd = 0;
+  // state(read-write)
+  #trimStart = 0;
+  #trimEnd = 0;
   #clipStart = 0;
   #pixelsPerSecond = 0;
+  // ui
+  #height = 40;
+  #rowGap = 4;
+  #rowIndex = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -56,12 +55,41 @@ export class Clip extends Elm {
     });
 
     this.resolveOption("audioEnd", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
+      assertPositive(value, assertionSubject);
       this.#audioEnd = value;
     });
 
     if (this.#audioEnd < this.#audioStart) {
       throw new Error("audioEnd must be greater than or equal to audioStart");
+    }
+
+    this.resolveOption("trimStart", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#trimStart = value;
+    });
+
+    this.resolveOption("trimEnd", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#trimEnd = value;
+    });
+
+    if (this.#trimEnd < this.#trimStart) {
+      throw new Error("trimEnd must be greater than or equal to trimStart");
+    }
+
+    if (
+      this.#trimStart < this.#audioStart ||
+      this.#trimStart >= this.#audioEnd
+    ) {
+      throw new Error(
+        "trimStart must be greater than or equal to audioStart and less than audioEnd",
+      );
+    }
+
+    if (this.#trimEnd <= this.#audioStart || this.#trimEnd > this.#audioEnd) {
+      throw new Error(
+        "trimEnd must be greater than audioStart and less than or equal to audioEnd",
+      );
     }
 
     this.resolveOption("clipStart", (value, assertionSubject) => {
@@ -72,6 +100,17 @@ export class Clip extends Elm {
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
+    });
+
+    this.resolveOption("height", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#height = value;
+      this.rootElement.style.setProperty("--clip-height", `${value}px`);
+    });
+
+    this.resolveOption("rowGap", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#rowGap = value;
     });
   }
 
@@ -87,54 +126,118 @@ export class Clip extends Elm {
     return this.#title;
   }
 
-  get duration() {
-    return this.#audioEnd - this.#audioStart;
-  }
-
-  get clipEnd() {
-    return this.#clipStart + this.duration;
-  }
-
-  // -----------------------------------------------------------------------------
-  // state(read-write)
-  // -----------------------------------------------------------------------------
-
   get audioStart() {
     return this.#audioStart;
-  }
-
-  set audioStart(value) {
-    assertNonNegative(value, "audioStart");
-
-    if (value === this.#audioStart) {
-      return;
-    }
-
-    if (value > this.#audioEnd) {
-      throw new Error("audioStart must be less than or equal to audioEnd");
-    }
-
-    this.#audioStart = value;
-    this.#updatePositionUIState();
   }
 
   get audioEnd() {
     return this.#audioEnd;
   }
 
-  set audioEnd(value) {
-    assertNonNegative(value, "audioEnd");
+  get duration() {
+    return this.#trimEnd - this.#trimStart;
+  }
 
-    if (value === this.#audioEnd) {
+  get clipEnd() {
+    return this.#clipStart + this.duration;
+  }
+
+  get height() {
+    return this.#height;
+  }
+
+  get rowGap() {
+    return this.#rowGap;
+  }
+
+  get rowIndex() {
+    return this.#rowIndex;
+  }
+
+  get top() {
+    return this.#rowIndex * (this.#height + this.#rowGap) + this.#rowGap;
+  }
+
+  get left() {
+    return this.#clipStart * this.#pixelsPerSecond;
+  }
+
+  get width() {
+    return this.duration * this.#pixelsPerSecond;
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-write)
+  // -----------------------------------------------------------------------------
+
+  get trimStart() {
+    return this.#trimStart;
+  }
+
+  set trimStart(value) {
+    assertNonNegative(value, "trimStart");
+
+    if (value === this.#trimStart) {
       return;
     }
 
-    if (value < this.#audioStart) {
-      throw new Error("audioEnd must be greater than or equal to audioStart");
+    if (value < this.#audioStart || value >= this.#audioEnd) {
+      throw new Error(
+        "trimStart must be greater than or equal to audioStart and less than audioEnd",
+      );
     }
 
-    this.#audioEnd = value;
+    if (value > this.#trimEnd) {
+      throw new Error("trimStart must be less than or equal to trimEnd");
+    }
+
+    const oldTrimStart = this.#trimStart;
+
+    this.#trimStart = value;
+
+    const delta = value - oldTrimStart;
+    const newClipStart = this.#clipStart + delta;
+
+    let clipEndChanged = false;
+
+    if (newClipStart < 0) {
+      this.#clipStart = 0;
+      clipEndChanged = true;
+    } else {
+      this.#clipStart = newClipStart;
+    }
+
     this.#updatePositionUIState();
+
+    if (clipEndChanged) {
+      this.#emitClipEndChange();
+    }
+  }
+
+  get trimEnd() {
+    return this.#trimEnd;
+  }
+
+  set trimEnd(value) {
+    assertNonNegative(value, "trimEnd");
+
+    if (value === this.#trimEnd) {
+      return;
+    }
+
+    if (value <= this.#audioStart || value > this.#audioEnd) {
+      throw new Error(
+        "trimEnd must be greater than audioStart and less than or equal to audioEnd",
+      );
+    }
+
+    if (value < this.#trimStart) {
+      throw new Error("trimEnd must be greater than or equal to trimStart");
+    }
+
+    this.#trimEnd = value;
+    this.#updatePositionUIState();
+    this.#emitClipEndChange();
   }
 
   get clipStart() {
@@ -150,6 +253,7 @@ export class Clip extends Elm {
 
     this.#clipStart = value;
     this.#updatePositionUIState();
+    this.#emitClipEndChange();
   }
 
   get pixelsPerSecond() {
@@ -168,6 +272,74 @@ export class Clip extends Elm {
   }
 
   // -----------------------------------------------------------------------------
+  // methods
+  // -----------------------------------------------------------------------------
+  dragTo(x, y) {
+    assertNonNegative(x, "x");
+    assertNonNegative(y, "y");
+
+    const rowHeight = this.#height + this.#rowGap;
+    const newRowIndex = Math.floor(y / rowHeight);
+    const clipTop = newRowIndex * rowHeight + this.#rowGap;
+
+    if (y < clipTop) {
+      return;
+    }
+
+    const oldRowIndex = this.#rowIndex;
+    this.#rowIndex = newRowIndex;
+
+    const oldClipStart = this.#clipStart;
+    const newClipStart = Number((x / this.#pixelsPerSecond).toFixed(3));
+    this.#clipStart = newClipStart;
+
+    this.#updatePositionUIState();
+
+    if (oldClipStart !== newClipStart) {
+      this.#emitClipEndChange();
+    }
+
+    if (oldRowIndex !== newRowIndex) {
+      this.#emitRowIndexChange();
+    }
+  }
+
+  #getClipDetail() {
+    return {
+      elm: this,
+      clipStart: this.#clipStart,
+      clipEnd: this.clipEnd,
+      duration: this.duration,
+      left: this.left,
+      top: this.top,
+      rowIndex: this.#rowIndex,
+      width: this.width,
+      height: this.height,
+      rowGap: this.#rowGap,
+    };
+  }
+
+  // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
+
+  set onClipEndChange(handler) {
+    this.handler.set("clipEndChangeHandler", handler);
+  }
+
+  #emitClipEndChange() {
+    this.handler.emit("clipEndChangeHandler", this.#getClipDetail());
+  }
+
+  set onRowIndexChange(handler) {
+    this.handler.set("rowIndexChangeHandler", handler);
+  }
+
+  #emitRowIndexChange() {
+    this.handler.emit("rowIndexChangeHandler", this.#getClipDetail());
+  }
+
+  // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
 
@@ -182,11 +354,9 @@ export class Clip extends Elm {
   }
 
   #updatePositionUIState() {
-    const left = this.#clipStart * this.#pixelsPerSecond;
-    const width = this.duration * this.#pixelsPerSecond;
-
-    this.rootElement.style.left = `${left}px`;
-    this.rootElement.style.width = `${width}px`;
+    this.rootElement.style.top = `${this.top}px`;
+    this.rootElement.style.left = `${this.left}px`;
+    this.rootElement.style.width = `${this.width}px`;
   }
 
   // -----------------------------------------------------------------------------
@@ -197,8 +367,6 @@ export class Clip extends Elm {
     // main
     const mainEl = mainTemplate.cloneNode(true);
     mainEl.textContent = this.#id;
-    this.rootElement.style.left = `${this.#clipStart * this.#pixelsPerSecond}px`;
-    this.rootElement.style.width = `${this.duration * this.#pixelsPerSecond}px`;
 
     this.rootElement.appendChild(mainEl);
 
