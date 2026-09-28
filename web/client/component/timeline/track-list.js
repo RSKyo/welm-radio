@@ -15,6 +15,7 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { ClipGroup } from "./clip-group.js";
 
+const DEFAULT_MIN_HEIGHT = 132;
 const ITEM_TEMPLATE = `
 <div class="track" data-role="item">
   <div data-role="clip-group">
@@ -31,7 +32,7 @@ export class TrackList extends ItemsElm {
   #pixelsPerSecond = 0;
   #duration = 0;
   #width = 0;
-  #trackHeight = 0;
+  #height = DEFAULT_MIN_HEIGHT;
   // ClipGroup component map
   #clipGroupMap = new Map();
 
@@ -60,10 +61,13 @@ export class TrackList extends ItemsElm {
       this.#width = value;
     });
 
-    this.resolveOption("trackHeight", (value, assertionSubject) => {
+    this.resolveOption("height", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#trackHeight = value;
-      this.rootElement.style.setProperty("--track-height", `${value}px`);
+      if(value < DEFAULT_MIN_HEIGHT) {
+        throw new Error(`height cannot be less than ${DEFAULT_MIN_HEIGHT}`);
+      }
+      this.#height = value;
+      this.rootElement.style.setProperty("--track-height", `${this.#height}px`);
     });
   }
 
@@ -73,6 +77,16 @@ export class TrackList extends ItemsElm {
 
   get duration() {
     return this.#duration;
+  }
+
+  #setDuration(value) {
+    if (value === this.#duration) {
+      return;
+    }
+
+    this.#duration = value;
+
+    this.#emitDurationChange(this.#duration);
   }
 
   // -----------------------------------------------------------------------------
@@ -138,19 +152,18 @@ export class TrackList extends ItemsElm {
     this.#updateWidthUIState();
   }
 
-  #updateDuration() {
-    let newDuration = 0;
+  // -----------------------------------------------------------------------------
+  // methods
+  // -----------------------------------------------------------------------------
+
+  #getMaxDuration() {
+    let maxDuration = 0;
 
     for (const clipGroupElm of this.#clipGroupMap.values()) {
-      newDuration = Math.max(newDuration, clipGroupElm.duration);
+      maxDuration = Math.max(maxDuration, clipGroupElm.duration);
     }
 
-    if (newDuration === this.#duration) {
-      return;
-    }
-
-    this.#duration = newDuration;
-    this.#emitDurationChange(this.#duration);
+    return maxDuration;
   }
 
   // -----------------------------------------------------------------------------
@@ -176,6 +189,17 @@ export class TrackList extends ItemsElm {
     this.handler.emit("durationChangeHandler", {
       elm: this,
       duration,
+    });
+  }
+
+  set onHeightChange(handler) {
+    this.handler.set("heightChangeHandler", handler);
+  }
+
+  #emitHeightChange(height) {
+    this.handler.emit("heightChangeHandler", {
+      elm: this,
+      height,
     });
   }
 
@@ -281,6 +305,7 @@ export class TrackList extends ItemsElm {
     const clipGroupElm = new ClipGroup(clipGroupEl, {
       valueField: "clipId",
       pixelsPerSecond: this.#pixelsPerSecond,
+      minClipGroupHeight: DEFAULT_MIN_HEIGHT,
     });
 
     if (item.clips != null) {
@@ -292,7 +317,12 @@ export class TrackList extends ItemsElm {
     }
 
     clipGroupElm.onDurationChange = () => {
-      this.#updateDuration();
+      const newDuration = this.#getMaxDuration();
+      this.#setDuration(newDuration);
+    };
+
+    clipGroupElm.onHeightChange = ({ elm, height }) => {
+      elm.rootElement.parentElement.style.height = `${height}px`;
     };
 
     this.#clipGroupMap.set(value, clipGroupElm);
@@ -307,17 +337,20 @@ export class TrackList extends ItemsElm {
 
   // override
   afterRenderItem(addedItem) {
-    this.#updateDuration();
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
   }
 
   // override
   afterRenderUpdatedItem(updatedItem) {
-    this.#updateDuration();
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
   }
 
   // override
   afterRenderRemovedItem(removedItem) {
-    this.#updateDuration();
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
   }
   // ---------------------------------------------------------------------------
   // add clip to track

@@ -182,13 +182,11 @@ export class Clip extends Elm {
     }
 
     if (value < this.#audioStart || value >= this.#audioEnd) {
-      throw new Error(
-        "trimStart must be greater than or equal to audioStart and less than audioEnd",
-      );
+      return;
     }
 
     if (value > this.#trimEnd) {
-      throw new Error("trimStart must be less than or equal to trimEnd");
+      return;
     }
 
     const oldTrimStart = this.#trimStart;
@@ -226,16 +224,15 @@ export class Clip extends Elm {
     }
 
     if (value <= this.#audioStart || value > this.#audioEnd) {
-      throw new Error(
-        "trimEnd must be greater than audioStart and less than or equal to audioEnd",
-      );
+      return;
     }
 
     if (value < this.#trimStart) {
-      throw new Error("trimEnd must be greater than or equal to trimStart");
+      return;
     }
 
     this.#trimEnd = value;
+
     this.#updatePositionUIState();
     this.#emitClipEndChange();
   }
@@ -274,6 +271,7 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
   // methods
   // -----------------------------------------------------------------------------
+  
   dragTo(x, y) {
     assertNonNegative(x, "x");
     assertNonNegative(y, "y");
