@@ -15,15 +15,15 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { ClipGroup } from "./clip-group.js";
 
-const DEFAULT_MIN_HEIGHT = 132;
-const ITEM_TEMPLATE = `
-<div class="track" data-role="item">
+const DEFAULT_TRACK_MIN_HEIGHT = 132;
+const TRACK_TEMPLATE = `
+<div class="track" data-role="track">
   <div data-role="clip-group">
   </div>
 </div>
 `;
 
-const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+const trackTemplate = createElementByHTML(TRACK_TEMPLATE);
 
 export class TrackList extends ItemsElm {
   // state
@@ -31,8 +31,8 @@ export class TrackList extends ItemsElm {
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #duration = 0;
-  #width = 0;
-  #height = DEFAULT_MIN_HEIGHT;
+  #trackWidth = 0;
+  #height = DEFAULT_TRACK_MIN_HEIGHT;
   // ClipGroup component map
   #clipGroupMap = new Map();
 
@@ -56,15 +56,17 @@ export class TrackList extends ItemsElm {
       this.#pixelsPerSecond = value;
     });
 
-    this.resolveOption("width", (value, assertionSubject) => {
+    this.resolveOption("trackWidth", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#width = value;
+      this.#trackWidth = value;
     });
 
     this.resolveOption("height", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      if(value < DEFAULT_MIN_HEIGHT) {
-        throw new Error(`height cannot be less than ${DEFAULT_MIN_HEIGHT}`);
+      if (value < DEFAULT_TRACK_MIN_HEIGHT) {
+        throw new Error(
+          `height cannot be less than ${DEFAULT_TRACK_MIN_HEIGHT}`,
+        );
       }
       this.#height = value;
       this.rootElement.style.setProperty("--track-height", `${this.#height}px`);
@@ -133,23 +135,23 @@ export class TrackList extends ItemsElm {
     }
   }
 
-  get width() {
-    return this.#width;
+  get trackWidth() {
+    return this.#trackWidth;
   }
 
-  set width(value) {
-    assertNonNegative(value, "width");
-    this.#setWidth(value);
+  set trackWidth(value) {
+    assertNonNegative(value, "trackWidth");
+    this.#setTrackWidth(value);
   }
 
-  #setWidth(value) {
-    if (value === this.#width) {
+  #setTrackWidth(value) {
+    if (value === this.#trackWidth) {
       return;
     }
 
-    this.#width = value;
+    this.#trackWidth = value;
 
-    this.#updateWidthUIState();
+    this.#updateTrackWidthUIState();
   }
 
   // -----------------------------------------------------------------------------
@@ -209,7 +211,7 @@ export class TrackList extends ItemsElm {
 
   #bindEvents() {
     this.event.on(this.rootElement, "click", this.#itemClickHandler, {
-      selector: '[data-role="item"]',
+      selector: '[data-role="track"]',
     });
   }
 
@@ -248,10 +250,11 @@ export class TrackList extends ItemsElm {
     });
   }
 
-  #updateWidthUIState() {
-    this.eachItem(({ element }) => {
+  #updateTrackWidthUIState() {
+    this.eachItem(({ element, value }) => {
       if (!element) return;
-      element.style.width = `${this.#width}px`;
+
+      element.style.width = `${this.#trackWidth}px`;
     });
   }
 
@@ -296,7 +299,7 @@ export class TrackList extends ItemsElm {
   createItemElement(item) {
     const value = item[this.valueField];
 
-    const itemEl = itemTemplate.cloneNode(true);
+    const itemEl = trackTemplate.cloneNode(true);
     itemEl.dataset.value = value;
     itemEl.style.width = `${this.#width}px`;
 
@@ -305,7 +308,7 @@ export class TrackList extends ItemsElm {
     const clipGroupElm = new ClipGroup(clipGroupEl, {
       valueField: "clipId",
       pixelsPerSecond: this.#pixelsPerSecond,
-      minClipGroupHeight: DEFAULT_MIN_HEIGHT,
+      minClipGroupHeight: DEFAULT_TRACK_MIN_HEIGHT,
     });
 
     if (item.clips != null) {

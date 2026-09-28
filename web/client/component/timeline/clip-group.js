@@ -13,12 +13,12 @@ const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
 const DEFAULT_CLIP_GROUP_MIN_HEIGHT = 132;
 
-const ITEM_TEMPLATE = `
-<div data-role="clip-item">
+const CLIP_TEMPLATE = `
+<div data-role="clip">
 </div>
 `;
 
-const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
+const clipTemplate = createElementByHTML(CLIP_TEMPLATE);
 
 export class ClipGroup extends ItemsElm {
   // state
@@ -27,7 +27,7 @@ export class ClipGroup extends ItemsElm {
   #pixelsPerSecond = 0;
   #duration = 0;
   #height = DEFAULT_CLIP_GROUP_MIN_HEIGHT;
-  // clipElm map
+  // clip component map
   #clipMap = new Map();
 
   constructor(root, options = {}) {
@@ -210,7 +210,7 @@ export class ClipGroup extends ItemsElm {
 
   #bindEvents() {
     this.event.on(this.rootElement, "click", this.#itemClickHandler, {
-      selector: '[data-role="clip-item"]',
+      selector: '[data-role="clip"]',
     });
   }
 
@@ -273,7 +273,7 @@ export class ClipGroup extends ItemsElm {
   createItemElement(item) {
     const value = item[this.valueField];
 
-    const itemEl = itemTemplate.cloneNode(true);
+    const itemEl = clipTemplate.cloneNode(true);
     itemEl.dataset.value = value;
 
     const clipElm = new Clip(itemEl, {

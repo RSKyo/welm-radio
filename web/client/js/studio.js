@@ -42,7 +42,7 @@ const trackHeaderListElm = new TrackHeaderList("#track-header", {
 const trackListElm = new TrackList("#track", {
   valueField: "trackId",
   pixelsPerSecond: rulerElm.pixelsPerSecond,
-  width: rulerElm.width,
+  trackWidth: rulerElm.width,
   trackHeight: 120,
 });
 
@@ -104,7 +104,7 @@ function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
 }
 
 function rulerWidthChange({ width }) {
-  trackListElm.width = width;
+  trackListElm.trackWidth = width;
 }
 
 function addTrack() {
