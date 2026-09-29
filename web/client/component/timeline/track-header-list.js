@@ -1,7 +1,7 @@
 import {
-  assertPositive,
   assertPlainObject,
-  assertValueIn,
+  assertPositive,
+  assertValueExists,
 } from "../base/assert.js";
 import {
   createElementByHTML,
@@ -16,14 +16,16 @@ import { CompactCombobox } from "../combobox.js";
 import { CompactGainSlider, CompactPanSlider } from "../slider.js";
 import { CompactToggleButton } from "../toggle-button.js";
 
+const DEFAULT_TRACK_HEADER_MIN_HEIGHT = 132;
+
 const ITEM_TEMPLATE = `
-<div class="track-header" data-role="item">
-  <div data-role="name"></div>
-  <div data-role="gain"></div>
-  <div data-role="pan"></div>
+<div class="track-header" data-role="track-header">
+  <div data-role="name" data-track-control></div>
+  <div data-role="gain" data-track-control></div>
+  <div data-role="pan" data-track-control></div>
   <div style="display: flex; gap: 4px;">
-    <div style="flex: 1;" data-role="lock"></div>
-    <div style="flex: 1;" data-role="muted"></div>
+    <div style="flex: 1;" data-role="lock" data-track-control></div>
+    <div style="flex: 1;" data-role="muted" data-track-control></div>
   </div>
 </div>
 `;
@@ -34,14 +36,13 @@ export class TrackHeaderList extends ItemsElm {
   // state
   #selectedValue = null;
   #selectedValueMode = 1;
-  #trackHeight = 0;
   #itemElmsMap = new Map();
-  
 
   constructor(root, options = {}) {
     super(root, {
       ...options,
       defaultRootClass: "track-header-list",
+      valueField: "trackId",
     });
 
     this.#init();
@@ -53,28 +54,17 @@ export class TrackHeaderList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-
-    this.resolveOption("trackHeight", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#trackHeight = value;
-      this.rootElement.style.setProperty(
-        "--track-header-height",
-        `${value}px`,
-      );
-    });
-  }
-
-  // -----------------------------------------------------------------------------
-  // state(read-only)
-  // -----------------------------------------------------------------------------
-
-  get selectedValueMode() {
-    return this.#selectedValueMode;
+    this.rootElement.style.setProperty(
+      "--track-header-height",
+      `${DEFAULT_TRACK_HEADER_MIN_HEIGHT}px`,
+    );
   }
 
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------
+
+  /** selected value (read-write) */
 
   get selectedValue() {
     return normalizeValue(this.#selectedValue, this.#selectedValueMode);
@@ -82,6 +72,10 @@ export class TrackHeaderList extends ItemsElm {
 
   set selectedValue(value) {
     assertValueForMode(value, this.#selectedValueMode);
+    this.#setSelectedValue(value);
+  }
+
+  #setSelectedValue(value, { updateUI = true } = {}) {
     const oldValue = this.#selectedValue;
     const newValue = normalizeValue(value, this.#selectedValueMode);
 
@@ -91,8 +85,27 @@ export class TrackHeaderList extends ItemsElm {
 
     this.#selectedValue = newValue;
 
-    this.#updateSelectedUIState();
+    if (updateUI) {
+      this.#updateSelectedUIState();
+    }
+
     this.#emitSelectedChange(newValue);
+  }
+
+  // -----------------------------------------------------------------------------
+  // methods
+  // -----------------------------------------------------------------------------
+
+  /**
+   * Set the height of a track header item.
+   */
+  setTrackHeaderHeight(value, height) {
+    const itemValues = this.itemValues;
+    assertValueExists(value, itemValues);
+    assertPositive(height);
+
+    const element = this.getItemElement(value);
+    element.style.height = `${height}px`;
   }
 
   // -----------------------------------------------------------------------------
@@ -116,11 +129,23 @@ export class TrackHeaderList extends ItemsElm {
 
   #bindEvents() {
     this.event.on(this.rootElement, "click", this.#itemClickHandler, {
-      selector: '[data-role="item"]',
+      selector: '[data-role="track-header"]',
     });
   }
 
+  /**
+   * Do not rely on child controls calling stopPropagation() to prevent track
+   * selection. Whether a click should select a track is a TrackHeaderList
+   * interaction rule, not a responsibility of generic controls.
+   *
+   * Control-originated clicks are filtered here so sliders, comboboxes, and
+   * toggle buttons can remain independent of TrackHeaderList behavior.
+   */
   #itemClickHandler = (event, { element }) => {
+    if (event.target.closest("[data-track-control]")) {
+      return;
+    }
+
     const value = element.dataset.value;
 
     if (this.#selectedValueMode === 1) {
@@ -137,40 +162,56 @@ export class TrackHeaderList extends ItemsElm {
   };
 
   // ---------------------------------------------------------------------------
-  // update ui state
-  // ---------------------------------------------------------------------------
-
-  #updateSelectedUIState() {
-    this.eachItem(({ element, value }) => {
-      if (!element) return;
-
-      let selected = false;
-      if (this.#selectedValueMode === 1) {
-        selected = this.#selectedValue === value;
-      } else {
-        selected = this.#selectedValue?.includes(value) ?? false;
-      }
-
-      element.classList.toggle("is-selected", selected);
-    });
-  }
-
-  // ---------------------------------------------------------------------------
   // overrides
   // ---------------------------------------------------------------------------
 
   // override
   afterSetItems(items) {
     const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#setSelectedValue(newSelectedValue, { updateUI: false });
+
+    // clear all item components
+    for (const { name, gain, lock, muted, pan } of this.#itemElmsMap.values()) {
+      name.destroy();
+      gain.destroy();
+      lock.destroy();
+      muted.destroy();
+      pan.destroy();
+    }
     this.#itemElmsMap.clear();
   }
 
   // override
   afterRemoveItem(removedItem) {
     const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
+    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#setSelectedValue(newSelectedValue, { updateUI: false });
+
+    const { name, gain, lock, muted, pan } =
+      this.#itemElmsMap.get(removedItem[this.valueField]) ?? {};
+    name?.destroy();
+    gain?.destroy();
+    lock?.destroy();
+    muted?.destroy();
+    pan?.destroy();
+
     this.#itemElmsMap.delete(removedItem[this.valueField]);
+  }
+
+  // override
+  afterUpdateItem(updatedItem) {
+    const value = updatedItem[this.valueField];
+
+    const { name, gain, lock, muted, pan } = this.#itemElmsMap.get(value) ?? {};
+
+    name?.destroy();
+    gain?.destroy();
+    lock?.destroy();
+    muted?.destroy();
+    pan?.destroy();
+
+    this.#itemElmsMap.delete(value);
   }
 
   // override
@@ -248,6 +289,25 @@ export class TrackHeaderList extends ItemsElm {
   // override
   afterRenderItems(items) {
     this.#updateSelectedUIState();
+  }
+
+  // ---------------------------------------------------------------------------
+  // update ui state
+  // ---------------------------------------------------------------------------
+
+  #updateSelectedUIState() {
+    this.eachItem(({ element, value }) => {
+      if (!element) return;
+
+      let selected = false;
+      if (this.#selectedValueMode === 1) {
+        selected = this.#selectedValue === value;
+      } else {
+        selected = this.#selectedValue?.includes(value) ?? false;
+      }
+
+      element.classList.toggle("is-selected", selected);
+    });
   }
 }
 

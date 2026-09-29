@@ -76,6 +76,7 @@ function bindEvents() {
   on(trackHeaderListElm, "selectedChange", trackHeaderListSelectedChange);
   on(trackListElm, "selectedChange", trackListSelectedChange);
   on(trackListElm, "durationChange", trackListDurationChange);
+  on(trackListElm, "trackHeightChange", trackListTrackHeightChange);
 }
 
 async function initData() {
@@ -94,7 +95,7 @@ function timelineBodyScroll() {
   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
 
-function rulerMousemove({ x, seconds,formatSeconds }) {
+function rulerMousemove({ x, seconds, formatSeconds }) {
   timelineCursorEl.style.left = `${Math.round(x)}px`;
   timelineCursorLabelEl.textContent = `${formatSeconds}`;
 }
@@ -123,6 +124,10 @@ function trackListSelectedChange({ value }) {
 
 function trackListDurationChange({ duration }) {
   rulerElm.duration = duration;
+}
+
+function trackListTrackHeightChange({ value, height }) {
+  trackHeaderListElm.setTrackHeaderHeight(value, height);
 }
 
 function addClip() {
@@ -156,5 +161,6 @@ function createDefaultClip(options = {}) {
     trimStart: 0,
     trimEnd: 20,
     clipStart: 10,
+    rowIndex: 0,
   };
 }

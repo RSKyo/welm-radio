@@ -51,6 +51,11 @@ export class ItemsElm extends Elm {
     return this.#valueField;
   }
 
+  getItemElement(value) {
+    assertValueExists(value, this.itemValues, `Item element for value "${value}"`);
+    return this.#elements.get(value);
+  }
+
   // -----------------------------------------------------------------------------
   // empty element
   // -----------------------------------------------------------------------------

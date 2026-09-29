@@ -1,6 +1,9 @@
 import { Elm } from "../base/elm.js";
-import { assertNonNegative, assertPositive } from "../base/assert.js";
+import { assertNonNegative, assertNonNegativeInteger, assertPositive } from "../base/assert.js";
 import { createElementByHTML } from "../base/elm-helper.js";
+
+const DEFAULT_CLIP_HEIGHT = 40;
+const DEFAULT_CLIP_ROW_GAP = 4;
 
 const MAIN_TEMPLATE = `
 <div data-role="main">
@@ -11,7 +14,7 @@ const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
 
 export class Clip extends Elm {
   // state(read-only)
-  #id = "";
+  #clipId = "";
   #title = "";
   #audioStart = 0;
   #audioEnd = 0;
@@ -19,11 +22,11 @@ export class Clip extends Elm {
   #trimStart = 0;
   #trimEnd = 0;
   #clipStart = 0;
+  #rowIndex = 0;
   #pixelsPerSecond = 0;
   // ui
-  #height = 40;
-  #rowGap = 4;
-  #rowIndex = 0;
+  #height = DEFAULT_CLIP_HEIGHT;
+  #rowGap = DEFAULT_CLIP_ROW_GAP;
 
   constructor(root, options = {}) {
     super(root, {
@@ -41,8 +44,8 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("id", (value) => {
-      this.#id = value;
+    this.resolveOption("clipId", (value) => {
+      this.#clipId = value;
     });
 
     this.resolveOption("title", (value) => {
@@ -97,6 +100,11 @@ export class Clip extends Elm {
       this.#clipStart = value;
     });
 
+    this.resolveOption("rowIndex", (value, assertionSubject) => {
+      assertNonNegativeInteger(value, assertionSubject);
+      this.#rowIndex = value;
+    });
+
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
@@ -118,8 +126,8 @@ export class Clip extends Elm {
   // state(read-only)
   // -----------------------------------------------------------------------------
 
-  get id() {
-    return this.#id;
+  get clipId() {
+    return this.#clipId;
   }
 
   get title() {
@@ -148,10 +156,6 @@ export class Clip extends Elm {
 
   get rowGap() {
     return this.#rowGap;
-  }
-
-  get rowIndex() {
-    return this.#rowIndex;
   }
 
   get top() {
@@ -243,14 +247,44 @@ export class Clip extends Elm {
 
   set clipStart(value) {
     assertNonNegative(value, "clipStart");
+    this.#setClipStart(value);
+  }
 
+  #setClipStart(value, { updateUI = true } = {}) {
     if (value === this.#clipStart) {
       return;
     }
 
     this.#clipStart = value;
-    this.#updatePositionUIState();
+
+    if (updateUI) {
+      this.#updatePositionUIState();
+    }
+
     this.#emitClipEndChange();
+  }
+
+  get rowIndex() {
+    return this.#rowIndex;
+  }
+
+  set rowIndex(value) {
+    assertNonNegativeInteger(value, "rowIndex");
+    this.#setRowIndex(value);
+  }
+
+  #setRowIndex(value, { updateUI = true } = {}) {
+    if (value === this.#rowIndex) {
+      return;
+    }
+
+    this.#rowIndex = value;
+
+    if (updateUI) {
+      this.#updatePositionUIState();
+    }
+
+    this.#emitRowIndexChange();
   }
 
   get pixelsPerSecond() {
@@ -271,7 +305,7 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
   // methods
   // -----------------------------------------------------------------------------
-  
+
   dragTo(x, y) {
     assertNonNegative(x, "x");
     assertNonNegative(y, "y");
@@ -284,22 +318,10 @@ export class Clip extends Elm {
       return;
     }
 
-    const oldRowIndex = this.#rowIndex;
-    this.#rowIndex = newRowIndex;
-
-    const oldClipStart = this.#clipStart;
     const newClipStart = Number((x / this.#pixelsPerSecond).toFixed(3));
-    this.#clipStart = newClipStart;
 
-    this.#updatePositionUIState();
-
-    if (oldClipStart !== newClipStart) {
-      this.#emitClipEndChange();
-    }
-
-    if (oldRowIndex !== newRowIndex) {
-      this.#emitRowIndexChange();
-    }
+    this.#setClipStart(newClipStart);
+    this.#setRowIndex(newRowIndex);
   }
 
   #getClipDetail() {
@@ -344,6 +366,20 @@ export class Clip extends Elm {
   #bindEvents() {}
 
   // -----------------------------------------------------------------------------
+  // render
+  // -----------------------------------------------------------------------------
+
+  #render() {
+    // main
+    const mainEl = mainTemplate.cloneNode(true);
+    mainEl.textContent = this.#clipId;
+
+    this.rootElement.appendChild(mainEl);
+
+    this.#updateUIState();
+  }
+
+  // -----------------------------------------------------------------------------
   // update ui state
   // -----------------------------------------------------------------------------
 
@@ -355,19 +391,5 @@ export class Clip extends Elm {
     this.rootElement.style.top = `${this.top}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;
-  }
-
-  // -----------------------------------------------------------------------------
-  // render
-  // -----------------------------------------------------------------------------
-
-  #render() {
-    // main
-    const mainEl = mainTemplate.cloneNode(true);
-    mainEl.textContent = this.#id;
-
-    this.rootElement.appendChild(mainEl);
-
-    this.#updateUIState();
   }
 }

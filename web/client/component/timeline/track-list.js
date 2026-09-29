@@ -1,9 +1,4 @@
-import {
-  assertNonNegative,
-  assertPlainObjectArray,
-  assertPositive,
-  assertValueIn,
-} from "../base/assert.js";
+import { assertPlainObjectArray, assertPositive, assertValueExists, assertPlainObject } from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
@@ -32,7 +27,6 @@ export class TrackList extends ItemsElm {
   #pixelsPerSecond = 0;
   #duration = 0;
   #trackWidth = 0;
-  #height = DEFAULT_TRACK_MIN_HEIGHT;
   // ClipGroup component map
   #clipGroupMap = new Map();
 
@@ -40,6 +34,7 @@ export class TrackList extends ItemsElm {
     super(root, {
       ...options,
       defaultRootClass: "track-list",
+      valueField: "trackId",
     });
 
     this.#init();
@@ -61,16 +56,10 @@ export class TrackList extends ItemsElm {
       this.#trackWidth = value;
     });
 
-    this.resolveOption("height", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      if (value < DEFAULT_TRACK_MIN_HEIGHT) {
-        throw new Error(
-          `height cannot be less than ${DEFAULT_TRACK_MIN_HEIGHT}`,
-        );
-      }
-      this.#height = value;
-      this.rootElement.style.setProperty("--track-height", `${this.#height}px`);
-    });
+    this.rootElement.style.setProperty(
+      "--track-height",
+      `${DEFAULT_TRACK_MIN_HEIGHT}px`,
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -95,12 +84,18 @@ export class TrackList extends ItemsElm {
   // state(read-write)
   // -----------------------------------------------------------------------------
 
+  /** selected value (read-write) */
+
   get selectedValue() {
     return normalizeValue(this.#selectedValue, this.#selectedValueMode);
   }
 
   set selectedValue(value) {
     assertValueForMode(value, this.#selectedValueMode);
+    this.#setSelectedValue(value);
+  }
+
+  #setSelectedValue(value, { updateUI = true } = {}) {
     const oldValue = this.#selectedValue;
     const newValue = normalizeValue(value, this.#selectedValueMode);
 
@@ -110,16 +105,21 @@ export class TrackList extends ItemsElm {
 
     this.#selectedValue = newValue;
 
-    this.#updateSelectedUIState();
+    if (updateUI) {
+      this.#updateSelectedUIState();
+    }
+
     this.#emitSelectedChange(newValue);
   }
+
+  /** pixels per second (read-write) */
 
   get pixelsPerSecond() {
     return this.#pixelsPerSecond;
   }
 
   set pixelsPerSecond(value) {
-    assertNonNegative(value, "pixelsPerSecond");
+    assertPositive(value, "pixelsPerSecond");
     this.#setPixelsPerSecond(value);
   }
 
@@ -135,23 +135,27 @@ export class TrackList extends ItemsElm {
     }
   }
 
+  /** track width (read-write) */
+
   get trackWidth() {
     return this.#trackWidth;
   }
 
   set trackWidth(value) {
-    assertNonNegative(value, "trackWidth");
+    assertPositive(value, "trackWidth");
     this.#setTrackWidth(value);
   }
 
-  #setTrackWidth(value) {
+  #setTrackWidth(value, { updateUI = true } = {}) {
     if (value === this.#trackWidth) {
       return;
     }
 
     this.#trackWidth = value;
 
-    this.#updateTrackWidthUIState();
+    if (updateUI) {
+      this.#updateTrackWidthUIState();
+    }
   }
 
   // -----------------------------------------------------------------------------
@@ -166,6 +170,20 @@ export class TrackList extends ItemsElm {
     }
 
     return maxDuration;
+  }
+
+  addClip(trackValue, clip) {
+    const itemValues = this.itemValues;
+        assertValueExists(trackValue, itemValues);
+        assertPlainObject(clip, "clip");
+        
+    const clipGroupElm = this.#clipGroupMap.get(trackValue);
+
+    if (!clipGroupElm) {
+      throw new Error(`track not found: ${trackValue}`);
+    }
+
+    clipGroupElm.addItem(clip);
   }
 
   // -----------------------------------------------------------------------------
@@ -194,13 +212,14 @@ export class TrackList extends ItemsElm {
     });
   }
 
-  set onHeightChange(handler) {
-    this.handler.set("heightChangeHandler", handler);
+  set onTrackHeightChange(handler) {
+    this.handler.set("trackHeightChangeHandler", handler);
   }
 
-  #emitHeightChange(height) {
-    this.handler.emit("heightChangeHandler", {
+  #emitTrackHeightChange(value, height) {
+    this.handler.emit("trackHeightChangeHandler", {
       elm: this,
+      value,
       height,
     });
   }
@@ -232,6 +251,109 @@ export class TrackList extends ItemsElm {
   };
 
   // ---------------------------------------------------------------------------
+  // overrides
+  // ---------------------------------------------------------------------------
+
+  // override
+  afterSetItems(items) {
+    const itemValues = this.itemValues;
+    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#setSelectedValue(newSelectedValue, { updateUI: false });
+
+    // clear all clipGroupElm
+    for (const clipGroupElm of this.#clipGroupMap.values()) {
+      clipGroupElm.destroy();
+    }
+    this.#clipGroupMap.clear();
+  }
+
+  // override
+  afterRemoveItem(removedItem) {
+    const itemValues = this.itemValues;
+    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
+    this.#setSelectedValue(newSelectedValue, { updateUI: false });
+
+    const value = removedItem[this.valueField];
+    const clipGroupElm = this.#clipGroupMap.get(value);
+
+    clipGroupElm?.destroy();
+    this.#clipGroupMap.delete(value);
+  }
+
+  // override
+  afterUpdateItem(updatedItem) {
+    const value = updatedItem[this.valueField];
+    const clipGroupElm = this.#clipGroupMap.get(value);
+
+    clipGroupElm?.destroy();
+    this.#clipGroupMap.delete(value);
+  }
+
+  // override
+  createItemElement(item) {
+    const value = item[this.valueField];
+
+    const itemEl = trackTemplate.cloneNode(true);
+    itemEl.dataset.value = value;
+    itemEl.style.width = `${this.#trackWidth}px`;
+
+    const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
+
+    const clipGroupElm = new ClipGroup(clipGroupEl, {
+      pixelsPerSecond: this.#pixelsPerSecond,
+    });
+
+    clipGroupElm.onDurationChange = () => {
+      const newDuration = this.#getMaxDuration();
+      this.#setDuration(newDuration);
+    };
+
+    clipGroupElm.onHeightChange = ({ height }) => {
+      itemEl.style.height = `${height}px`;
+
+      this.#emitTrackHeightChange(value, height);
+    };
+
+    if (item.clips != null) {
+      assertPlainObjectArray(item.clips);
+
+      for (const clip of item.clips) {
+        clipGroupElm.addItem(clip);
+      }
+    }
+
+    this.#clipGroupMap.set(value, clipGroupElm);
+
+    return itemEl;
+  }
+
+  // override
+  afterRenderItems(items) {
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
+
+    this.#updateSelectedUIState();
+  }
+
+  // override
+  afterRenderItem(addedItem) {
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
+  }
+
+  // override
+  afterRenderUpdatedItem(updatedItem) {
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
+  }
+
+  // override
+  afterRenderRemovedItem(removedItem) {
+    const newDuration = this.#getMaxDuration();
+    this.#setDuration(newDuration);
+  }
+
+  // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
 
@@ -256,116 +378,5 @@ export class TrackList extends ItemsElm {
 
       element.style.width = `${this.#trackWidth}px`;
     });
-  }
-
-  // ---------------------------------------------------------------------------
-  // overrides
-  // ---------------------------------------------------------------------------
-
-  // override
-  afterSetItems(items) {
-    const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      clipGroupElm.destroy();
-    }
-
-    this.#clipGroupMap.clear();
-  }
-
-  // override
-  afterRemoveItem(removedItem) {
-    const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-
-    const value = removedItem[this.valueField];
-    const clipGroupElm = this.#clipGroupMap.get(value);
-
-    clipGroupElm?.destroy();
-    this.#clipGroupMap.delete(value);
-  }
-
-  // override
-  afterUpdateItem(updatedItem) {
-    const value = updatedItem[this.valueField];
-    const clipGroupElm = this.#clipGroupMap.get(value);
-
-    clipGroupElm?.destroy();
-    this.#clipGroupMap.delete(value);
-  }
-
-  // override
-  createItemElement(item) {
-    const value = item[this.valueField];
-
-    const itemEl = trackTemplate.cloneNode(true);
-    itemEl.dataset.value = value;
-    itemEl.style.width = `${this.#width}px`;
-
-    const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
-
-    const clipGroupElm = new ClipGroup(clipGroupEl, {
-      valueField: "clipId",
-      pixelsPerSecond: this.#pixelsPerSecond,
-      minClipGroupHeight: DEFAULT_TRACK_MIN_HEIGHT,
-    });
-
-    if (item.clips != null) {
-      assertPlainObjectArray(item.clips);
-
-      for (const clip of item.clips) {
-        clipGroupElm.addItem(clip);
-      }
-    }
-
-    clipGroupElm.onDurationChange = () => {
-      const newDuration = this.#getMaxDuration();
-      this.#setDuration(newDuration);
-    };
-
-    clipGroupElm.onHeightChange = ({ elm, height }) => {
-      elm.rootElement.parentElement.style.height = `${height}px`;
-    };
-
-    this.#clipGroupMap.set(value, clipGroupElm);
-
-    return itemEl;
-  }
-
-  // override
-  afterRenderItems(items) {
-    this.#updateSelectedUIState();
-  }
-
-  // override
-  afterRenderItem(addedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
-  }
-
-  // override
-  afterRenderUpdatedItem(updatedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
-  }
-
-  // override
-  afterRenderRemovedItem(removedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
-  }
-  // ---------------------------------------------------------------------------
-  // add clip to track
-  // ---------------------------------------------------------------------------
-
-  addClip(trackValue, clip) {
-    const clipGroupElm = this.#clipGroupMap.get(trackValue);
-
-    if (!clipGroupElm) {
-      throw new Error(`track not found: ${trackValue}`);
-    }
-
-    clipGroupElm.addItem(clip);
   }
 }

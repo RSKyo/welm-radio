@@ -34,6 +34,7 @@ export class ClipGroup extends ItemsElm {
     super(root, {
       ...options,
       defaultRootClass: "clip-group",
+      valueField: "clipId",
     });
 
     this.#init();
@@ -167,6 +168,47 @@ export class ClipGroup extends ItemsElm {
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
+  #isRowAvailable(clipItem, rowIndex) {
+    const clipStart = clipItem.clipStart;
+    const clipEnd = clipStart + (clipItem.trimEnd - clipItem.trimStart);
+
+    for (const otherClipElm of this.#clipMap.values()) {
+      if (otherClipElm.clipId === clipItem[this.valueField]) {
+        continue;
+      }
+
+      if (otherClipElm.rowIndex !== rowIndex) {
+        continue;
+      }
+
+      const overlaps =
+        clipStart < otherClipElm.clipEnd && clipEnd > otherClipElm.clipStart;
+
+      if (overlaps) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  #findAvailableRowIndex(clipItem) {
+    const myRowIndex = clipItem.rowIndex ?? 0;
+    if (this.#isRowAvailable(clipItem, myRowIndex)) {
+      return myRowIndex;
+    }
+
+    let rowIndex = 0;
+    while (
+      rowIndex === myRowIndex ||
+      !this.#isRowAvailable(clipItem, rowIndex)
+    ) {
+      rowIndex += 1;
+    }
+
+    return rowIndex;
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
@@ -272,16 +314,20 @@ export class ClipGroup extends ItemsElm {
   // override
   createItemElement(item) {
     const value = item[this.valueField];
-
     const itemEl = clipTemplate.cloneNode(true);
     itemEl.dataset.value = value;
 
-    const clipElm = new Clip(itemEl, {
+    const clipOptions = {
       ...item,
       pixelsPerSecond: this.#pixelsPerSecond,
       height: DEFAULT_CLIP_HEIGHT,
       rowGap: DEFAULT_CLIP_ROW_GAP,
-    });
+    };
+
+    const clipRowIndex = this.#findAvailableRowIndex(clipOptions);
+    clipOptions.rowIndex = clipRowIndex;
+
+    const clipElm = new Clip(itemEl, clipOptions);
 
     clipElm.onClipEndChange = () => {
       const newDuration = this.#getMaxClipEnd();
