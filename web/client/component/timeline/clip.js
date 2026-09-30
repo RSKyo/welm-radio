@@ -1,5 +1,9 @@
 import { Elm } from "../base/elm.js";
-import { assertNonNegative, assertNonNegativeInteger, assertPositive } from "../base/assert.js";
+import {
+  assertNonNegative,
+  assertNonNegativeInteger,
+  assertPositive,
+} from "../base/assert.js";
 import { createElementByHTML } from "../base/elm-helper.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
@@ -143,11 +147,11 @@ export class Clip extends Elm {
   }
 
   get duration() {
-    return this.#trimEnd - this.#trimStart;
+    return Number((this.#trimEnd - this.#trimStart).toFixed(3));
   }
 
   get clipEnd() {
-    return this.#clipStart + this.duration;
+    return Number((this.#clipStart + this.duration).toFixed(3));
   }
 
   get height() {
@@ -306,22 +310,9 @@ export class Clip extends Elm {
   // methods
   // -----------------------------------------------------------------------------
 
-  dragTo(x, y) {
+  xToClipStart(x) {
     assertNonNegative(x, "x");
-    assertNonNegative(y, "y");
-
-    const rowHeight = this.#height + this.#rowGap;
-    const newRowIndex = Math.floor(y / rowHeight);
-    const clipTop = newRowIndex * rowHeight + this.#rowGap;
-
-    if (y < clipTop) {
-      return;
-    }
-
-    const newClipStart = Number((x / this.#pixelsPerSecond).toFixed(3));
-
-    this.#setClipStart(newClipStart);
-    this.#setRowIndex(newRowIndex);
+    return Number((x / this.#pixelsPerSecond).toFixed(3));
   }
 
   #getClipDetail() {

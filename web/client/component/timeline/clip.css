@@ -20,6 +20,8 @@
   text-overflow: ellipsis;
 
   box-sizing: border-box;
+
+  touch-action: none;
 }
 
 .clip:hover {
@@ -32,4 +34,9 @@
   background: #afd4f1;
 
   box-shadow: 0 0 0 1px rgb(59 130 196 / 0.18);
+}
+
+.clip.is-drag-ghost {
+  opacity: 0;
+  pointer-events: none;
 }

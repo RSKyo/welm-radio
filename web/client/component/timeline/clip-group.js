@@ -11,6 +11,8 @@ import { Clip } from "./clip.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
+const HORIZONTAL_MOVE_THRESHOLD = 8;
+const DRAG_START_THRESHOLD = 3;
 const DEFAULT_CLIP_GROUP_MIN_HEIGHT = 132;
 
 const CLIP_TEMPLATE = `
@@ -29,6 +31,13 @@ export class ClipGroup extends ItemsElm {
   #height = DEFAULT_CLIP_GROUP_MIN_HEIGHT;
   // clip component map
   #clipMap = new Map();
+  // dragging
+  #draggingClipElm = null;
+  #draggingElement = null;
+  #draggingPointerId = null;
+  #draggingGhostElement = null;
+  #dragStartX = 0;
+  #dragStartY = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -168,12 +177,9 @@ export class ClipGroup extends ItemsElm {
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
-  #isRowAvailable(clipItem, rowIndex) {
-    const clipStart = clipItem.clipStart;
-    const clipEnd = clipStart + (clipItem.trimEnd - clipItem.trimStart);
-
+  #isPlacementAvailable(clipId, clipStart, clipEnd, rowIndex) {
     for (const otherClipElm of this.#clipMap.values()) {
-      if (otherClipElm.clipId === clipItem[this.valueField]) {
+      if (otherClipElm.clipId === clipId) {
         continue;
       }
 
@@ -192,6 +198,18 @@ export class ClipGroup extends ItemsElm {
     return true;
   }
 
+  #isRowAvailable(clipItem, rowIndex) {
+    const clipStart = clipItem.clipStart;
+    const clipEnd = clipStart + (clipItem.trimEnd - clipItem.trimStart);
+
+    return this.#isPlacementAvailable(
+      clipItem[this.valueField],
+      clipStart,
+      clipEnd,
+      rowIndex,
+    );
+  }
+
   #findAvailableRowIndex(clipItem) {
     const myRowIndex = clipItem.rowIndex ?? 0;
     if (this.#isRowAvailable(clipItem, myRowIndex)) {
@@ -204,6 +222,22 @@ export class ClipGroup extends ItemsElm {
       !this.#isRowAvailable(clipItem, rowIndex)
     ) {
       rowIndex += 1;
+    }
+
+    return rowIndex;
+  }
+
+  #resolveRowIndexByY(y) {
+    if (y < 0) {
+      return null;
+    }
+
+    const rowHeight = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const rowIndex = Math.floor(y / rowHeight);
+    const clipTop = rowIndex * rowHeight + DEFAULT_CLIP_ROW_GAP;
+
+    if (y < clipTop) {
+      return null;
     }
 
     return rowIndex;
@@ -254,6 +288,20 @@ export class ClipGroup extends ItemsElm {
     this.event.on(this.rootElement, "click", this.#itemClickHandler, {
       selector: '[data-role="clip"]',
     });
+
+    this.event.on(this.rootElement, "pointerdown", this.#pointerDownHandler, {
+      selector: '[data-role="clip"]',
+    });
+
+    this.event.on(this.rootElement, "pointermove", this.#pointerMoveHandler);
+
+    this.event.on(this.rootElement, "pointerup", this.#pointerUpHandler);
+
+    this.event.on(
+      this.rootElement,
+      "pointercancel",
+      this.#pointerCancelHandler,
+    );
   }
 
   #itemClickHandler = (event, { element }) => {
@@ -271,6 +319,202 @@ export class ClipGroup extends ItemsElm {
 
     this.selectedValue = newValue;
   };
+
+  #pointerDownHandler = (event, { element }) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const value = element.dataset.value;
+    const clipElm = this.#clipMap.get(value);
+
+    if (!clipElm) {
+      return;
+    }
+
+    const groupRect = this.rootElement.getBoundingClientRect();
+
+    this.#draggingClipElm = clipElm;
+    this.#draggingElement = element;
+    this.#draggingPointerId = event.pointerId;
+
+    this.#dragStartX = event.clientX - groupRect.left;
+    this.#dragStartY = event.clientY - groupRect.top;
+
+    element.setPointerCapture(event.pointerId);
+
+    event.preventDefault();
+
+    this.#createDraggingGhost();
+  };
+
+  #pointerMoveHandler = (event) => {
+    if (event.pointerId !== this.#draggingPointerId) {
+      return;
+    }
+
+    const ghostEl = this.#draggingGhostElement;
+    if (!ghostEl) {
+      return;
+    }
+
+    const groupRect = this.rootElement.getBoundingClientRect();
+
+    const x = event.clientX - groupRect.left;
+    const y = event.clientY - groupRect.top;
+
+    const deltaX = x - this.#dragStartX;
+    const deltaY = y - this.#dragStartY;
+
+    const position = this.#getNewLeftAndRowIndex(event);
+    if (!position) {
+      return;
+    }
+
+    const { newLeft, newRowIndex } = position;
+
+    const rowHeight = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const top = newRowIndex * rowHeight + DEFAULT_CLIP_ROW_GAP;
+
+    ghostEl.style.left = `${newLeft}px`;
+    ghostEl.style.top = `${top}px`;
+
+    const distance = Math.hypot(deltaX, deltaY);
+    if (distance < DRAG_START_THRESHOLD) {
+      ghostEl.style.opacity = "0";
+    } else {
+      ghostEl.style.opacity = "0.45";
+    }
+  };
+
+  #pointerUpHandler = (event) => {
+    const clipElm = this.#draggingClipElm;
+
+    if (!clipElm) {
+      return;
+    }
+
+    if (event.pointerId !== this.#draggingPointerId) {
+      return;
+    }
+
+    const position = this.#getNewLeftAndRowIndex(event);
+    if (!position) {
+      this.#endDragging(event);
+      return;
+    }
+
+    const { newLeft, newRowIndex } = position;
+
+    const newClipStart = clipElm.xToClipStart(newLeft);
+    const newClipEnd = newClipStart + clipElm.duration;
+
+    if (
+      !this.#isPlacementAvailable(
+        clipElm.clipId,
+        newClipStart,
+        newClipEnd,
+        newRowIndex,
+      )
+    ) {
+      this.#endDragging(event);
+      return;
+    }
+
+    clipElm.rowIndex = newRowIndex;
+    clipElm.clipStart = newClipStart;
+
+    this.#endDragging(event);
+  };
+
+  #getNewLeftAndRowIndex(event) {
+    const oldLeft = this.#draggingClipElm.left;
+    const oldRowIndex = this.#draggingClipElm.rowIndex;
+
+    const groupRect = this.rootElement.getBoundingClientRect();
+
+    const x = event.clientX - groupRect.left;
+    const y = event.clientY - groupRect.top;
+
+    const deltaX = x - this.#dragStartX;
+
+    const newRowIndex = this.#resolveRowIndexByY(y);
+
+    if (newRowIndex == null) {
+      return null;
+    }
+
+    let newLeft = oldLeft;
+
+    if (
+      newRowIndex === oldRowIndex ||
+      Math.abs(deltaX) >= HORIZONTAL_MOVE_THRESHOLD
+    ) {
+      newLeft += deltaX;
+    }
+
+    newLeft = Math.max(0, newLeft);
+
+    return {
+      newLeft,
+      newRowIndex,
+    };
+  }
+
+  #pointerCancelHandler = (event) => {
+    if (!this.#draggingClipElm) {
+      return;
+    }
+
+    if (event.pointerId !== this.#draggingPointerId) {
+      return;
+    }
+
+    this.#endDragging(event);
+  };
+
+  #endDragging(event) {
+    const element = this.#draggingElement;
+
+    if (
+      element &&
+      this.#draggingPointerId === event.pointerId &&
+      element.hasPointerCapture(event.pointerId)
+    ) {
+      element.releasePointerCapture(event.pointerId);
+    }
+
+    this.#draggingClipElm = null;
+    this.#draggingElement = null;
+    this.#draggingPointerId = null;
+    this.#draggingGhostElement?.remove();
+    this.#draggingGhostElement = null;
+
+    this.#dragStartX = 0;
+    this.#dragStartY = 0;
+  }
+
+  #createDraggingGhost() {
+    const element = this.#draggingElement;
+    const clipElm = this.#draggingClipElm;
+
+    if (!element || !clipElm) {
+      return;
+    }
+
+    const ghostEl = element.cloneNode(true);
+
+    ghostEl.classList.add("is-drag-ghost");
+
+    ghostEl.style.left = `${clipElm.left}px`;
+    ghostEl.style.top = `${clipElm.top}px`;
+    ghostEl.style.width = `${clipElm.width}px`;
+    ghostEl.style.opacity = "0";
+
+    this.rootElement.appendChild(ghostEl);
+
+    this.#draggingGhostElement = ghostEl;
+  }
 
   // ---------------------------------------------------------------------------
   // overrides
