@@ -157,10 +157,10 @@ function createDefaultClip(options = {}) {
     clipId: crypto.randomUUID(),
     title: "",
     audioStart: 0,
-    audioEnd: 20,
+    audioEnd: 10,
     trimStart: 0,
-    trimEnd: 20,
-    clipStart: 10,
+    trimEnd: 10,
+    clipStart: 2,
     rowIndex: 0,
   };
 }

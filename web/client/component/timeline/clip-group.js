@@ -11,8 +11,7 @@ import { Clip } from "./clip.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
-const HORIZONTAL_MOVE_THRESHOLD = 8;
-const DRAG_START_THRESHOLD = 3;
+const SNAP_THRESHOLD = 5;
 const DEFAULT_CLIP_GROUP_MIN_HEIGHT = 132;
 
 const CLIP_TEMPLATE = `
@@ -37,7 +36,6 @@ export class ClipGroup extends ItemsElm {
   #draggingPointerId = null;
   #draggingGhostElement = null;
   #dragStartX = 0;
-  #dragStartY = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -339,7 +337,6 @@ export class ClipGroup extends ItemsElm {
     this.#draggingPointerId = event.pointerId;
 
     this.#dragStartX = event.clientX - groupRect.left;
-    this.#dragStartY = event.clientY - groupRect.top;
 
     element.setPointerCapture(event.pointerId);
 
@@ -353,58 +350,43 @@ export class ClipGroup extends ItemsElm {
       return;
     }
 
+    const clipElm = this.#draggingClipElm;
+    if (!clipElm) {
+      return;
+    }
+
     const ghostEl = this.#draggingGhostElement;
     if (!ghostEl) {
       return;
     }
 
-    const groupRect = this.rootElement.getBoundingClientRect();
-
-    const x = event.clientX - groupRect.left;
-    const y = event.clientY - groupRect.top;
-
-    const deltaX = x - this.#dragStartX;
-    const deltaY = y - this.#dragStartY;
-
-    const position = this.#getNewLeftAndRowIndex(event);
-    if (!position) {
+    const { newLeft, newRowIndex } = this.#getNewPosition(event);
+    if (newRowIndex == null) {
       return;
     }
-
-    const { newLeft, newRowIndex } = position;
 
     const rowHeight = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
     const top = newRowIndex * rowHeight + DEFAULT_CLIP_ROW_GAP;
 
-    ghostEl.style.left = `${newLeft}px`;
     ghostEl.style.top = `${top}px`;
-
-    const distance = Math.hypot(deltaX, deltaY);
-    if (distance < DRAG_START_THRESHOLD) {
-      ghostEl.style.opacity = "0";
-    } else {
-      ghostEl.style.opacity = "0.45";
-    }
+    ghostEl.style.left = `${newLeft}px`;
   };
 
   #pointerUpHandler = (event) => {
-    const clipElm = this.#draggingClipElm;
-
-    if (!clipElm) {
-      return;
-    }
-
     if (event.pointerId !== this.#draggingPointerId) {
       return;
     }
 
-    const position = this.#getNewLeftAndRowIndex(event);
-    if (!position) {
-      this.#endDragging(event);
+    const clipElm = this.#draggingClipElm;
+    if (!clipElm) {
       return;
     }
 
-    const { newLeft, newRowIndex } = position;
+    const { newLeft, newRowIndex } = this.#getNewPosition(event);
+    if (newRowIndex == null) {
+      this.#endDragging(event);
+      return;
+    }
 
     const newClipStart = clipElm.xToClipStart(newLeft);
     const newClipEnd = newClipStart + clipElm.duration;
@@ -427,12 +409,11 @@ export class ClipGroup extends ItemsElm {
     this.#endDragging(event);
   };
 
-  #getNewLeftAndRowIndex(event) {
-    const oldLeft = this.#draggingClipElm.left;
-    const oldRowIndex = this.#draggingClipElm.rowIndex;
+  #getNewPosition(event) {
+    const clipElm = this.#draggingClipElm;
+    const oldLeft = clipElm.left;
 
     const groupRect = this.rootElement.getBoundingClientRect();
-
     const x = event.clientX - groupRect.left;
     const y = event.clientY - groupRect.top;
 
@@ -441,23 +422,77 @@ export class ClipGroup extends ItemsElm {
     const newRowIndex = this.#resolveRowIndexByY(y);
 
     if (newRowIndex == null) {
-      return null;
+      return {
+        newRowIndex: null,
+        newLeft: oldLeft,
+      };
     }
 
-    let newLeft = oldLeft;
+    let newLeft = oldLeft + deltaX;
+    const newEndLeft = newLeft + clipElm.width;
 
-    if (
-      newRowIndex === oldRowIndex ||
-      Math.abs(deltaX) >= HORIZONTAL_MOVE_THRESHOLD
-    ) {
-      newLeft += deltaX;
+    let snapLeft = null;
+    let snapDistance = SNAP_THRESHOLD;
+
+    const trySnap = (left, distance) => {
+      if (distance < snapDistance) {
+        snapLeft = left;
+        snapDistance = distance;
+      }
+    };
+
+    for (const otherClipElm of this.#clipMap.values()) {
+      const isSameRow = newRowIndex === otherClipElm.rowIndex;
+
+      if (isSameRow) {
+        if (otherClipElm === clipElm) {
+          continue;
+        }
+
+        // left edge -> previous clip right edge
+        if (newLeft >= otherClipElm.endLeft) {
+          trySnap(otherClipElm.endLeft, newLeft - otherClipElm.endLeft);
+        }
+
+        // right edge -> next clip left edge
+        if (newEndLeft <= otherClipElm.left) {
+          trySnap(
+            otherClipElm.left - clipElm.width,
+            otherClipElm.left - newEndLeft,
+          );
+        }
+
+        continue;
+      }
+
+      // left edge -> left edge
+      trySnap(otherClipElm.left, Math.abs(newLeft - otherClipElm.left));
+
+      // left edge -> right edge
+      trySnap(otherClipElm.endLeft, Math.abs(newLeft - otherClipElm.endLeft));
+
+      // right edge -> left edge
+      trySnap(
+        otherClipElm.left - clipElm.width,
+        Math.abs(newEndLeft - otherClipElm.left),
+      );
+
+      // right edge -> right edge
+      trySnap(
+        otherClipElm.endLeft - clipElm.width,
+        Math.abs(newEndLeft - otherClipElm.endLeft),
+      );
+    }
+
+    if (snapLeft != null) {
+      newLeft = snapLeft;
     }
 
     newLeft = Math.max(0, newLeft);
 
     return {
-      newLeft,
       newRowIndex,
+      newLeft,
     };
   }
 
@@ -491,7 +526,6 @@ export class ClipGroup extends ItemsElm {
     this.#draggingGhostElement = null;
 
     this.#dragStartX = 0;
-    this.#dragStartY = 0;
   }
 
   #createDraggingGhost() {
@@ -509,7 +543,6 @@ export class ClipGroup extends ItemsElm {
     ghostEl.style.left = `${clipElm.left}px`;
     ghostEl.style.top = `${clipElm.top}px`;
     ghostEl.style.width = `${clipElm.width}px`;
-    ghostEl.style.opacity = "0";
 
     this.rootElement.appendChild(ghostEl);
 

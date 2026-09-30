@@ -174,6 +174,10 @@ export class Clip extends Elm {
     return this.duration * this.#pixelsPerSecond;
   }
 
+  get endLeft() {
+    return this.left + this.width;
+  }
+
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------

@@ -37,6 +37,6 @@
 }
 
 .clip.is-drag-ghost {
-  opacity: 0;
+  opacity: 0.45;
   pointer-events: none;
 }
