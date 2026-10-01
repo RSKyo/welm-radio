@@ -6,3 +6,13 @@
 
   overflow: hidden;
 }
+
+.clip-group.is-trimming,
+.clip-group.is-trimming * {
+  cursor: ew-resize !important;
+}
+
+.clip-group.is-moving,
+.clip-group.is-moving * {
+  cursor: grabbing !important;
+}

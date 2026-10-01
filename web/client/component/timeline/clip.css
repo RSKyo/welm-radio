@@ -1,5 +1,6 @@
 .clip {
   --clip-height: 40px;
+  --trim-width: 4px;
 
   position: absolute;
 
@@ -40,3 +41,50 @@
   opacity: 0.45;
   pointer-events: none;
 }
+
+.clip [data-role="trim-start"],
+.clip [data-role="trim-end"] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--trim-width);
+
+  cursor: ew-resize;
+  z-index: 2;
+
+  opacity: 0;
+}
+
+.clip [data-role="trim-start"] {
+  left: 0;
+}
+
+.clip [data-role="trim-end"] {
+  right: 0;
+}
+
+.clip.is-selected [data-role="trim-start"],
+.clip.is-selected [data-role="trim-end"] {
+  opacity: 1;
+}
+
+.clip.is-selected [data-role="trim-start"]::after,
+.clip.is-selected [data-role="trim-end"]::after {
+  content: "";
+  position: absolute;
+
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+
+  background: #3b82c4;
+}
+
+.clip.is-selected [data-role="trim-start"]::after {
+  left: 1px;
+}
+
+.clip.is-selected [data-role="trim-end"]::after {
+  right: 1px;
+}
+

@@ -8,13 +8,17 @@ import { createElementByHTML } from "../base/elm-helper.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
+const TRIM_HANDLE_WIDTH = 4;
 
-const MAIN_TEMPLATE = `
-<div data-role="main">
-</div>
+const TRIM_START_TEMPLATE = `
+<div data-role="trim-start"></div>
+`;
+const TRIM_END_TEMPLATE = `
+<div data-role="trim-end"></div>
 `;
 
-const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
+const trimStartTemplate = createElementByHTML(TRIM_START_TEMPLATE);
+const trimEndTemplate = createElementByHTML(TRIM_END_TEMPLATE);
 
 export class Clip extends Elm {
   // state(read-only)
@@ -124,6 +128,8 @@ export class Clip extends Elm {
       assertNonNegative(value, assertionSubject);
       this.#rowGap = value;
     });
+
+    this.rootElement.style.setProperty("--trim-width", `${TRIM_HANDLE_WIDTH}px`);
   }
 
   // -----------------------------------------------------------------------------
@@ -314,11 +320,6 @@ export class Clip extends Elm {
   // methods
   // -----------------------------------------------------------------------------
 
-  xToClipStart(x) {
-    assertNonNegative(x, "x");
-    return Number((x / this.#pixelsPerSecond).toFixed(3));
-  }
-
   #getClipDetail() {
     return {
       elm: this,
@@ -366,10 +367,12 @@ export class Clip extends Elm {
 
   #render() {
     // main
-    const mainEl = mainTemplate.cloneNode(true);
-    mainEl.textContent = this.#clipId;
+    const trimStartEl = trimStartTemplate.cloneNode(true);
+    const trimEndEl = trimEndTemplate.cloneNode(true);
+this.rootElement.textContent = this.#clipId;
+    this.rootElement.appendChild(trimStartEl);
+    this.rootElement.appendChild(trimEndEl);
 
-    this.rootElement.appendChild(mainEl);
 
     this.#updateUIState();
   }
