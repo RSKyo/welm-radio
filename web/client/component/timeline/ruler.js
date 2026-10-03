@@ -1,12 +1,15 @@
 import { Elm } from "../base/elm.js";
 import {
   assertTimeInSeconds,
-  assertNumber,
   assertPositive,
   assertNonNegative,
   assertHtmlElement,
 } from "../base/assert.js";
-import { createElementByHTML } from "../base/elm-helper.js";
+import {
+  createElementByHTML,
+  xToTime,
+  formatTime,
+} from "../base/elm-helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">
@@ -32,8 +35,10 @@ export class TimelineRuler extends Elm {
   #duration;
   #width;
   // element
-  #mouseX = null;
-  #mouseY = null;
+  #x = null;
+  #y = null;
+  #contentX = null;
+  #contentY = null;
   #interactionElement;
 
   constructor(root, options = {}) {
@@ -231,25 +236,6 @@ export class TimelineRuler extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // time and coordinate conversion
-  // -----------------------------------------------------------------------------
-
-  /** time to x coordinate conversion */
-
-  timeToX(seconds) {
-    assertTimeInSeconds(seconds, "seconds");
-
-    return Number((seconds * this.#pixelsPerSecond).toFixed(2));
-  }
-
-  /** x coordinate to time conversion */
-
-  xToTime(x) {
-    assertNumber(x, "x");
-    return Number((x / this.#pixelsPerSecond).toFixed(3));
-  }
-
-  // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
 
@@ -279,23 +265,41 @@ export class TimelineRuler extends Elm {
     });
   }
 
-  set onPointerTimeChange(handler) {
-    this.handler.set("pointerTimeChangeHandler", handler);
+  set onPointerDown(handler) {
+    this.handler.set("pointerDownHandler", handler);
   }
 
-  #emitPointerTimeChange(event) {
-    const element = event.currentTarget;
-
-    const contentX = this.#mouseX + element.scrollLeft;
-    const seconds = this.xToTime(contentX);
+  #emitPointerDown(event) {
+    const seconds = xToTime(this.#contentX, this.#pixelsPerSecond);
     const formatSeconds = formatTime(seconds);
 
-    this.handler.emit("pointerTimeChangeHandler", {
+    this.handler.emit("pointerDownHandler", {
       elm: this,
       event,
-      x: this.#mouseX,
-      y: this.#mouseY,
-      contentX,
+      x: this.#x,
+      y: this.#y,
+      contentX: this.#contentX,
+      contentY: this.#contentY,
+      seconds,
+      formatSeconds,
+    });
+  }
+
+  set onPointerChange(handler) {
+    this.handler.set("pointerChangeHandler", handler);
+  }
+
+  #emitPointerChange(event) {
+    const seconds = xToTime(this.#contentX, this.#pixelsPerSecond);
+    const formatSeconds = formatTime(seconds);
+
+    this.handler.emit("pointerChangeHandler", {
+      elm: this,
+      event,
+      x: this.#x,
+      y: this.#y,
+      contentX: this.#contentX,
+      contentY: this.#contentY,
       seconds,
       formatSeconds,
     });
@@ -303,31 +307,36 @@ export class TimelineRuler extends Elm {
 
   #bindEvents() {
     const parentElement = this.rootElement.parentElement;
-
     if (parentElement != null) {
-      this.event.onResizeObserve(parentElement, () => {
+      this.event.on(parentElement, "resizeElement", () => {
         this.#setWidth();
       });
     }
 
-    this.event.on(parentElement, "mousemove", (event) => {
-      this.#mousemove(event);
-      this.#emitPointerTimeChange(event);
+    this.event.on(parentElement, "pointermove", (event) => {
+      this.#updatePointerPosition(event);
+      this.#emitPointerChange(event);
+    });
+
+    this.event.on(parentElement, "pointerdown", (event) => {
+      this.#updatePointerPosition(event);
+      this.#emitPointerDown(event);
     });
 
     if (this.#interactionElement != null) {
-      this.event.on(this.#interactionElement, "mousemove", (event) => {
-        this.#mousemove(event);
-        this.#emitPointerTimeChange(event);
+      this.event.on(this.#interactionElement, "pointermove", (event) => {
+        this.#updatePointerPosition(event);
+        this.#emitPointerChange(event);
       });
 
       this.event.on(this.#interactionElement, "scroll", (event) => {
-        this.#emitPointerTimeChange(event);
+        this.#updatePointerContentPosition(event.currentTarget);
+        this.#emitPointerChange(event);
       });
     }
   }
 
-  #mousemove(event) {
+  #updatePointerPosition(event) {
     const element = event.currentTarget;
     const rect = element.getBoundingClientRect();
 
@@ -337,8 +346,19 @@ export class TimelineRuler extends Elm {
     x = Math.max(x, 0);
     y = Math.max(y, 0);
 
-    this.#mouseX = x;
-    this.#mouseY = y;
+    this.#x = x;
+    this.#y = y;
+
+    this.#updatePointerContentPosition(element);
+  }
+
+  #updatePointerContentPosition(element) {
+    if (this.#x == null || this.#y == null) {
+      return;
+    }
+
+    this.#contentX = this.#x + element.scrollLeft;
+    this.#contentY = this.#y + element.scrollTop;
   }
 
   // ---------------------------------------------------------------------------
@@ -423,53 +443,4 @@ export class TimelineRuler extends Elm {
       intervalPixels: Number(intervalPixels.toFixed(2)),
     };
   }
-}
-
-function formatTime(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainSeconds = seconds % 60;
-
-  const secondText = remainSeconds
-    .toFixed(3)
-    .replace(/\.?0+$/, "")
-    .padStart(2, "0");
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${secondText}`;
-  }
-
-  return `${minutes}:${secondText}`;
-}
-
-function parseTime(timeText) {
-  const parts = timeText.split(":").map(Number);
-
-  if (parts.some(Number.isNaN)) {
-    throw new Error(`invalid time: ${timeText}`);
-  }
-
-  let hours = 0;
-  let minutes;
-  let seconds;
-
-  if (parts.length === 2) {
-    [minutes, seconds] = parts;
-  } else if (parts.length === 3) {
-    [hours, minutes, seconds] = parts;
-  } else {
-    throw new Error(`invalid time: ${timeText}`);
-  }
-
-  if (
-    hours < 0 ||
-    minutes < 0 ||
-    minutes >= 60 ||
-    seconds < 0 ||
-    seconds >= 60
-  ) {
-    throw new Error(`invalid time: ${timeText}`);
-  }
-
-  return hours * 3600 + minutes * 60 + seconds;
 }

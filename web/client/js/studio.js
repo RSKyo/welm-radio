@@ -66,7 +66,8 @@ function bindEvents() {
 
   on(timelineBodyEl, "scroll", timelineBodyScroll);
 
-  on(rulerElm, "pointerTimeChange", rulerMousemove);
+  on(rulerElm, "pointerChange", rulerPointerChange);
+  on(rulerElm, "pointerDown", rulerPointerDown);
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
 
@@ -95,9 +96,12 @@ function timelineBodyScroll() {
   timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
 }
 
-function rulerMousemove({ x, seconds, formatSeconds }) {
+function rulerPointerChange({ x, formatSeconds }) {
   timelineCursorEl.style.left = `${Math.round(x)}px`;
   timelineCursorLabelEl.textContent = `${formatSeconds}`;
+}
+function rulerPointerDown({ contentX, formatSeconds }) {
+  console.log(`Pointer down at x: ${contentX}, formatSeconds: ${formatSeconds}`);
 }
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {

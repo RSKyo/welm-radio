@@ -66,26 +66,6 @@ export function safeHandler(handler) {
 // binding events
 // -----------------------------------------------------------------------------
 
-const DOM_EVENT_NAMES = [
-  "click",
-  "dblclick",
-  "change",
-  "input",
-  "focus",
-  "blur",
-  "resize",
-  "scroll",
-  "keydown",
-  "keyup",
-  "keypress",
-  "mousemove",
-  "mousedown",
-  "mouseup",
-  "mouseenter",
-  "mouseleave",
-  
-];
-
 export function on(target, eventName, handler) {
   if (isNonBlankString(target)) {
     const element = target.startsWith("#")
@@ -108,10 +88,6 @@ export function on(target, eventName, handler) {
 }
 
 function bindDomEvent(element, eventName, handler) {
-  if (!DOM_EVENT_NAMES.includes(eventName)) {
-    throw new Error(`Unsupported DOM event: ${eventName}`);
-  }
-
   const eventHandler = safeHandler(handler);
   if (eventName === "resize") {
     const resizeObserver = new ResizeObserver(() => {

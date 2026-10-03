@@ -5,11 +5,14 @@ import {
   assertNonBlankStringOrHtmlElement,
   assertHtmlElement,
   assertNonBlankString,
+  assertNumber,
   assertPlainObject,
   assertElementMatches,
   assertElementContains,
   assertNonEmptyNonBlankStringArray,
   assertNoDuplicateValues,
+  assertTimeInSeconds,
+  assertNonNegative,
 } from "./assert.js";
 
 export function createElementByHTML(html, assertionSubject = "html") {
@@ -224,4 +227,68 @@ export function isEqualValue(value1, value2) {
   }
 
   return false;
+}
+
+
+export function timeToX(seconds, pixelsPerSecond) {
+    assertTimeInSeconds(seconds, "seconds");
+    assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+
+    return Number((seconds * pixelsPerSecond).toFixed(2));
+  }
+
+  export function xToTime(x, pixelsPerSecond) {
+    assertNumber(x, "x");
+    assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+
+    return Number((x / pixelsPerSecond).toFixed(3));
+  }
+
+export function formatTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainSeconds = seconds % 60;
+
+  const secondText = remainSeconds
+    .toFixed(3)
+    .replace(/\.?0+$/, "")
+    .padStart(2, "0");
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${secondText}`;
+  }
+
+  return `${minutes}:${secondText}`;
+}
+
+export function parseTime(timeText) {
+  const parts = timeText.split(":").map(Number);
+
+  if (parts.some(Number.isNaN)) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  let hours = 0;
+  let minutes;
+  let seconds;
+
+  if (parts.length === 2) {
+    [minutes, seconds] = parts;
+  } else if (parts.length === 3) {
+    [hours, minutes, seconds] = parts;
+  } else {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  if (
+    hours < 0 ||
+    minutes < 0 ||
+    minutes >= 60 ||
+    seconds < 0 ||
+    seconds >= 60
+  ) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
 }

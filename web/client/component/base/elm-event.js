@@ -2,61 +2,61 @@ import {
   assertHtmlElement,
   assertNonBlankString,
   assertFunction,
-  assertPlainObject,
   assertValueIn,
 } from "./assert.js";
 
 export class ElmEvent {
   #events = [];
-  #resizeEvents = [];
 
-  on(
-    element,
-    type,
-    handler,
-    { detail = null, selector = null, unmatchedHandler = null } = {},
-  ) {
+  #has(element, type, handler) {
+    return this.#events.some(
+      (event) =>
+        event.element === element &&
+        event.type === type &&
+        event.handler === handler,
+    );
+  }
+
+  on(element, type, handler, { selector = null } = {}) {
     assertHtmlElement(element, "element");
     assertNonBlankString(type, "type");
     assertFunction(handler, "handler");
-    if (detail != null) {
-      assertPlainObject(detail, "detail");
-    }
-    if (selector != null) {
-      assertNonBlankString(selector, "selector");
-      try {
-        element.querySelector(selector);
-      } catch {
-        throw new Error(`selector must be a valid CSS selector: ${selector}`);
-      }
-    }
-    if (unmatchedHandler != null) {
-      assertFunction(unmatchedHandler, "unmatchedHandler");
-    }
 
     if (this.#has(element, type, handler)) {
       return;
     }
 
-    detail = detail == null ? {} : { ...detail };
+    if (type === "resizeElement") {
+      if (selector != null) {
+        throw new Error("selector is not supported for resizeElement");
+      }
+
+      const resizeObserver = new ResizeObserver((entries, observer) => {
+        handler({ entries, observer });
+      });
+
+      resizeObserver.observe(element);
+
+      this.#events.push({
+        element,
+        type,
+        handler,
+        resizeObserver,
+      });
+
+      return;
+    }
 
     const wrapper = (event) => {
-      if (selector == null) {
-        handler(event, detail);
-        return;
+      if (selector != null) {
+        const matchedElement = this.#closestElement(event, selector);
+        if (matchedElement == null) {
+          return;
+        }
+        handler(event, { element: matchedElement });
+      } else {
+        handler(event, { element: event.currentTarget });
       }
-
-      const matchedElement = this.#closestElement(event, selector);
-
-      if (matchedElement == null) {
-        unmatchedHandler?.(event, detail);
-        return;
-      }
-
-      handler(event, {
-        ...detail,
-        element: matchedElement,
-      });
     };
 
     element.addEventListener(type, wrapper);
@@ -64,8 +64,8 @@ export class ElmEvent {
     this.#events.push({
       element,
       type,
-      wrapper,
       handler,
+      wrapper,
     });
   }
 
@@ -111,7 +111,12 @@ export class ElmEvent {
         continue;
       }
 
-      event.element.removeEventListener(event.type, event.wrapper);
+      if (event.type === "resizeElement") {
+        event.resizeObserver.disconnect();
+      } else {
+        event.element.removeEventListener(event.type, event.wrapper);
+      }
+
       this.#events.splice(i, 1);
     }
   }
@@ -133,23 +138,21 @@ export class ElmEvent {
     }
 
     for (const event of events) {
-      oldElement.removeEventListener(event.type, event.wrapper);
-      newElement.addEventListener(event.type, event.wrapper);
+      if (event.type === "resizeElement") {
+        event.resizeObserver.disconnect();
+        event.resizeObserver.observe(newElement);
+      } else {
+        oldElement.removeEventListener(event.type, event.wrapper);
+        newElement.addEventListener(event.type, event.wrapper);
+      }
 
       event.element = newElement;
     }
   }
 
-  #has(element, type, handler) {
-    return this.#events.some(
-      (event) =>
-        event.element === element &&
-        event.type === type &&
-        event.handler === handler,
-    );
-  }
-
   #closestElement(event, selector) {
+    assertNonBlankString(selector, "selector");
+
     const { target, currentTarget } = event;
 
     if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
@@ -163,37 +166,5 @@ export class ElmEvent {
     }
 
     return element;
-  }
-
-  onResizeObserve(element, handler) {
-    assertHtmlElement(element, "element");
-    assertFunction(handler, "handler");
-
-    const existingEvent = this.#resizeEvents.find(
-      (event) => event.element === element,
-    );
-
-    if (existingEvent) {
-      existingEvent.resizeObserver.disconnect();
-
-      existingEvent.resizeObserver = new ResizeObserver(() => {
-        handler();
-      });
-      existingEvent.handler = handler;
-
-      existingEvent.resizeObserver.observe(element);
-    } else {
-      const resizeObserver = new ResizeObserver(() => {
-        handler();
-      });
-
-      resizeObserver.observe(element);
-
-      this.#resizeEvents.push({
-        element,
-        resizeObserver,
-        handler,
-      });
-    }
   }
 }
