@@ -6,8 +6,10 @@ export class TimelinePlayhead extends Elm {
   #pixelsPerSecond = 50;
   #time = 0;
   #draggingPointerId = null;
+
   // ui
   #containerEl = null;
+  #handleEl = null;
   #dragOffsetX = 0;
 
   constructor(root, options = {}) {
@@ -17,6 +19,7 @@ export class TimelinePlayhead extends Elm {
     });
 
     this.#init();
+    this.#render();
     this.#bindEvents();
     this.#updateUIState();
   }
@@ -40,6 +43,7 @@ export class TimelinePlayhead extends Elm {
     if (!containerEl) {
       throw new Error("Container element not found");
     }
+
     this.#containerEl = containerEl;
   }
 
@@ -112,14 +116,10 @@ export class TimelinePlayhead extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(this.rootElement, "pointerdown", this.#pointerDownHandler);
-    this.event.on(this.rootElement, "pointermove", this.#pointerMoveHandler);
-    this.event.on(this.rootElement, "pointerup", this.#pointerUpHandler);
-    this.event.on(
-      this.rootElement,
-      "pointercancel",
-      this.#pointerCancelHandler,
-    );
+    this.event.on(this.#handleEl, "pointerdown", this.#pointerDownHandler);
+    this.event.on(this.#handleEl, "pointermove", this.#pointerMoveHandler);
+    this.event.on(this.#handleEl, "pointerup", this.#pointerUpHandler);
+    this.event.on(this.#handleEl, "pointercancel", this.#pointerCancelHandler);
   }
 
   #pointerDownHandler = (event) => {
@@ -131,14 +131,14 @@ export class TimelinePlayhead extends Elm {
       return;
     }
 
-    this.#draggingPointerId = event.pointerId;
-
-    this.rootElement.setPointerCapture(event.pointerId);
-
     const rect = this.#containerEl.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
 
     this.#dragOffsetX = pointerX - this.left;
+
+    this.#draggingPointerId = event.pointerId;
+
+    this.#handleEl.setPointerCapture(event.pointerId);
 
     event.preventDefault();
   };
@@ -179,9 +179,25 @@ export class TimelinePlayhead extends Elm {
     this.#draggingPointerId = null;
     this.#dragOffsetX = 0;
 
-    if (pointerId != null && this.rootElement.hasPointerCapture(pointerId)) {
-      this.rootElement.releasePointerCapture(pointerId);
+    if (
+      pointerId != null &&
+      this.#handleEl.hasPointerCapture(pointerId)
+    ) {
+      this.#handleEl.releasePointerCapture(pointerId);
     }
+  }
+
+  // -----------------------------------------------------------------------------
+  // render
+  // -----------------------------------------------------------------------------
+
+  #render() {
+    const handleEl = document.createElement("div");
+    handleEl.classList.add("timeline-playhead-handle");
+
+    this.rootElement.replaceChildren(handleEl);
+
+    this.#handleEl = handleEl;
   }
 
   // -----------------------------------------------------------------------------
@@ -198,8 +214,17 @@ export class TimelinePlayhead extends Elm {
 
   #updateTimeByPointer(event) {
     const rect = this.#containerEl.getBoundingClientRect();
-    let contentX = event.clientX - rect.left - this.#dragOffsetX;
-    contentX = Math.min(Math.max(contentX, 0), this.#containerEl.clientWidth);
+
+    let contentX =
+      event.clientX -
+      rect.left -
+      this.#dragOffsetX;
+
+    contentX = Math.min(
+      Math.max(contentX, 0),
+      this.#containerEl.clientWidth,
+    );
+
     this.time = contentX / this.#pixelsPerSecond;
   }
 }

@@ -3,12 +3,11 @@
   top: 0;
   bottom: 0;
 
-  width: 11px;
-  transform: translateX(-5px);
+  width: 1px;
 
-  cursor: ew-resize;
   z-index: 30;
-  touch-action: none;
+
+  pointer-events: none;
 }
 
 .timeline-playhead::before {
@@ -17,11 +16,27 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 5px;
+  left: 0;
 
   width: 1px;
 
   background: rgba(255, 77, 79, 0.5);
 
   pointer-events: none;
+}
+
+.timeline-playhead-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 11px;
+  height: 32px;
+
+  transform: translateX(-5px);
+
+  cursor: ew-resize;
+
+  pointer-events: auto;
+  touch-action: none;
 }
