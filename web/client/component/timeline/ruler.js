@@ -1,10 +1,5 @@
 import { Elm } from "../base/elm.js";
-import {
-  assertTimeInSeconds,
-  assertPositive,
-  assertNonNegative,
-  assertHtmlElement,
-} from "../base/assert.js";
+import { assertPositive, assertNonNegative } from "../base/assert.js";
 import {
   createElementByHTML,
   xToTime,
@@ -30,16 +25,11 @@ export class TimelineRuler extends Elm {
   #basePixelsPerSecond = 50;
   #minPixelsPerSecond;
   #maxPixelsPerSecond;
+  #width = 0;
   // state(read-write)
-  #pixelsPerSecond;
-  #duration;
-  #width;
-  // element
-  #x = null;
-  #y = null;
-  #contentX = null;
-  #contentY = null;
-  #interactionElement;
+  #pixelsPerSecond = 0;
+  #duration = 0;
+  #containerWidth = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -49,7 +39,6 @@ export class TimelineRuler extends Elm {
 
     this.#init();
     this.#render();
-    this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
@@ -93,25 +82,13 @@ export class TimelineRuler extends Elm {
       (this.#basePixelsPerSecond * this.#maxZoom) / this.#baseZoom;
 
     this.#pixelsPerSecond = this.#basePixelsPerSecond;
-    this.#duration = 0;
-    this.#width = this.#calculateWidth();
 
-    this.resolveOption("interactionElement", (value, assertionSubject) => {
-      assertHtmlElement(value, assertionSubject);
-      this.#interactionElement = value;
-
-      const rootLeft = this.rootElement.getBoundingClientRect().left;
-      const interactionLeft =
-        this.#interactionElement.getBoundingClientRect().left;
-
-      // for floating point precision, allow a small tolerance
-      const epsilon = 0.01;
-      if (Math.abs(rootLeft - interactionLeft) > epsilon) {
-        throw new Error(
-          "interactionElement must be aligned with the root element",
-        );
-      }
+    this.resolveOption("containerWidth", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#containerWidth = value;
     });
+
+    this.#width = this.#calculateWidth();
   }
 
   // -----------------------------------------------------------------------------
@@ -150,6 +127,10 @@ export class TimelineRuler extends Elm {
     return this.#maxPixelsPerSecond;
   }
 
+  get width() {
+    return this.#width;
+  }
+
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------
@@ -159,7 +140,7 @@ export class TimelineRuler extends Elm {
   }
 
   set pixelsPerSecond(value) {
-    assertNonNegative(value, "pixelsPerSecond");
+    assertPositive(value, "pixelsPerSecond");
     this.#setPixelsPerSecond(value);
   }
 
@@ -188,11 +169,11 @@ export class TimelineRuler extends Elm {
   }
 
   get duration() {
-    return this.#duration;
+    return Number(this.#duration.toFixed(3));
   }
 
   set duration(value) {
-    assertTimeInSeconds(value, "duration");
+    assertNonNegative(value, "duration");
     this.#setDuration(value);
   }
 
@@ -203,36 +184,41 @@ export class TimelineRuler extends Elm {
 
     this.#duration = value;
 
-    this.#setWidth();
+    const newWidth = this.#calculateWidth();
+    if (newWidth !== this.#width) {
+      this.#width = newWidth;
+      this.#render();
+      this.#emitDurationChange();
+      this.#emitWidthChange();
+    } else {
+      this.#emitDurationChange();
+    }
   }
 
-  get width() {
-    return this.#width;
+  get containerWidth() {
+    return this.#containerWidth;
   }
 
-  set width(value) {
-    assertNonNegative(value, "width");
-    this.#setWidth(value);
-  }
+  set containerWidth(value) {
+    assertNonNegative(value, "containerWidth");
 
-  #setWidth(value = 0) {
-    const newWidth = this.#calculateWidth(value);
-
-    if (newWidth === this.#width) {
+    if (value === this.#containerWidth) {
       return;
     }
 
-    this.#width = newWidth;
-    this.#render();
+    this.#containerWidth = value;
 
-    this.#emitWidthChange();
+    const newWidth = this.#calculateWidth();
+    if (newWidth !== this.#width) {
+      this.#width = newWidth;
+      this.#render();
+      this.#emitWidthChange();
+    }
   }
 
-  #calculateWidth(width = 0) {
-    const containerWidth = this.rootElement.parentElement?.clientWidth ?? 0;
+  #calculateWidth() {
     const durationWidth = this.#duration * this.#pixelsPerSecond;
-
-    return Number(Math.max(width, containerWidth, durationWidth).toFixed(2));
+    return Number(Math.max(durationWidth, this.#containerWidth).toFixed(2));
   }
 
   // -----------------------------------------------------------------------------
@@ -252,12 +238,12 @@ export class TimelineRuler extends Elm {
     });
   }
 
-  set onWidthChange(handler) {
-    this.handler.set("widthChangeHandler", handler);
+  set onDurationChange(handler) {
+    this.handler.set("durationChangeHandler", handler);
   }
 
-  #emitWidthChange() {
-    this.handler.emit("widthChangeHandler", {
+  #emitDurationChange() {
+    this.handler.emit("durationChangeHandler", {
       elm: this,
       duration: this.#duration,
       pixelsPerSecond: this.#pixelsPerSecond,
@@ -265,100 +251,20 @@ export class TimelineRuler extends Elm {
     });
   }
 
-  set onPointerDown(handler) {
-    this.handler.set("pointerDownHandler", handler);
+  set onWidthChange(handler) {
+    this.handler.set("widthChangeHandler", handler);
   }
 
-  #emitPointerDown(event) {
-    const seconds = xToTime(this.#contentX, this.#pixelsPerSecond);
-    const formatSeconds = formatTime(seconds);
+  #emitWidthChange() {
+    const seconds = xToTime(this.#width, this.#pixelsPerSecond);
 
-    this.handler.emit("pointerDownHandler", {
+    this.handler.emit("widthChangeHandler", {
       elm: this,
-      event,
-      x: this.#x,
-      y: this.#y,
-      contentX: this.#contentX,
-      contentY: this.#contentY,
+      duration: this.#duration,
+      pixelsPerSecond: this.#pixelsPerSecond,
+      width: this.#width,
       seconds,
-      formatSeconds,
     });
-  }
-
-  set onPointerChange(handler) {
-    this.handler.set("pointerChangeHandler", handler);
-  }
-
-  #emitPointerChange(event) {
-    const seconds = xToTime(this.#contentX, this.#pixelsPerSecond);
-    const formatSeconds = formatTime(seconds);
-
-    this.handler.emit("pointerChangeHandler", {
-      elm: this,
-      event,
-      x: this.#x,
-      y: this.#y,
-      contentX: this.#contentX,
-      contentY: this.#contentY,
-      seconds,
-      formatSeconds,
-    });
-  }
-
-  #bindEvents() {
-    const parentElement = this.rootElement.parentElement;
-    if (parentElement != null) {
-      this.event.on(parentElement, "resizeElement", () => {
-        this.#setWidth();
-      });
-    }
-
-    this.event.on(parentElement, "pointermove", (event) => {
-      this.#updatePointerPosition(event);
-      this.#emitPointerChange(event);
-    });
-
-    this.event.on(parentElement, "pointerdown", (event) => {
-      this.#updatePointerPosition(event);
-      this.#emitPointerDown(event);
-    });
-
-    if (this.#interactionElement != null) {
-      this.event.on(this.#interactionElement, "pointermove", (event) => {
-        this.#updatePointerPosition(event);
-        this.#emitPointerChange(event);
-      });
-
-      this.event.on(this.#interactionElement, "scroll", (event) => {
-        this.#updatePointerContentPosition(event.currentTarget);
-        this.#emitPointerChange(event);
-      });
-    }
-  }
-
-  #updatePointerPosition(event) {
-    const element = event.currentTarget;
-    const rect = element.getBoundingClientRect();
-
-    let x = event.clientX - rect.left;
-    let y = event.clientY - rect.top;
-
-    x = Math.max(x, 0);
-    y = Math.max(y, 0);
-
-    this.#x = x;
-    this.#y = y;
-
-    this.#updatePointerContentPosition(element);
-  }
-
-  #updatePointerContentPosition(element) {
-    if (this.#x == null || this.#y == null) {
-      return;
-    }
-
-    this.#contentX = this.#x + element.scrollLeft;
-    this.#contentY = this.#y + element.scrollTop;
   }
 
   // ---------------------------------------------------------------------------

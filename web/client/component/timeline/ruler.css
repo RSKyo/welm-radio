@@ -1,8 +1,12 @@
 .timeline-ruler {
-  position: relative;
+  position: sticky;
   height: 32px;
+  top: 0;
+  overflow: clip;
+  z-index: 20;
   user-select: none;
   color: var(--color-text-muted);
+  background: var(--color-surface);
 }
 
 .timeline-ruler-tick {

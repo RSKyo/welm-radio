@@ -1,4 +1,10 @@
-import { assertPlainObjectArray, assertPositive, assertValueExists, assertPlainObject } from "../base/assert.js";
+import {
+  assertNonNegative,
+  assertPlainObjectArray,
+  assertPositive,
+  assertValueExists,
+  assertPlainObject,
+} from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
@@ -26,7 +32,7 @@ export class TrackList extends ItemsElm {
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #duration = 0;
-  #trackWidth = 0;
+  #playheadTime = 0;
   // ClipGroup component map
   #clipGroupMap = new Map();
 
@@ -49,11 +55,6 @@ export class TrackList extends ItemsElm {
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
-    });
-
-    this.resolveOption("trackWidth", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#trackWidth = value;
     });
 
     this.rootElement.style.setProperty(
@@ -135,26 +136,23 @@ export class TrackList extends ItemsElm {
     }
   }
 
-  /** track width (read-write) */
+  /** playhead time (read-write) */
 
-  get trackWidth() {
-    return this.#trackWidth;
+  get playheadTime() {
+    return this.#playheadTime;
   }
 
-  set trackWidth(value) {
-    assertPositive(value, "trackWidth");
-    this.#setTrackWidth(value);
-  }
+  set playheadTime(value) {
+    assertNonNegative(value, "playheadTime");
 
-  #setTrackWidth(value, { updateUI = true } = {}) {
-    if (value === this.#trackWidth) {
+    if (value === this.#playheadTime) {
       return;
     }
 
-    this.#trackWidth = value;
+    this.#playheadTime = value;
 
-    if (updateUI) {
-      this.#updateTrackWidthUIState();
+    for (const clipGroupElm of this.#clipGroupMap.values()) {
+      clipGroupElm.playheadTime = value;
     }
   }
 
@@ -174,9 +172,9 @@ export class TrackList extends ItemsElm {
 
   addClip(trackValue, clip) {
     const itemValues = this.itemValues;
-        assertValueExists(trackValue, itemValues);
-        assertPlainObject(clip, "clip");
-        
+    assertValueExists(trackValue, itemValues);
+    assertPlainObject(clip, "clip");
+
     const clipGroupElm = this.#clipGroupMap.get(trackValue);
 
     if (!clipGroupElm) {
@@ -295,12 +293,12 @@ export class TrackList extends ItemsElm {
 
     const itemEl = trackTemplate.cloneNode(true);
     itemEl.dataset.value = value;
-    itemEl.style.width = `${this.#trackWidth}px`;
 
     const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
 
     const clipGroupElm = new ClipGroup(clipGroupEl, {
       pixelsPerSecond: this.#pixelsPerSecond,
+      playheadTime: this.#playheadTime,
     });
 
     clipGroupElm.onDurationChange = () => {
@@ -369,14 +367,6 @@ export class TrackList extends ItemsElm {
       }
 
       element.classList.toggle("is-selected", selected);
-    });
-  }
-
-  #updateTrackWidthUIState() {
-    this.eachItem(({ element, value }) => {
-      if (!element) return;
-
-      element.style.width = `${this.#trackWidth}px`;
     });
   }
 }

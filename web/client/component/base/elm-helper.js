@@ -11,7 +11,6 @@ import {
   assertElementContains,
   assertNonEmptyNonBlankStringArray,
   assertNoDuplicateValues,
-  assertTimeInSeconds,
   assertNonNegative,
 } from "./assert.js";
 
@@ -229,20 +228,21 @@ export function isEqualValue(value1, value2) {
   return false;
 }
 
-
 export function timeToX(seconds, pixelsPerSecond) {
-    assertTimeInSeconds(seconds, "seconds");
-    assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+  assertNonNegative(seconds, "seconds");
+  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
 
-    return Number((seconds * pixelsPerSecond).toFixed(2));
-  }
+  return Number((seconds * pixelsPerSecond).toFixed(2));
+}
 
-  export function xToTime(x, pixelsPerSecond) {
-    assertNumber(x, "x");
-    assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+export function xToTime(x, pixelsPerSecond) {
+  assertNumber(x, "x");
+  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+  
+  x = x < 0 ? 0 : x;
 
-    return Number((x / pixelsPerSecond).toFixed(3));
-  }
+  return Number((x / pixelsPerSecond).toFixed(3));
+}
 
 export function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);

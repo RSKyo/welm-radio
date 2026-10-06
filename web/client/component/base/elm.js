@@ -3,6 +3,7 @@ import {
   assertFunction,
   assertPlainObject,
   assertStringPlainObject,
+  assertBoolean,
 } from "./assert.js";
 import { resolveElement } from "./elm-helper.js";
 import { ElmHandler } from "./elm-handler.js";
@@ -105,16 +106,10 @@ export class Elm {
 
   /** public option resolution */
 
-  resolveOption(key, handler, fallbackHandler) {
+  resolveOption(key, handler, required = false) {
     assertNonBlankString(key, "key");
-
-    if (handler != null) {
-      assertFunction(handler, "handler");
-    }
-
-    if (fallbackHandler != null) {
-      assertFunction(fallbackHandler, "fallbackHandler");
-    }
+    assertFunction(handler, "handler");
+    assertBoolean(required, "required");
 
     let value;
     let assertionSubject;
@@ -126,11 +121,13 @@ export class Elm {
       value = this.#dataset[key];
       assertionSubject = `dataset.${key}`;
     } else {
-      fallbackHandler?.(key);
+      if (required) {
+        throw new Error(`"${key}" is required`);
+      }
       return;
     }
 
-    handler?.(value, assertionSubject);
+    handler(value, assertionSubject);
 
     return value;
   }

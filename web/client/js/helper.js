@@ -5,6 +5,8 @@ import {
   isHtmlElement,
   assertNonBlankString,
   assertHtmlElement,
+  assertNumber,
+  assertNonNegative,
 } from "./assert.js";
 
 export const toast = new Toast();
@@ -89,7 +91,7 @@ export function on(target, eventName, handler) {
 
 function bindDomEvent(element, eventName, handler) {
   const eventHandler = safeHandler(handler);
-  if (eventName === "resize") {
+  if (eventName === "resizeElement") {
     const resizeObserver = new ResizeObserver(() => {
       eventHandler();
     });
@@ -143,4 +145,73 @@ export function getElement(selector) {
 
   assertHtmlElement(element, "selector");
   return element;
+}
+
+// -----------------------------------------------------------------------------
+// Time and Position Helpers
+// -----------------------------------------------------------------------------
+
+export function timeToX(seconds, pixelsPerSecond) {
+  assertNonNegative(seconds, "seconds");
+  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+
+  return Number((seconds * pixelsPerSecond).toFixed(2));
+}
+
+export function xToTime(x, pixelsPerSecond) {
+  assertNumber(x, "x");
+  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+
+  x = x < 0 ? 0 : x;
+
+  return Number((x / pixelsPerSecond).toFixed(3));
+}
+
+export function formatTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainSeconds = seconds % 60;
+
+  const secondText = remainSeconds
+    .toFixed(3)
+    .replace(/\.?0+$/, "")
+    .padStart(2, "0");
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${secondText}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${secondText}`;
+}
+
+export function parseTime(timeText) {
+  const parts = timeText.split(":").map(Number);
+
+  if (parts.some(Number.isNaN)) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  let hours = 0;
+  let minutes;
+  let seconds;
+
+  if (parts.length === 2) {
+    [minutes, seconds] = parts;
+  } else if (parts.length === 3) {
+    [hours, minutes, seconds] = parts;
+  } else {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  if (
+    hours < 0 ||
+    minutes < 0 ||
+    minutes >= 60 ||
+    seconds < 0 ||
+    seconds >= 60
+  ) {
+    throw new Error(`invalid time: ${timeText}`);
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
 }

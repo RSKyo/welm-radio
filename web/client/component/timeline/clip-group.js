@@ -1,4 +1,4 @@
-import { assertPositive } from "../base/assert.js";
+import { assertPositive, assertNonNegative } from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
@@ -9,6 +9,7 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
+const DEFAULT_CLIP_MIN_DURATION = 0.05;
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
 const DEFAULT_ROW_HEIGHT = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
@@ -30,6 +31,7 @@ export class ClipGroup extends ItemsElm {
   #pixelsPerSecond = 0;
   #duration = 0;
   #height = DEFAULT_CLIP_GROUP_MIN_HEIGHT;
+  #playheadTime = 0;
   // clip component map
   #clipMap = new Map();
   // dragging
@@ -63,6 +65,11 @@ export class ClipGroup extends ItemsElm {
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
+    });
+
+    this.resolveOption("playheadTime", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#playheadTime = value;
     });
   }
 
@@ -153,6 +160,22 @@ export class ClipGroup extends ItemsElm {
     for (const clipElm of this.#clipMap.values()) {
       clipElm.pixelsPerSecond = value;
     }
+  }
+
+  /** playhead time (read-write) */
+
+  get playheadTime() {
+    return this.#playheadTime;
+  }
+
+  set playheadTime(value) {
+    assertNonNegative(value, "playheadTime");
+
+    if (value === this.#playheadTime) {
+      return;
+    }
+
+    this.#playheadTime = value;
   }
 
   // -----------------------------------------------------------------------------
@@ -326,9 +349,11 @@ export class ClipGroup extends ItemsElm {
 
     if (trimStartEl) {
       this.#dragMode = "trim-start";
+      clipElm.frontTrim = "start";
       this.rootElement.classList.add("is-trimming");
     } else if (trimEndEl) {
       this.#dragMode = "trim-end";
+      clipElm.frontTrim = "end";
       this.rootElement.classList.add("is-trimming");
     } else {
       this.#dragMode = "move";
@@ -348,6 +373,12 @@ export class ClipGroup extends ItemsElm {
 
   #pointerMoveHandler = (event) => {
     if (event.pointerId !== this.#draggingPointerId) {
+      return;
+    }
+
+    if (event.buttons === 0) {
+      this.#commitDragging();
+      this.#endDragging(event);
       return;
     }
 
@@ -397,6 +428,11 @@ export class ClipGroup extends ItemsElm {
       return;
     }
 
+    this.#commitDragging();
+    this.#endDragging(event);
+  };
+
+  #commitDragging() {
     const clipElm = this.#draggingClipElm;
     if (!clipElm) {
       return;
@@ -404,15 +440,14 @@ export class ClipGroup extends ItemsElm {
 
     if (this.#dragMode === "move") {
       const pendingMove = this.#pendingMove;
-
       if (pendingMove == null) {
-        this.#endDragging(event);
         return;
       }
 
       const { rowIndex: newRowIndex, left: newLeft } = pendingMove;
 
       const newClipStart = Number((newLeft / this.#pixelsPerSecond).toFixed(3));
+
       const newClipEnd = newClipStart + clipElm.duration;
 
       if (
@@ -423,55 +458,49 @@ export class ClipGroup extends ItemsElm {
           newRowIndex,
         )
       ) {
-        this.#endDragging(event);
         return;
       }
 
       clipElm.rowIndex = newRowIndex;
       clipElm.clipStart = newClipStart;
 
-      this.#endDragging(event);
       return;
     }
 
     if (this.#dragMode === "trim-start") {
       const pendingTrim = this.#pendingTrim;
-
       if (pendingTrim == null) {
-        this.#endDragging(event);
         return;
       }
 
       const { left } = pendingTrim;
+
       const deltaX = left - clipElm.left;
       const deltaTime = deltaX / this.#pixelsPerSecond;
+
       const newTrimStart = Number((clipElm.trimStart + deltaTime).toFixed(3));
 
       clipElm.trimStart = newTrimStart;
 
-      this.#endDragging(event);
       return;
     }
 
     if (this.#dragMode === "trim-end") {
       const pendingTrim = this.#pendingTrim;
-
       if (pendingTrim == null) {
-        this.#endDragging(event);
         return;
       }
 
       const { width } = pendingTrim;
+
       const deltaX = width - clipElm.width;
       const deltaTime = deltaX / this.#pixelsPerSecond;
+
       const newTrimEnd = Number((clipElm.trimEnd + deltaTime).toFixed(3));
 
       clipElm.trimEnd = newTrimEnd;
-
-      this.#endDragging(event);
-      return;
     }
-  };
+  }
 
   #createDraggingGhost() {
     const element = this.#draggingElement;
@@ -535,6 +564,12 @@ export class ClipGroup extends ItemsElm {
       }
     };
 
+    // snap to playhead position
+    const playheadLeft = this.#playheadTime * this.#pixelsPerSecond;
+    trySnap(playheadLeft, Math.abs(newLeft - playheadLeft));
+    trySnap(playheadLeft - clipElm.width, Math.abs(newEndLeft - playheadLeft));
+
+    // snap to other clips
     for (const otherClipElm of this.#clipMap.values()) {
       const isSameRow = newRowIndex === otherClipElm.rowIndex;
 
@@ -596,28 +631,51 @@ export class ClipGroup extends ItemsElm {
 
     const { deltaX } = dragPosition;
 
+    let snapLeft = null;
+    let snapDistance = SNAP_THRESHOLD;
+
+    const trySnap = (left, distance) => {
+      if (distance < snapDistance) {
+        snapLeft = left;
+        snapDistance = distance;
+      }
+    };
+
+    const playheadLeft = this.#playheadTime * this.#pixelsPerSecond;
+
     if (this.#dragMode === "trim-start") {
       let newDraggingLeft = clipElm.left + deltaX;
+
       const audioStartLeft =
         clipElm.left -
         (clipElm.trimStart - clipElm.audioStart) * this.#pixelsPerSecond;
 
       const { previousClipElm } = this.#getAdjacentClipElms(clipElm);
-      const minLeft = previousClipElm?.endLeft ?? 0;
+      const prevClipEndLeft = previousClipElm?.endLeft ?? 0;
 
-      if (
-        previousClipElm &&
-        Math.abs(newDraggingLeft - previousClipElm.endLeft) < SNAP_THRESHOLD
-      ) {
-        newDraggingLeft = previousClipElm.endLeft;
+      const minAllowedLeft = Math.max(audioStartLeft, prevClipEndLeft);
+
+      const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
+      const maxAllowedLeft = clipElm.endLeft - minWidth;
+
+      if (previousClipElm) {
+        trySnap(
+          previousClipElm.endLeft,
+          Math.abs(newDraggingLeft - previousClipElm.endLeft),
+        );
       }
 
-      const minWidth = 0.001 * this.#pixelsPerSecond;
-      const maxLeft = clipElm.endLeft - minWidth;
+      if (playheadLeft >= minAllowedLeft && playheadLeft <= maxAllowedLeft) {
+        trySnap(playheadLeft, Math.abs(newDraggingLeft - playheadLeft));
+      }
+
+      if (snapLeft != null) {
+        newDraggingLeft = snapLeft;
+      }
 
       const newLeft = Math.min(
-        Math.max(newDraggingLeft, audioStartLeft, minLeft),
-        maxLeft,
+        Math.max(newDraggingLeft, minAllowedLeft),
+        maxAllowedLeft,
       );
 
       const newWidth = clipElm.width - (newLeft - clipElm.left);
@@ -636,21 +694,31 @@ export class ClipGroup extends ItemsElm {
         (clipElm.audioEnd - clipElm.trimEnd) * this.#pixelsPerSecond;
 
       const { nextClipElm } = this.#getAdjacentClipElms(clipElm);
-      const maxEndLeft = nextClipElm?.left ?? audioEndLeft;
+      const nextClipLeft = nextClipElm?.left ?? audioEndLeft;
 
-      if (
-        nextClipElm &&
-        Math.abs(newDraggingEndLeft - nextClipElm.left) < SNAP_THRESHOLD
-      ) {
-        newDraggingEndLeft = nextClipElm.left;
+      const maxAllowedLeft = Math.min(audioEndLeft, nextClipLeft);
+
+      const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
+      const minAllowedLeft = clipElm.left + minWidth;
+
+      if (nextClipElm) {
+        trySnap(
+          nextClipElm.left,
+          Math.abs(newDraggingEndLeft - nextClipElm.left),
+        );
       }
 
-      const minWidth = 0.001 * this.#pixelsPerSecond;
-      const minEndLeft = clipElm.left + minWidth;
+      if (playheadLeft >= minAllowedLeft && playheadLeft <= maxAllowedLeft) {
+        trySnap(playheadLeft, Math.abs(newDraggingEndLeft - playheadLeft));
+      }
 
-      const newEndLeft = Math.max(
-        Math.min(newDraggingEndLeft, audioEndLeft, maxEndLeft),
-        minEndLeft,
+      if (snapLeft != null) {
+        newDraggingEndLeft = snapLeft;
+      }
+
+      const newEndLeft = Math.min(
+        Math.max(newDraggingEndLeft, minAllowedLeft),
+        maxAllowedLeft,
       );
 
       const newWidth = newEndLeft - clipElm.left;

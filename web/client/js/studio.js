@@ -1,10 +1,21 @@
-import { toast, safeRun, on, getElement } from "./helper.js";
+import {
+  toast,
+  safeRun,
+  on,
+  getElement,
+  xToTime,
+  formatTime,
+} from "./helper.js";
 
 import { Slider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
+import { TimelinePlayhead } from "../component/timeline/playhead.js";
+import { TimelineCursor } from "../component/timeline/cursor.js";
 
+let timelineContainerPointerX = 0;
+let timelineContainerPointerSeconds = 0;
 // -----------------------------------------------------------------------------
 // Elements
 // -----------------------------------------------------------------------------
@@ -12,11 +23,12 @@ import { TrackList } from "../component/timeline/track-list.js";
 const addTrackBtn = getElement("#add-track");
 const addClipBtn = getElement("#add-clip");
 
-const timelineEl = getElement(".timeline");
+const timelineCursorInfoEl = getElement("#timeline-cursor-info");
+const timelinePlayheadInfoEl = getElement("#timeline-playhead-info");
+
 const timelineHeaderEl = getElement(".timeline-header");
-const timelineBodyEl = getElement(".timeline-body");
-const timelineCursorEl = getElement(".timeline-cursor");
-const timelineCursorLabelEl = getElement(".timeline-cursor-label");
+const timelineEl = getElement(".timeline");
+const timelineContentEl = getElement(".timeline-content");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -32,18 +44,30 @@ const zoomElm = new Slider("#zoom", {
 });
 
 const rulerElm = new TimelineRuler("#ruler", {
-  interactionElement: timelineBodyEl,
+  timelineElement: timelineEl,
 });
 
-const trackHeaderListElm = new TrackHeaderList("#track-header", {
+const trackHeaderListElm = new TrackHeaderList("#track-header-list", {
   valueField: "trackId",
   trackHeight: 120,
 });
-const trackListElm = new TrackList("#track", {
+
+const trackListElm = new TrackList("#track-list", {
   valueField: "trackId",
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   trackWidth: rulerElm.width,
   trackHeight: 120,
+});
+
+const timelinePlayheadElm = new TimelinePlayhead("#playhead", {
+  timelineElement: timelineEl,
+  pixelsPerSecond: rulerElm.pixelsPerSecond,
+  time: 0,
+});
+
+const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
+  pixelsPerSecond: rulerElm.pixelsPerSecond,
+  time: 0,
 });
 
 // -----------------------------------------------------------------------------
@@ -64,10 +88,12 @@ function initializePage() {
 function bindEvents() {
   on(zoomElm, "change", zoomChange);
 
-  on(timelineBodyEl, "scroll", timelineBodyScroll);
+  on(timelineEl, "scroll", timelineScroll);
+  on(timelineEl, "resizeElement", timelineResize);
+  on(timelineContentEl, "dblclick", timelineContentDoubleClick);
+  on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
-  on(rulerElm, "pointerChange", rulerPointerChange);
-  on(rulerElm, "pointerDown", rulerPointerDown);
+  // on(rulerElm, "timelinePointerChange", rulerTimelinePointerChange);
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
 
@@ -78,6 +104,9 @@ function bindEvents() {
   on(trackListElm, "selectedChange", trackListSelectedChange);
   on(trackListElm, "durationChange", trackListDurationChange);
   on(trackListElm, "trackHeightChange", trackListTrackHeightChange);
+
+  on(timelinePlayheadElm, "timeChange", timelinePlayheadTimeChange);
+  on(timelineCursorElm, "timeChange", timelineCursorTimeChange);
 }
 
 async function initData() {
@@ -92,24 +121,42 @@ function zoomChange({ value }) {
   rulerElm.pixelsPerSecond = value;
 }
 
-function timelineBodyScroll() {
-  timelineHeaderEl.scrollLeft = timelineBodyEl.scrollLeft;
+function timelineScroll() {
+  timelineHeaderEl.scrollTop = timelineEl.scrollTop;
 }
 
-function rulerPointerChange({ x, formatSeconds }) {
-  timelineCursorEl.style.left = `${Math.round(x)}px`;
-  timelineCursorLabelEl.textContent = `${formatSeconds}`;
+function timelineResize() {
+  rulerElm.containerWidth = timelineEl.clientWidth;
 }
-function rulerPointerDown({ contentX, formatSeconds }) {
-  console.log(`Pointer down at x: ${contentX}, formatSeconds: ${formatSeconds}`);
+
+function timelineContentDoubleClick(event) {
+  timelinePlayheadElm.time = timelineContainerPointerSeconds;
+}
+
+function timelineContentPointerMove(event) {
+  const rect = timelineContentEl.getBoundingClientRect();
+  timelineContainerPointerX = event.clientX - rect.left;
+
+  timelineContainerPointerSeconds = xToTime(
+    timelineContainerPointerX,
+    rulerElm.pixelsPerSecond,
+  );
+  timelineCursorElm.time = timelineContainerPointerSeconds;
 }
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   trackListElm.pixelsPerSecond = pixelsPerSecond;
+  timelinePlayheadElm.pixelsPerSecond = pixelsPerSecond;
+  timelineCursorElm.pixelsPerSecond = pixelsPerSecond;
 }
 
-function rulerWidthChange({ width }) {
+function rulerWidthChange({ width, seconds }) {
+  timelineContentEl.style.width = `${width}px`;
   trackListElm.trackWidth = width;
+
+  if (timelinePlayheadElm.time > seconds) {
+    timelinePlayheadElm.time = seconds;
+  }
 }
 
 function addTrack() {
@@ -132,6 +179,15 @@ function trackListDurationChange({ duration }) {
 
 function trackListTrackHeightChange({ value, height }) {
   trackHeaderListElm.setTrackHeaderHeight(value, height);
+}
+
+function timelinePlayheadTimeChange({ time, left }) {
+  timelinePlayheadInfoEl.textContent = formatTime(time);
+  trackListElm.playheadTime = time;
+}
+
+function timelineCursorTimeChange({ time }) {
+  timelineCursorInfoEl.textContent = formatTime(time);
 }
 
 function addClip() {

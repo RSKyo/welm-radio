@@ -35,6 +35,7 @@ export class Clip extends Elm {
   // ui
   #height = DEFAULT_CLIP_HEIGHT;
   #rowGap = DEFAULT_CLIP_ROW_GAP;
+  #frontTrim = "end";
 
   constructor(root, options = {}) {
     super(root, {
@@ -129,7 +130,10 @@ export class Clip extends Elm {
       this.#rowGap = value;
     });
 
-    this.rootElement.style.setProperty("--trim-width", `${TRIM_HANDLE_WIDTH}px`);
+    this.rootElement.style.setProperty(
+      "--trim-width",
+      `${TRIM_HANDLE_WIDTH}px`,
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -316,6 +320,23 @@ export class Clip extends Elm {
     this.#updatePositionUIState();
   }
 
+  get frontTrim() {
+    return this.#frontTrim;
+  }
+
+  set frontTrim(value) {
+    if (value !== "start" && value !== "end") {
+      throw new Error('frontTrim must be "start" or "end"');
+    }
+
+    if (value === this.#frontTrim) {
+      return;
+    }
+
+    this.#frontTrim = value;
+    this.#updateFrontTrimState();
+  }
+
   // -----------------------------------------------------------------------------
   // methods
   // -----------------------------------------------------------------------------
@@ -369,10 +390,9 @@ export class Clip extends Elm {
     // main
     const trimStartEl = trimStartTemplate.cloneNode(true);
     const trimEndEl = trimEndTemplate.cloneNode(true);
-this.rootElement.textContent = this.#clipId;
+    this.rootElement.textContent = this.#clipId;
     this.rootElement.appendChild(trimStartEl);
     this.rootElement.appendChild(trimEndEl);
-
 
     this.#updateUIState();
   }
@@ -383,11 +403,24 @@ this.rootElement.textContent = this.#clipId;
 
   #updateUIState() {
     this.#updatePositionUIState();
+    this.#updateFrontTrimState();
   }
 
   #updatePositionUIState() {
     this.rootElement.style.top = `${this.top}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;
+  }
+
+  #updateFrontTrimState() {
+    const trimStartEl = this.rootElement.querySelector(
+      '[data-role="trim-start"]',
+    );
+
+    const trimEndEl = this.rootElement.querySelector('[data-role="trim-end"]');
+
+    trimStartEl.style.zIndex = this.#frontTrim === "start" ? "2" : "1";
+
+    trimEndEl.style.zIndex = this.#frontTrim === "end" ? "2" : "1";
   }
 }

@@ -363,19 +363,6 @@ export function assertValueIn(value, values, assertionSubject = "value") {
   }
 }
 
-/** Time assertions */
-
-// Time in seconds (with up to 3 decimal places)
-export function assertTimeInSeconds(seconds, assertionSubject = "seconds") {
-  assertNonNegative(seconds, assertionSubject);
-
-  const decimalLength = String(seconds).split(".")[1]?.length ?? 0;
-
-  if (decimalLength > 3) {
-    throw new Error(`${assertionSubject} must have at most 3 decimal places`);
-  }
-}
-
 /** Duplicate value assertions */
 
 export function assertNoDuplicateValues(values, assertionSubject = "values") {

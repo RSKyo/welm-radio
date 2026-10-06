@@ -1,15 +1,20 @@
-.track-list {
+/* .track-list {
   --track-height: 100px;
 
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  position: relative;
+} */
+
+.track-list {
+  position: relative;
 }
 
 .track {
   position: relative;
   min-height: var(--track-height, 100px);
-  height: var(--track-height, 100px);
   padding: 0;
   border: 0;
   border-radius: 4px;

@@ -20,6 +20,8 @@
     <link rel="stylesheet" href="./component/timeline/track-list.css" />
     <link rel="stylesheet" href="./component/timeline/clip-group.css" />
     <link rel="stylesheet" href="./component/timeline/clip.css" />
+    <link rel="stylesheet" href="./component/timeline/playhead.css" />
+    <link rel="stylesheet" href="./component/timeline/cursor.css" />
   </head>
 
   <body>
@@ -35,7 +37,7 @@
       <div class="grow hbox gap-4">
         <!-- left -->
         <div
-          class="scroll vbox"
+          class="vbox"
           style="
             width: 240px;
             min-width: 120px;
@@ -46,26 +48,29 @@
             <button id="add-track" type="button">添加音轨</button>
             <button id="add-clip" type="button">添加片段(测试)</button>
           </div>
-          <div style="height: 32px"></div>
           <div class="grow vbox p-0-8" style="position: relative">
-            <div id="track-header"></div>
+            <div class="timeline-header">
+              <div style="height: 32px"></div>
+              <div id="track-header-list"></div>
+            </div>
           </div>
         </div>
         <!-- right -->
         <div class="grow vbox" style="background-color: var(--color-surface)">
           <div class="toolbar rt-4">
+            <div class="grow">
+              <span id="timeline-cursor-info"></span>
+              <span id="timeline-playhead-info"></span>
+            </div>
             <div id="zoom" style="width: 208px"></div>
           </div>
           <div class="grow vbox p-0-8" style="position: relative">
             <div class="timeline">
-              <div class="timeline-header">
+              <div class="timeline-content vbox">
                 <div id="ruler"></div>
-              </div>
-              <div class="timeline-body">
-                <div id="track"></div>
-              </div>
-              <div class="timeline-cursor">
-                <div class="timeline-cursor-label">0s</div>
+                <div id="track-list" class="grow"></div>
+                <div id="playhead"></div>
+                <div id="timeline-cursor"></div>
               </div>
             </div>
           </div>

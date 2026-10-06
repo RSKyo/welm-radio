@@ -1,0 +1,27 @@
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+
+  width: 11px;
+  transform: translateX(-5px);
+
+  cursor: ew-resize;
+  z-index: 30;
+  touch-action: none;
+}
+
+.timeline-playhead::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+
+  width: 1px;
+
+  background: rgba(255, 77, 79, 0.5);
+
+  pointer-events: none;
+}

@@ -1,71 +1,65 @@
-.timeline {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-
-  min-width: 0;
-  min-height: 0;
-  padding: 0 !important;
-  margin: 0 !important;
-
-  position: relative;
-  background-color: var(--color-surface);
-}
-
 .timeline-header {
-  overflow: hidden;
-  min-width: 0;
-  min-height: 0;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.timeline-body {
-  border: 0;
   flex: 1;
+
   position: relative;
-  overflow: auto;
+  overflow: hidden;
+
   min-width: 0;
   min-height: 0;
+
   padding: 0 !important;
   margin: 0 !important;
+
   cursor: default;
 }
 
-.timeline-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border: 0;
+.timeline {
+  flex: 1;
 
-  width: 1px;
-   background: color-mix(
-    in srgb,
-    var(--color-border) 80%,
-    transparent
-  );
+  position: relative;
+  overflow: auto;
 
-  pointer-events: none;
-  z-index: 10;
+  min-width: 0;
+  min-height: 0;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  cursor: default;
 }
 
-.timeline-cursor-label {
+.timeline-content {
+  position: relative;
+
+  min-width: 100%;
+  min-height: 100%;
+
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#timeline-cursor-info {
   position: absolute;
+  top: 6px;
+  left: 8px;
 
-  top: 0;
-  left: 0;
+  font-size: 10px;
+  line-height: 12px;
 
-  padding: 2px 4px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: pre-line;
+}
 
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 80%,
-    transparent
-  );
+#timeline-playhead-info {
+  position: absolute;
+  top: 20px;
+  left: 8px;
 
-  color: var(--color-primary-inverse);
+  font-size: 10px;
+  line-height: 12px;
 
-  font-size: 11px;
-
-  white-space: nowrap;
+  color: rgba(255, 77, 79, 0.5);
+  font-variant-numeric: tabular-nums;
+  white-space: pre-line;
 }
