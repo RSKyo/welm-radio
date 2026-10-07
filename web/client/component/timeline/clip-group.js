@@ -202,7 +202,7 @@ export class ClipGroup extends ItemsElm {
       maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
     }
 
-    const height = (maxRowIndex + 1) * DEFAULT_ROW_HEIGHT;
+    const height = (maxRowIndex + 1) * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 

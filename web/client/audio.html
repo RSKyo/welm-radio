@@ -17,9 +17,9 @@
   <body>
     <div class="vbox h-100 w-100">
       <!-- header -->
-      <div class="p-12-8 hbox a-center">
+      <div class="px-8 py-12 hbox a-center">
         <div class="grow">
-          <h1 class="ib" style="color: var(--color-primary-text)">Audio Library</h1>
+          <h1 style="color: var(--color-primary-text)">Audio Library</h1>
         </div>
       </div>
 
@@ -27,52 +27,52 @@
       <div class="grow hbox">
         <!-- filter -->
         <div
-          class="p-12-8 m-0-8 scroll vbox gap-20"
+          class="px-8 py-12 mx-8 scroll vbox gap-20"
           style="
             width: 240px;
             min-width: 120px;
             background-color: var(--color-surface-raised);
           "
         >
-          <div class="shrink vbox gap-8">
-            <label class="label">音频类型</label>
+          <div class="fixed vbox gap-8">
+            <label>音频类型</label>
             <div id="audio-type-filter" data-name="audio-type-filter"></div>
           </div>
 
-          <div class="shrink vbox gap-8">
-            <label class="label">音频位置</label>
+          <div class="fixed vbox gap-8">
+            <label>音频位置</label>
             <div
               id="audio-position-filter"
               data-name="audio-position-filter"
             ></div>
           </div>
 
-          <div class="shrink vbox gap-8">
-            <label class="label">音频日段</label>
+          <div class="fixed vbox gap-8">
+            <label>音频日段</label>
             <div
               id="audio-day-part-filter"
               data-name="audio-day-part-filter"
             ></div>
           </div>
 
-          <div class="shrink vbox gap-8">
-            <label class="label">音频语言</label>
+          <div class="fixed vbox gap-8">
+            <label>音频语言</label>
             <div
               id="audio-language-filter"
               data-name="audio-language-filter"
             ></div>
           </div>
 
-          <div class="shrink vbox gap-8">
-            <label class="label">音频分类</label>
+          <div class="fixed vbox gap-8">
+            <label>音频分类</label>
             <div
               id="audio-category-filter"
               data-name="audio-category-filter"
             ></div>
           </div>
 
-          <div class="shrink vbox gap-8">
-            <label class="label">音频备选组</label>
+          <div class="fixed vbox gap-8">
+            <label>音频备选组</label>
             <div
               id="audio-alternate-group-filter"
               data-name="audio-alternate-group-filter"
@@ -82,7 +82,7 @@
 
         <!-- audio -->
         <div
-          class="p-12-8 grow vbox gap-4"
+          class="px-8 py-12 grow vbox gap-4"
           style="min-width: 360px; background-color: var(--color-surface)"
         >
           <div class="toolbar" style="padding-left: 0; gap: 0">
@@ -94,7 +94,7 @@
               <button id="import-audios" type="button">添加</button>
               <button id="set-audio-root" type="button">选择音频目录</button>
 
-              <select id="order" style="min-height: 24px;">
+              <select id="order" style="min-height: 24px">
                 <option value="default">默认</option>
                 <option value="createdAt-desc">创建时间（新到旧）</option>
                 <option value="createdAt-asc">创建时间（旧到新）</option>
@@ -121,7 +121,7 @@
 
         <!-- meta -->
         <div
-          class="p-12-8 m-0-8 vbox"
+          class="px-8 py-12 mx-8 vbox"
           style="
             width: 640px;
             min-width: 480px;
@@ -131,23 +131,27 @@
           <div class="toolbar">
             <button id="save-meta" type="button">保存</button>
           </div>
-          <div class="p-12-8 grow scroll vbox gap-20">
+          <div class="px-8 py-12 grow scroll vbox gap-20">
             <form id="meta-form" class="form">
               <input name="audioPath" type="hidden" />
               <input name="metaPath" type="hidden" />
               <div class="form-field">
                 <label>标题</label>
-                <div class="input-overlay">
-                  <input name="title" type="text" placeholder="音频标题" />
-                  <div class="input-overlay-suffix">
-                    <input
-                      name="extension"
-                      type="text"
-                      class="input-overlay-info"
-                      value=".mp3"
-                      readonly
-                    />
-                  </div>
+                <div class="joined-control">
+                  <input
+                    name="title"
+                    type="text"
+                    placeholder="音频标题"
+                    class="grow join-left"
+                  />
+                  <input
+                    name="extension"
+                    type="text"
+                    class="join-right input-raised"
+                    value=".mp3"
+                    readonly
+                    style="width: 42px"
+                  />
                 </div>
               </div>
               <div class="form-field">

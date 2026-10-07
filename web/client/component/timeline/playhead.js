@@ -179,10 +179,7 @@ export class TimelinePlayhead extends Elm {
     this.#draggingPointerId = null;
     this.#dragOffsetX = 0;
 
-    if (
-      pointerId != null &&
-      this.#handleEl.hasPointerCapture(pointerId)
-    ) {
+    if (pointerId != null && this.#handleEl.hasPointerCapture(pointerId)) {
       this.#handleEl.releasePointerCapture(pointerId);
     }
   }
@@ -215,15 +212,9 @@ export class TimelinePlayhead extends Elm {
   #updateTimeByPointer(event) {
     const rect = this.#containerEl.getBoundingClientRect();
 
-    let contentX =
-      event.clientX -
-      rect.left -
-      this.#dragOffsetX;
+    let contentX = event.clientX - rect.left - this.#dragOffsetX;
 
-    contentX = Math.min(
-      Math.max(contentX, 0),
-      this.#containerEl.clientWidth,
-    );
+    contentX = Math.min(Math.max(contentX, 0), this.#containerEl.clientWidth);
 
     this.time = contentX / this.#pixelsPerSecond;
   }

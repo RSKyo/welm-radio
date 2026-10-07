@@ -5,9 +5,9 @@
 
   width: 1px;
 
-  z-index: 30;
-
   pointer-events: none;
+
+  z-index: 31;
 }
 
 .timeline-playhead::before {
@@ -20,7 +20,13 @@
 
   width: 1px;
 
-  background: #D75455;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 85%,
+    transparent
+  );
+
+  box-shadow: 2px 1px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
 
   pointer-events: none;
 }
@@ -31,7 +37,7 @@
   left: 0;
 
   width: 11px;
-  height: 32px;
+  height: 24px;
 
   transform: translateX(-5px);
 

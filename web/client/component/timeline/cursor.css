@@ -5,9 +5,9 @@
 
   width: 1px;
 
-  background: #6E75A4;
-  opacity: 0.5;
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
 
   pointer-events: none;
+
   z-index: 30;
 }

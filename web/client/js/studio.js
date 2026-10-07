@@ -1,14 +1,8 @@
 import { setThemeMode } from "./theme.js";
 
-import {
-  toast,
-  safeRun,
-  on,
-  resolveElement,
-  xToTime,
-} from "./helper.js";
+import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
-import { Slider } from "../component/slider.js";
+import {  CompactSlider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
@@ -34,7 +28,7 @@ const timelineContentEl = resolveElement(".timeline-content");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
-const zoomElm = new Slider("#zoom", {
+const zoomElm = new CompactSlider("#zoom", {
   percentBase: 50,
   min: 5,
   max: 250,
@@ -74,7 +68,7 @@ const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
 const cursorTimeletElm = new Timelet("#cursor-timelet", {
   full: true,
   seconds: 0,
-  color: "#6E75A4",
+  color: "var(--color-primary-text)",
   fontSize: "10px",
   prefix: "C",
 });
@@ -82,8 +76,7 @@ const cursorTimeletElm = new Timelet("#cursor-timelet", {
 const playheadTimeletElm = new Timelet("#playhead-timelet", {
   full: true,
   seconds: 0,
-  color: "#D75455",
-
+  color: "var(--color-primary-text)",
   fontSize: "10px",
   prefix: "P",
 });
@@ -128,6 +121,7 @@ function bindEvents() {
 }
 
 async function initData() {
+  addTrack();
   // trackListElm.timelineRuler = rulerElm;
 }
 

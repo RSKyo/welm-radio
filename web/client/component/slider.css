@@ -2,6 +2,7 @@
   --slider-primary-color: #0a84ff;
 
   display: flex;
+  flex-direction: row;
   width: 100%;
   gap: 4px;
 }
@@ -15,6 +16,9 @@
 
 .slider button.slider-prev,
 .slider button.slider-next {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: absolute;
   padding: 0;
   border: 0;
@@ -106,6 +110,9 @@
 }
 
 .slider-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: absolute;
   padding: 0;
   border: 0;
@@ -156,6 +163,11 @@
   font-size: 10px;
 }
 
+.slider:not(.slider-compact) .slider-label {
+  height: 15px;
+  font-size: 10px;
+}
+
 .slider:not(.slider-compact) .slider-value-input {
   width: 60px;
   height: 28px;
@@ -164,10 +176,12 @@
   font-size: inherit;
 }
 
+
+
 /* compact */
 
 .slider-compact {
-  height: 22px;
+  height: 24px;
   padding: 0 0 5px 0;
 }
 
@@ -181,17 +195,17 @@
 
 .slider-compact .slider-value {
   height: 12px;
-
   font-size: 9px;
 }
 
 .slider-compact .slider-label {
+  height: 12px;
   font-size: 9px;
 }
 
 .slider-compact .slider-value-input {
   width: 50px;
-  height: 22px;
+  height: 24px;
   padding: 2px 4px;
 
   font-size: 11px;

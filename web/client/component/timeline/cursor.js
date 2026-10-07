@@ -6,9 +6,6 @@ export class TimelineCursor extends Elm {
   #pixelsPerSecond = 50;
   #time = 0;
 
-  // element
-  #labelElement = null;
-
   constructor(root, options = {}) {
     super(root, {
       ...options,

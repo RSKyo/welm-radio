@@ -28,53 +28,66 @@
   <body>
     <div class="vbox h-100 w-100">
       <!-- header -->
-      <div class="p-12-8 hbox a-center">
-        <div class="grow">
-          <h2 class="ib" style="color: var(--color-primary-text)">Audio Studio</h2>
+      <div class="hbox a-center page-header">
+        <div class="grow px-12 py-4">
+          <span class="page-title">Audio Studio</span>
         </div>
       </div>
 
       <!-- main -->
-      <div class="grow hbox gap-4">
+      <div class="grow hbox">
         <!-- left -->
         <div
           class="vbox"
           style="
-            width: 240px;
+            width: 200px;
             min-width: 120px;
-            background-color: var(--color-surface);
+            background: var(--color-surface);
           "
         >
-          <div class="toolbar rt-4">
+          <div
+            class="toolbar"
+            style="border-bottom: 1px solid var(--color-divider)"
+          >
             <button id="add-track" type="button">添加音轨</button>
-            <button id="add-clip" type="button">添加片段(测试)</button>
           </div>
-          <div class="grow vbox p-0-8" style="position: relative">
-            <div class="timeline-header">
-              <div style="height: 32px"></div>
-              <div id="track-header-list"></div>
+          <div class="grow vbox" style="position: relative">
+            <div class="timeline-header gap-8">
+              <div class="timeline-header-content vbox gap-8">
+                <div class="hbox j-center a-middle px-4 gap-8 pointer-info">
+                  <span id="cursor-timelet"></span>
+                  <span id="playhead-timelet"></span>
+                </div>
+                <div id="track-header-list" class="px-4"></div>
+              </div>
             </div>
           </div>
         </div>
         <!-- right -->
-        <div class="grow vbox" style="background-color: var(--color-surface)">
-          <div class="toolbar rt-4">
-            <div id="zoom" style="width: 208px"></div>
+        <div class="grow vbox" style="background: var(--color-surface)">
+          <div
+            class="toolbar"
+            style="border-bottom: 1px solid var(--color-divider)"
+          >
+            <button id="add-clip" type="button">添加片段(测试)</button>
           </div>
-          <div class="grow vbox p-0-8" style="position: relative">
+          <div class="grow vbox" style="position: relative">
             <div class="timeline">
-              <div class="timeline-content vbox">
+              <div class="timeline-content vbox gap-8">
                 <div id="ruler"></div>
-                <div class="timeline-info">
-                  <span id="cursor-timelet"></span>
-                  <span id="playhead-timelet"></span>
-                </div>
-                <div id="track-list" class="grow"></div>
+                <div id="track-list"></div>
                 <div id="playhead"></div>
                 <div id="timeline-cursor"></div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- footer -->
+      <div class="hbox j-end a-center page-header" style="padding-right: 20px">
+        <div>
+          <div id="zoom" style="width: 120px"></div>
         </div>
       </div>
     </div>

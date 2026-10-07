@@ -52,17 +52,12 @@ textarea {
   color: inherit;
 }
 
-
-
-[hidden] {
-  display: none !important;
-}
-
 /* Form controls */
 
 :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   border: 1px solid var(--color-input-border);
   border-radius: 4px;
+
   color: var(--color-input-text);
   background: var(--color-input-background);
 }
@@ -81,8 +76,8 @@ textarea {
   textarea:focus-visible
 ) {
   outline: none;
-  border-color: var(--color-input-border-focus);
-  box-shadow: inset 0 0 0 1px var(--color-focus-border);
+  border-color: var(--color-focus-border);
+  box-shadow: inset 0 0 0 1px var(--color-focus-shadow);
 }
 
 :where(
@@ -92,6 +87,7 @@ textarea {
 ) {
   color: var(--color-text-disabled);
   background: var(--color-input-background-disabled);
+
   cursor: default;
 }
 
@@ -106,7 +102,6 @@ textarea {
 
 button {
   min-height: 28px;
-  padding: 4px 10px;
 
   border: 1px solid var(--color-button-border);
   border-radius: 4px;
@@ -123,15 +118,17 @@ button {
 
 button:not(:disabled):hover {
   border-color: var(--color-button-border-hover);
-  background-color: var(--color-button-background-hover);
+  background: var(--color-button-background-hover);
 }
 
 button:not(:disabled):active {
-  background-color: var(--color-button-background-active);
+  border-color: var(--color-button-border-active);
+  background: var(--color-button-background-active);
 }
 
 button:focus-visible {
   outline: none;
+  border-color: var(--color-focus-border);
   box-shadow: 0 0 0 2px var(--color-focus-shadow);
 }
 
@@ -144,22 +141,157 @@ button.primary {
   border-color: var(--color-button-primary-border);
 
   color: var(--color-button-primary-text);
-  background-color: var(--color-button-primary-background);
+  background: var(--color-button-primary-background);
 }
 
 button.primary:not(:disabled):hover {
-  background-color: var(--color-button-primary-background-hover);
+  border-color: var(--color-button-primary-border-hover);
+  background: var(--color-button-primary-background-hover);
 }
 
 button.primary:not(:disabled):active {
-  background-color: var(--color-button-primary-background-active);
+  border-color: var(--color-button-primary-border-active);
+  background: var(--color-button-primary-background-active);
 }
 
-/* layout */
+/* Form */
 
-.ib {
-  display: inline-block;
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field > label {
+  color: var(--color-text-secondary);
+
+  font-weight: 500;
+}
+
+.form-field
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 28px;
+}
+
+.form-field
+  > :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  width: 100%;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+/* Input action */
+
+.input-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-action > input:not([type="checkbox"]):not([type="radio"]) {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-action > button {
+  flex: none;
+}
+
+/* Joined controls */
+
+.joined-control {
+  display: flex;
+  align-items: stretch;
+}
+
+.joined-control > * {
+  min-width: 0;
+}
+
+.join-left {
+  border-right: 0;
+
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.join-middle {
+  border-left: 0;
+  border-right: 0;
+
+  border-radius: 0;
+}
+
+.join-right {
+  border-left: 0;
+
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Raised input */
+
+.input-raised {
+  background: var(--color-surface-raised);
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    inset 0 1px rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .input-raised {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Toolbar */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--color-surface);
+  gap: 4px;
+  padding: 4px;
+
+  position: relative;
+}
+
+/* Utility classes for common layout and visibility */
+
+.h-100 {
+  height: 100%;
+}
+.w-100 {
+  width: 100%;
+}
+
+.scroll {
+  overflow: auto;
+}
+
+.noscroll {
+  overflow: hidden;
+}
+
+.hidden {
+  display: none;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Flexbox layout utilities */
 
 .hbox,
 .vbox {
@@ -188,7 +320,7 @@ button.primary:not(:disabled):active {
   flex: 1;
 }
 
-.shrink {
+.fixed {
   flex: none;
 }
 
@@ -224,107 +356,139 @@ button.primary:not(:disabled):active {
   align-items: flex-end;
 }
 
+/* Gap utilities */
+
 .gap-4 {
   gap: 4px;
 }
+
 .gap-8 {
   gap: 8px;
 }
+
 .gap-12 {
   gap: 12px;
 }
+
 .gap-16 {
   gap: 16px;
 }
+
 .gap-20 {
   gap: 20px;
 }
 
-/* utilities */
-
-.h-100 {
-  height: 100%;
-}
-.w-100 {
-  width: 100%;
+.gap-24 {
+  gap: 24px;
 }
 
-.scroll {
-  overflow: auto;
+.gap-32 {
+  gap: 32px;
 }
 
-.noscroll {
-  overflow: hidden;
-}
-
-.hidden {
-  display: none;
-}
-
-.m-0 {
-  margin: 0;
-}
-.m-12-8 {
-  margin: 12px 8px;
-}
-.m-0-8 {
-  margin: 0 8px;
-}
-.m-12-0 {
-  margin: 12px 0;
-}
-.mt-12 {
-  margin-top: 12px;
-}
-.mb-12 {
-  margin-bottom: 12px;
-}
-.ml-8 {
-  margin-left: 8px;
-}
-.mr-8 {
-  margin-right: 8px;
-}
+/* Padding utilities */
 
 .p-0 {
   padding: 0;
 }
-.p-12-8 {
-  padding: 12px 8px;
+
+.p-4 {
+  padding: 4px;
 }
-.p-0-8 {
-  padding: 0 8px;
+
+.p-8 {
+  padding: 8px;
 }
-.p-12-0 {
-  padding: 12px 0;
+
+.p-12 {
+  padding: 12px;
 }
-.pt-12 {
-  padding-top: 12px;
+
+.px-4 {
+  padding-left: 4px;
+  padding-right: 4px;
 }
-.pb-12 {
-  padding-bottom: 12px;
-}
-.pl-8 {
+
+.px-8 {
   padding-left: 8px;
-}
-.pr-8 {
   padding-right: 8px;
 }
 
-.b-t {
-  border-top: 1px solid var(--color-border);
+.px-12 {
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
-.b-r {
-  border-right: 1px solid var(--color-border);
+.py-4 {
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
-.b-b {
-  border-bottom: 1px solid var(--color-border);
+.py-8 {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
-.b-l {
-  border-left: 1px solid var(--color-border);
+.py-12 {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Margin utilities */
+
+.m-0 {
+  margin: 0;
+}
+
+.m-4 {
+  margin: 4px;
+}
+
+.m-8 {
+  margin: 8px;
+}
+
+.m-12 {
+  margin: 12px;
+}
+
+.mx-4 {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.mx-8 {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.mx-12 {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.my-4 {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.my-8 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.my-12 {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+/* Border radius utilities */
+
+.r-4 {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
 .rt-4 {
@@ -345,113 +509,4 @@ button.primary:not(:disabled):active {
 .rl-4 {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  position: relative;
-  gap: 8px;
-
-  padding: 4px 8px;
-  background-color: var(--color-surface-sunken);
-}
-
-
-/* form */
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-field > label {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.form-field
-  input:not([type="checkbox"]):not([type="radio"]):not(.input-overlay-info),
-.form-field select,
-.form-field textarea {
-  width: 100%;
-  min-height: 28px;
-}
-
-.form-field textarea {
-  resize: vertical;
-}
-
-/* input action */
-.input-action {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.input-action input:not([type="checkbox"]):not([type="radio"]) {
-  flex: 1;
-  min-width: 0;
-}
-
-.input-action button {
-  flex: none;
-}
-
-/* input overlay */
-.input-overlay {
-  position: relative;
-}
-
-.input-overlay > input:first-child {
-  width: 100%;
-  padding-right: 52px;
-}
-
-.input-overlay-suffix {
-  position: absolute;
-  top: 0;
-  right: 8px;
-  bottom: 0;
-
-  display: flex;
-  align-items: center;
-
-  pointer-events: none;
-}
-
-.input-overlay input.input-overlay-info {
-  width: 42px;
-  min-height: 0;
-
-  padding: 0;
-  border: 0;
-
-  background: transparent;
-  color: var(--color-text-secondary);
-
-  pointer-events: none;
-}
-
-.label {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.floating-panel {
-  padding: 24px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface);
-  box-shadow:
-    0 12px 32px rgb(0 0 0 / 12%),
-    0 2px 8px rgb(0 0 0 / 8%);
 }

@@ -1,3 +1,12 @@
+.page-header {
+  user-select: none;
+}
+
+.page-title {
+  font-weight: 500;
+  color: var(--color-primary-text);
+}
+
 .timeline-header {
   flex: 1;
 
@@ -11,6 +20,16 @@
   margin: 0 !important;
 
   cursor: default;
+}
+
+.timeline-header-content {
+  position: relative;
+
+  min-width: 100%;
+  min-height: 100%;
+
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .timeline {
@@ -37,3 +56,15 @@
   padding: 0 !important;
   margin: 0 !important;
 }
+
+.pointer-info {
+  position: sticky;
+  height: 24px;
+  top: 0;
+  overflow: clip;
+  z-index: 20;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+

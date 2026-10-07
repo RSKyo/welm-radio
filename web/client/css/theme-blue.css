@@ -39,7 +39,8 @@
   --color-muted: var(--color-text-muted);
 
   /* 面板刻度、补零、单位、固定标识 */
-  --color-text-marking: #8a8a8a;
+  --color-text-marking: #b8b8b8;
+  --color-text-marking-shadow: rgba(255, 255, 255, 0.55);
 
   /* Semantic colors */
 
@@ -108,11 +109,6 @@
   /* 分隔线 */
   --color-divider: #e1e4e7;
 
-  /* Focus colors */
-
-  --color-focus-border: #7f96aa;
-  --color-focus-shadow: rgba(92, 119, 143, 0.24);
-
   /* Form control colors */
 
   /* 输入控件背景 */
@@ -132,9 +128,6 @@
 
   /* 悬停边框 */
   --color-input-border-hover: #aeb5bc;
-
-  /* 聚焦边框 */
-  --color-input-border-focus: var(--color-focus-border);
 
   /* Button colors */
 
@@ -159,6 +152,11 @@
   --color-button-primary-border-active: #274f6f;
 
   --color-button-primary-text: var(--color-primary-foreground);
+
+  /* Focus colors */
+
+  --color-focus-border: #7f96aa;
+  --color-focus-shadow: rgba(92, 119, 143, 0.24);
 }
 
 [data-theme="dark"] {
@@ -203,6 +201,7 @@
 
   /* 面板刻度、补零、单位、固定标识 */
   --color-text-marking: #747b83;
+  --color-text-marking-shadow: rgba(0, 0, 0, 0.45);
 
   /* Semantic colors */
 

@@ -1,12 +1,14 @@
 .timeline-ruler {
+  --color-ruler: var(--color-text-secondary);
+
   position: sticky;
-  height: 28px;
+  height: 24px;
   top: 0;
   overflow: clip;
   z-index: 20;
   user-select: none;
-  color: var(--color-text-muted);
   background: var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .timeline-ruler-tick {
@@ -16,26 +18,33 @@
 }
 
 .timeline-ruler-tick-mark {
+  position: absolute;
+  bottom: 0;
   width: 1px;
   height: 8px;
-  background: var(--color-border);
+  background: var(--color-text-muted);
 }
 
 .timeline-ruler-tick.is-minor .timeline-ruler-tick-mark {
+  position: absolute;
+  bottom: 0;
   height: 4px;
-  background: var(--color-divider);
+  background: var(--color-text-muted);
 }
 
 .timeline-ruler-tick.is-middle .timeline-ruler-tick-mark {
+  position: absolute;
+  bottom: 0;
   height: 6px;
-  background: var(--color-divider);
+  background: var(--color-text-muted);
 }
 
 .timeline-ruler-tick-text {
   position: absolute;
-  top: 10px;
+  bottom: 6px;
   left: 4px;
   white-space: nowrap;
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: 10px;
+  color: var(--color-ruler);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 }

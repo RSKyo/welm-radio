@@ -1,11 +1,12 @@
 .timelet {
-  --time-color: currentColor;
+  --color-time: var(--color-text-secondary);
   --font-size: inherit;
 
+  align-self: center;
+
   font-size: var(--font-size);
+  line-height: 1;
   vertical-align: middle;
-  display: inline-flex;
-  align-items: baseline;
 
   white-space: nowrap;
 
@@ -15,25 +16,27 @@
 .timelet [data-role="padding"] {
   font-weight: 500;
   color: var(--color-text-marking);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
   user-select: none;
 }
 
 .timelet [data-role="time"] {
   font-weight: 500;
-  color: var(--time-color);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: var(--color-time);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 }
 
 .timelet [data-role="prefix"],
 .timelet [data-role="suffix"] {
   color: var(--color-text-marking);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
+  user-select: none;
 }
 
 .timelet [data-role="prefix"]:not(:empty) {
-  margin-right: 3px;
+  margin-right: 2px;
 }
 
 .timelet [data-role="suffix"]:not(:empty) {
-  margin-left: 3px;
+  margin-left: 2px;
 }
