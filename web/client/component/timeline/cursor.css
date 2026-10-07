@@ -5,11 +5,8 @@
 
   width: 1px;
 
-  background: color-mix(
-    in srgb,
-    var(--color-text-muted) 20%,
-    transparent
-  );
+  background: #6E75A4;
+  opacity: 0.5;
 
   pointer-events: none;
   z-index: 30;

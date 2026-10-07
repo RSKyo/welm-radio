@@ -1,11 +1,14 @@
-import { assertPositive, assertNonNegative } from "../base/assert.js";
+import {
+  assertPositive,
+  assertNonNegative,
+  assertValueForMode,
+} from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
-  assertValueForMode,
   isEqualValue,
   filterValue,
-} from "../base/elm-helper.js";
+} from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 

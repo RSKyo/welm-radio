@@ -1,4 +1,18 @@
 .item-list {
+  --color-hover-indicator: #c8cdd2;
+  --color-active-indicator: #b8bec4;
+  --color-selected-indicator: #5d91bc;
+  --color-checked-indicator: #5d91bc;
+}
+
+[data-theme="dark"] .item-list {
+  --color-hover-indicator: #3a4046;
+  --color-active-indicator: #464d54;
+  --color-selected-indicator: #6f9fc8;
+  --color-checked-indicator: #6f9fc8;
+}
+
+.item-list {
   display: flex;
   flex-direction: column;
 }
@@ -86,13 +100,13 @@
 
 .item-list .item-list-item:hover {
   background-color: var(--color-hover);
-  color: var(--color-hover-text);
+  color: var(--color-interactive-text);
   box-shadow: inset 3px 0 var(--color-hover-indicator);
 }
 
 .item-list .item-list-item:active {
   background-color: var(--color-active);
-  color: var(--color-active-text);
+  color: var(--color-interactive-text);
   box-shadow: inset 3px 0 var(--color-active-indicator);
 }
 
@@ -102,11 +116,7 @@
   box-shadow: inset 3px 0 var(--color-checked-indicator);
 }
 
-.item-list .item-list-item.is-checked:hover {
-  background-color: var(--color-checked-hover);
-  color: var(--color-checked-hover-text);
-  box-shadow: inset 3px 0 var(--color-checked-hover-indicator);
-}
+
 
 .item-list .item-list-item.is-selected {
   background-color: var(--color-selected);
@@ -114,8 +124,3 @@
   box-shadow: inset 3px 0 var(--color-selected-indicator);
 }
 
-.item-list .item-list-item.is-selected:hover {
-  background-color: var(--color-selected-hover);
-  color: var(--color-selected-hover-text);
-  box-shadow: inset 3px 0 var(--color-selected-hover-indicator);
-}

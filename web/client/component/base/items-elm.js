@@ -9,13 +9,9 @@ import {
   assertValueNotExists,
   assertFunction,
   assertNonEmptyNonBlankStringArray,
-} from "./assert.js";
-import {
-  createElementByHTML,
-  normalizeArray,
-  normalizeValue,
   assertValueForMode,
-} from "./elm-helper.js";
+} from "./assert.js";
+import { createElementByHTML, normalizeValue } from "./helper.js";
 
 const EMPTY_TEMPLATE = `
 <div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No items</div>
@@ -52,7 +48,11 @@ export class ItemsElm extends Elm {
   }
 
   getItemElement(value) {
-    assertValueExists(value, this.itemValues, `Item element for value "${value}"`);
+    assertValueExists(
+      value,
+      this.itemValues,
+      `Item element for value "${value}"`,
+    );
     return this.#elements.get(value);
   }
 

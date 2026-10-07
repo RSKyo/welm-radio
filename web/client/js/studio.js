@@ -1,10 +1,11 @@
+import { setThemeMode } from "./theme.js";
+
 import {
   toast,
   safeRun,
   on,
-  getElement,
+  resolveElement,
   xToTime,
-  formatTime,
 } from "./helper.js";
 
 import { Slider } from "../component/slider.js";
@@ -13,6 +14,9 @@ import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
 import { TimelinePlayhead } from "../component/timeline/playhead.js";
 import { TimelineCursor } from "../component/timeline/cursor.js";
+import { Timelet } from "../component/timelet.js";
+
+setThemeMode("light");
 
 let timelineContainerPointerX = 0;
 let timelineContainerPointerSeconds = 0;
@@ -20,15 +24,12 @@ let timelineContainerPointerSeconds = 0;
 // Elements
 // -----------------------------------------------------------------------------
 
-const addTrackBtn = getElement("#add-track");
-const addClipBtn = getElement("#add-clip");
+const addTrackBtn = resolveElement("#add-track");
+const addClipBtn = resolveElement("#add-clip");
 
-const timelineCursorInfoEl = getElement("#timeline-cursor-info");
-const timelinePlayheadInfoEl = getElement("#timeline-playhead-info");
-
-const timelineHeaderEl = getElement(".timeline-header");
-const timelineEl = getElement(".timeline");
-const timelineContentEl = getElement(".timeline-content");
+const timelineHeaderEl = resolveElement(".timeline-header");
+const timelineEl = resolveElement(".timeline");
+const timelineContentEl = resolveElement(".timeline-content");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -68,6 +69,23 @@ const timelinePlayheadElm = new TimelinePlayhead("#playhead", {
 const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   time: 0,
+});
+
+const cursorTimeletElm = new Timelet("#cursor-timelet", {
+  full: true,
+  seconds: 0,
+  color: "#6E75A4",
+  fontSize: "10px",
+  prefix: "C",
+});
+
+const playheadTimeletElm = new Timelet("#playhead-timelet", {
+  full: true,
+  seconds: 0,
+  color: "#D75455",
+
+  fontSize: "10px",
+  prefix: "P",
 });
 
 // -----------------------------------------------------------------------------
@@ -181,13 +199,13 @@ function trackListTrackHeightChange({ value, height }) {
   trackHeaderListElm.setTrackHeaderHeight(value, height);
 }
 
-function timelinePlayheadTimeChange({ time, left }) {
-  timelinePlayheadInfoEl.textContent = formatTime(time);
+function timelinePlayheadTimeChange({ time }) {
+  playheadTimeletElm.seconds = time;
   trackListElm.playheadTime = time;
 }
 
 function timelineCursorTimeChange({ time }) {
-  timelineCursorInfoEl.textContent = formatTime(time);
+  cursorTimeletElm.seconds = time;
 }
 
 function addClip() {

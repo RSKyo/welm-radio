@@ -2,12 +2,11 @@ import {
   assertKeyNotExists,
   assertKeyExists,
   assertNonBlankString,
-  assertNonEmptyNonBlankStringArray,
-  assertNoDuplicateValues,
   isNullishOrEmpty,
   assertFunction,
+  assertValueForMode,
 } from "./assert.js";
-import { isEqualValue } from "./elm-helper.js";
+import { isEqualValue } from "./helper.js";
 
 export class ElmValueState {
   #valueStateMap = new Map();
@@ -45,7 +44,7 @@ export class ElmValueState {
   define(key, value = null, mode = 1) {
     assertNonBlankString(key, "key");
     assertKeyNotExists(key, this.#valueStateMap, "key");
-    this.#assertValueForMode(value, mode);
+    assertValueForMode(value, mode);
 
     this.#valueStateMap.set(key, {
       mode,
@@ -91,7 +90,7 @@ export class ElmValueState {
     assertKeyExists(key, this.#valueStateMap, "key");
 
     const state = this.#valueStateMap.get(key);
-    this.#assertValueForMode(value, state.mode);
+    assertValueForMode(value, state.mode);
 
     const mode = state.mode;
     const oldValue = this.#normalizeValue(state.value, mode);
@@ -141,33 +140,5 @@ export class ElmValueState {
     }
 
     return mode === 2 ? [...value] : value;
-  }
-
-  #assertValueForMode(value, mode = 1) {
-    if (![1, 2].includes(mode)) {
-      throw new Error(`invalid mode: ${mode}`);
-    }
-
-    if (value == null) {
-      return;
-    }
-
-    if (mode === 1) {
-      if (Array.isArray(value)) {
-        throw new Error("value must not be an array when mode is 1");
-      }
-
-      return;
-    }
-
-    if (!Array.isArray(value)) {
-      throw new Error("value must be an array when mode is 2");
-    }
-
-    if (value.length === 0) {
-      return;
-    }
-
-    assertNoDuplicateValues(value, "value");
   }
 }

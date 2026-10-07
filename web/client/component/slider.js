@@ -6,7 +6,7 @@ import {
   assertNonNegativeInteger,
   assertPositive,
 } from "./base/assert.js";
-import { createElementByHTML, getBySelector } from "./base/elm-helper.js";
+import { createElementByHTML, getBySelector } from "./base/helper.js";
 import { Elm } from "./base/elm.js";
 
 const MAIN_TEMPLATE = `

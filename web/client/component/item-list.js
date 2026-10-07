@@ -1,11 +1,14 @@
-import { assertBoolean, assertValueIn } from "./base/assert.js";
+import {
+  assertBoolean,
+  assertValueIn,
+  assertValueForMode,
+} from "./base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
-  assertValueForMode,
   isEqualValue,
   filterValue,
-} from "./base/elm-helper.js";
+} from "./base/helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 
 const ITEM_TEMPLATE = `

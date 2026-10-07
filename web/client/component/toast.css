@@ -41,7 +41,7 @@
 
 .toast.is-error {
   color: white;
-  background: var(--color-error-background);
+  background: var(--color-error);
 }
 
 .toast-message {

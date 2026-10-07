@@ -355,7 +355,7 @@ button.primary:not(:disabled):active {
   gap: 8px;
 
   padding: 4px 8px;
-  background-color: var(--color-surface-toolbar);
+  background-color: var(--color-surface-sunken);
 }
 
 

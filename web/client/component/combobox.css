@@ -54,11 +54,6 @@
   box-shadow: inset 3px 0 var(--color-selected-indicator);
 }
 
-.combobox-item.is-selected:hover {
-  background-color: var(--color-selected-hover);
-  color: var(--color-selected-hover-text);
-  box-shadow: inset 3px 0 var(--color-selected-hover-indicator);
-}
 
 /* normal */
 

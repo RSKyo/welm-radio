@@ -5,7 +5,7 @@ import {
   assertStringPlainObject,
   assertBoolean,
 } from "./assert.js";
-import { resolveElement } from "./elm-helper.js";
+import { resolveElement } from "./helper.js";
 import { ElmHandler } from "./elm-handler.js";
 import { ElmEvent } from "./elm-event.js";
 

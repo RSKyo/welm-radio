@@ -1,0 +1,39 @@
+.timelet {
+  --time-color: currentColor;
+  --font-size: inherit;
+
+  font-size: var(--font-size);
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: baseline;
+
+  white-space: nowrap;
+
+  font-variant-numeric: tabular-nums;
+}
+
+.timelet [data-role="padding"] {
+  font-weight: 500;
+  color: var(--color-text-marking);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  user-select: none;
+}
+
+.timelet [data-role="time"] {
+  font-weight: 500;
+  color: var(--time-color);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.timelet [data-role="prefix"],
+.timelet [data-role="suffix"] {
+  color: var(--color-text-marking);
+}
+
+.timelet [data-role="prefix"]:not(:empty) {
+  margin-right: 3px;
+}
+
+.timelet [data-role="suffix"]:not(:empty) {
+  margin-left: 3px;
+}

@@ -1,4 +1,16 @@
 .chip-group {
+  --color-hover-indicator: #c8cdd2;
+  --color-active-indicator: #b8bec4;
+  --color-selected-indicator: #5d91bc;
+}
+
+[data-theme="dark"] .chip-group {
+  --color-hover-indicator: #3a4046;
+  --color-active-indicator: #464d54;
+  --color-selected-indicator: #6f9fc8;
+}
+
+.chip-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -34,13 +46,13 @@
 
 .chip-group .chip-group-item:hover {
   background-color: var(--color-hover);
-  color: var(--color-hover-text);
+  color: var(--color-interactive-text);
   box-shadow: inset 0 -1px var(--color-hover-indicator);
 }
 
 .chip-group .chip-group-item:active {
   background-color: var(--color-active);
-  color: var(--color-active-text);
+  color: var(--color-interactive-text);
   box-shadow: inset 0 -1px var(--color-active-indicator);
 }
 
@@ -50,11 +62,7 @@
   box-shadow: inset 0 -1px var(--color-selected-indicator);
 }
 
-.chip-group .chip-group-item.is-selected:hover {
-  background-color: var(--color-selected-hover);
-  color: var(--color-selected-hover-text);
-  box-shadow: inset 0 -1px var(--color-selected-hover-indicator);
-}
+
 
 .chip-group .chip-group-text {
   flex: 1;
@@ -87,7 +95,7 @@
 }
 
 .chip-group-action:hover {
-  color: var(--color-hover-text);
+  color: var(--color-interactive-text);
   text-decoration: underline;
 }
 

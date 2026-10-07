@@ -3,7 +3,7 @@ import {
   createElementByHTML,
   isEqualValue,
   getBySelector,
-} from "./base/elm-helper.js";
+} from "./base/helper.js";
 import { assertString, assertNonBlankStringArray } from "./base/assert.js";
 
 const MAIN_TEMPLATE = `

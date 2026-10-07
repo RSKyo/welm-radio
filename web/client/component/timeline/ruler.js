@@ -4,7 +4,7 @@ import {
   createElementByHTML,
   xToTime,
   formatTime,
-} from "../base/elm-helper.js";
+} from "../base/helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">

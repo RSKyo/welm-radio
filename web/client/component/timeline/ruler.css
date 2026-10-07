@@ -1,6 +1,6 @@
 .timeline-ruler {
   position: sticky;
-  height: 32px;
+  height: 28px;
   top: 0;
   overflow: clip;
   z-index: 20;

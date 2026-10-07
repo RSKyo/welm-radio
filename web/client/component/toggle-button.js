@@ -1,6 +1,6 @@
 import { Elm } from "./base/elm.js";
 import { assertNonBlankString } from "./base/assert.js";
-import { isEqualValue } from "./base/elm-helper.js";
+import { isEqualValue } from "./base/helper.js";
 
 export class ToggleButton extends Elm {
   // state(read-only)

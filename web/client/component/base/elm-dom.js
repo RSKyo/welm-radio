@@ -6,7 +6,7 @@ import {
   isHtmlElement,
 } from "./assert.js";
 import { EventRegistry } from "./elm-event.js";
-import { getBySelector } from "./elm-helper.js";
+import { getBySelector } from "./helper.js";
 
 // Elements are stored by reference.
 // The element in the Map and the element in the DOM are the same object.

@@ -4,15 +4,15 @@ import {
   assertPositive,
   assertValueExists,
   assertPlainObject,
+  assertValueForMode,
 } from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
-  assertValueForMode,
   isEqualValue,
   filterValue,
   getBySelector,
-} from "../base/elm-helper.js";
+} from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
 import { ClipGroup } from "./clip-group.js";
 

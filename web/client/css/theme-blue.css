@@ -1,242 +1,325 @@
-@import "/assets/vendor/radix/radix-blue.css";
-@import "/assets/vendor/radix/radix-slate.css";
-
-@import "/assets/vendor/radix/radix-blue-dark.css";
-@import "/assets/vendor/radix/radix-slate-dark.css";
-
 :root {
   color-scheme: light;
 
-  /* Page and surfaces */
+  /* Surface background colors */
 
   /* 页面最底层背景 */
-  --color-page: var(--slate-1);
+  --color-page: #f6f7f8;
 
   /* 普通内容区域，如侧边栏、面板 */
-  --color-surface: var(--slate-2);
+  --color-surface: #f1f3f4;
 
-  /* 视觉上浮起的区域，如卡片、工具栏 */
-  --color-surface-raised: white;
+  /* 视觉上浮起的区域，如卡片、悬浮面板 */
+  --color-surface-raised: #ffffff;
 
   /* 视觉上凹下的区域，如输入框、内嵌列表 */
-  --color-surface-sunken: var(--slate-3);
+  --color-surface-sunken: #e9ecef;
 
-  /* 覆盖在页面上的浮层，如下拉菜单、弹窗 */
-  --color-surface-overlay: white;
+  /* 覆盖在其他内容之上的浮层，如下拉菜单、弹窗 */
+  --color-surface-overlay: #ffffff;
 
-  --color-surface-toolbar: var(--slate-3);
-
-  /* Text */
+  /* Text colors */
 
   /* 主要文字，如标题、正文、列表内容 */
-  --color-text: var(--slate-12);
+  --color-text: #2f3439;
 
   /* 次要文字，如副标题、时间、文件大小 */
-  --color-text-secondary: var(--slate-11);
+  --color-text-secondary: #5f666d;
 
   /* 弱化文字，如提示、辅助说明、空状态文本 */
-  --color-text-muted: var(--slate-10);
+  --color-text-muted: #8b9299;
 
   /* 禁用状态文字，如不可用按钮、禁用选项 */
-  --color-text-disabled: var(--slate-8);
+  --color-text-disabled: #b7bcc1;
 
-  /* 反色文字，用于深色或主色背景 */
-  --color-text-inverse: white;
+  /* 反色文字，用于深色或强调色背景 */
+  --color-text-inverse: #ffffff;
 
-  /* 兼容旧变量名，后续可逐步改用 --color-text-muted */
+  /* 旧变量兼容，后续删除 */
   --color-muted: var(--color-text-muted);
 
-  /* Interaction */
+  /* 面板刻度、补零、单位、固定标识 */
+  --color-text-marking: #8a8a8a;
 
-  /* 鼠标悬停 */
-  --color-hover: var(--slate-3);
-  --color-hover-text: var(--blue-12);
-  --color-hover-indicator: var(--slate-5);
+  /* Semantic colors */
 
-  /* 鼠标按下 */
-  --color-active: var(--slate-4);
-  --color-active-text: var(--blue-12);
-  --color-active-indicator: var(--slate-5);
+  /* 主要强调色，用于主操作、强调内容、关键状态 */
+  --color-primary: #3f75a2;
+  --color-primary-text: #2f648f;
+  --color-primary-foreground: #ffffff;
 
-  /* 已勾选项 */
-  --color-checked: var(--slate-3);
-  --color-checked-text: var(--color-text);
-  --color-checked-indicator: var(--slate-3);
+  /* 信息状态 */
+  --color-info: #4f7fa8;
+  --color-info-text: #3b6384;
+  --color-info-foreground: #ffffff;
 
-  --color-checked-hover: var(--slate-3);
-  --color-checked-hover-text: var(--color-text);
-  --color-checked-hover-indicator: var(--slate-5);
+  /* 成功状态 */
+  --color-success: #3f8f68;
+  --color-success-text: #2f6f50;
+  --color-success-foreground: #ffffff;
+
+  /* 警告状态 */
+  --color-warning: #c08a2f;
+  --color-warning-text: #8a611f;
+  --color-warning-foreground: #ffffff;
+
+  /* 危险或破坏性操作 */
+  --color-danger: #c95858;
+  --color-danger-text: #963f3f;
+  --color-danger-foreground: #ffffff;
+
+  /* 错误状态 */
+  --color-error: #c94f55;
+  --color-error-text: #9f343a;
+  --color-error-foreground: #ffffff;
+
+  /* Interaction colors */
+
+  /* 普通元素悬停背景 */
+  --color-hover: #eceff1;
+
+  /* 普通元素按下背景 */
+  --color-active: #e2e6e9;
+
+  /* 悬停或按下时的强调文字 */
+  --color-interactive-text: #2f5f8f;
+
+  /* Selection colors */
 
   /* 当前选中项 */
-  --color-selected: var(--blue-3);
-  --color-selected-text: var(--blue-12);
-  --color-selected-indicator: var(--blue-8);
+  --color-selected: #e6f0f8;
+  --color-selected-text: #244f75;
 
-  --color-selected-hover: var(--blue-3);
-  --color-selected-hover-text: var(--color-text);
-  --color-selected-hover-indicator: var(--blue-9);
+  /* 已勾选项 */
+  --color-checked: #eef1f3;
+  --color-checked-text: #2f3439;
 
-  /* Borders and separators */
+  /* Border colors */
 
-  --color-border: var(--slate-6);
-  --color-border-hover: var(--slate-7);
-  --color-border-strong: var(--slate-8);
-  --color-divider: var(--slate-5);
+  /* 默认边框 */
+  --color-border: #d5d9dd;
 
-  /* Primary */
+  /* 悬停边框 */
+  --color-border-hover: #c4c9ce;
 
-  --color-primary: var(--blue-9);
-  --color-primary-hover: var(--blue-10);
-  --color-primary-active: var(--blue-10);
-  --color-primary-text: var(--blue-11);
-  --color-primary-inverse: white;
+  /* 强调边框 */
+  --color-border-strong: #aeb5bc;
 
-  /* Focus */
+  /* 分隔线 */
+  --color-divider: #e1e4e7;
 
-  --color-focus-border: var(--slate-8);
-  --color-focus-shadow: var(--slate-7);
+  /* Focus colors */
 
-  /* Form controls */
+  --color-focus-border: #7f96aa;
+  --color-focus-shadow: rgba(92, 119, 143, 0.24);
 
-  --color-input-background: var(--slate-1);
-  --color-input-background-disabled: var(--slate-3);
+  /* Form control colors */
 
-  --color-input-text: var(--slate-12);
-  --color-input-placeholder: var(--slate-9);
+  /* 输入控件背景 */
+  --color-input-background: #ffffff;
 
-  --color-input-border: var(--slate-7);
-  --color-input-border-hover: var(--slate-8);
-  --color-input-border-focus: var(--slate-9);
+  /* 禁用输入控件背景 */
+  --color-input-background-disabled: #eef0f2;
 
-  /* Buttons */
+  /* 输入内容文字 */
+  --color-input-text: #2f3439;
 
-  --color-button-background: var(--slate-3);
-  --color-button-background-hover: var(--slate-4);
-  --color-button-background-active: var(--slate-5);
+  /* 输入提示文字 */
+  --color-input-placeholder: #9299a0;
 
-  --color-button-border: var(--slate-7);
-  --color-button-border-hover: var(--slate-8);
-  --color-button-text: var(--slate-12);
+  /* 默认边框 */
+  --color-input-border: #c8cdd2;
 
-  --color-button-primary-background: var(--blue-9);
-  --color-button-primary-background-hover: var(--blue-10);
-  --color-button-primary-background-active: var(--blue-10);
-  --color-button-primary-border: var(--blue-9);
-  --color-button-primary-text: white;
+  /* 悬停边框 */
+  --color-input-border-hover: #aeb5bc;
 
-  /* Titles */
+  /* 聚焦边框 */
+  --color-input-border-focus: var(--color-focus-border);
 
-  --color-page-title: var(--slate-12);
-  --color-page-subtitle: var(--slate-11);
+  /* Button colors */
 
-  --color-component-title: var(--blue-11);
-  --color-section-title: var(--slate-12);
+  /* 普通按钮 */
+  --color-button-background: #eef0f2;
+  --color-button-background-hover: #e3e6e9;
+  --color-button-background-active: #d8dde1;
 
-  /* Error */
+  --color-button-border: #c8cdd2;
+  --color-button-border-hover: #aeb5bc;
+  --color-button-border-active: #9fa7ae;
 
-  --color-error-background: #e5484d;
+  --color-button-text: #2f3439;
+
+  /* 主要按钮 */
+  --color-button-primary-background: var(--color-primary);
+  --color-button-primary-background-hover: #35698f;
+  --color-button-primary-background-active: #2c5c7f;
+
+  --color-button-primary-border: var(--color-primary);
+  --color-button-primary-border-hover: #2f5f84;
+  --color-button-primary-border-active: #274f6f;
+
+  --color-button-primary-text: var(--color-primary-foreground);
 }
 
-:root.dark,
-.dark-theme {
+[data-theme="dark"] {
   color-scheme: dark;
 
-  /* Page and surfaces */
+  /* Surface background colors */
 
-  --color-page: var(--slate-1);
-  --color-surface: var(--slate-2);
-  --color-surface-raised: var(--slate-3);
-  --color-surface-sunken: var(--slate-1);
-  --color-surface-overlay: var(--slate-3);
-  --color-surface-toolbar: var(--slate-3);
+  /* 页面最底层背景 */
+  --color-page: #121416;
 
-  /* Text */
+  /* 普通内容区域，如侧边栏、面板 */
+  --color-surface: #181b1f;
 
-  --color-text: var(--slate-12);
-  --color-text-secondary: var(--slate-11);
-  --color-text-muted: var(--slate-10);
-  --color-text-disabled: var(--slate-8);
-  --color-text-inverse: var(--slate-1);
+  /* 视觉上浮起的区域，如卡片、悬浮面板 */
+  --color-surface-raised: #20242a;
+
+  /* 视觉上凹下的区域，如输入框、内嵌列表 */
+  --color-surface-sunken: #0d0f11;
+
+  /* 覆盖在其他内容之上的浮层，如下拉菜单、弹窗 */
+  --color-surface-overlay: #252a30;
+
+  /* Text colors */
+
+  /* 主要文字，如标题、正文、列表内容 */
+  --color-text: #e6e9ec;
+
+  /* 次要文字，如副标题、时间、文件大小 */
+  --color-text-secondary: #b7bdc4;
+
+  /* 弱化文字，如提示、辅助说明、空状态文本 */
+  --color-text-muted: #8d959e;
+
+  /* 禁用状态文字，如不可用按钮、禁用选项 */
+  --color-text-disabled: #5f666d;
+
+  /* 反色文字，用于浅色或强调色背景 */
+  --color-text-inverse: #17191c;
+
+  /* 旧变量兼容，后续删除 */
   --color-muted: var(--color-text-muted);
 
-  /* Interaction */
+  /* 面板刻度、补零、单位、固定标识 */
+  --color-text-marking: #747b83;
 
-  --color-hover: var(--slate-3);
-  --color-active: var(--slate-4);
+  /* Semantic colors */
 
-  --color-checked: var(--slate-3);
-  --color-checked-text: var(--color-text);
-  --color-checked-indicator: var(--slate-3);
+  /* 主要强调色，用于主操作、强调内容、关键状态 */
+  --color-primary: #6f9fc8;
+  --color-primary-text: #8db5d8;
+  --color-primary-foreground: #0f171d;
 
-  --color-checked-hover: var(--slate-3);
-  --color-checked-hover-text: var(--color-text);
-  --color-checked-hover-indicator: var(--slate-5);
+  /* 信息状态 */
+  --color-info: #6797bd;
+  --color-info-text: #89b2d1;
+  --color-info-foreground: #0e171d;
 
-  --color-selected: var(--blue-4);
-  --color-selected-text: var(--blue-11);
-  --color-selected-indicator: var(--blue-8);
+  /* 成功状态 */
+  --color-success: #5f9f79;
+  --color-success-text: #82bb95;
+  --color-success-foreground: #0d1711;
 
-  --color-selected-hover: var(--blue-5);
-  --color-selected-hover-text: var(--color-text);
-  --color-selected-hover-indicator: var(--blue-9);
+  /* 警告状态 */
+  --color-warning: #d1a04a;
+  --color-warning-text: #e0b768;
+  --color-warning-foreground: #1d1609;
 
-  /* Borders and separators */
+  /* 危险或破坏性操作 */
+  --color-danger: #d36a6e;
+  --color-danger-text: #e58c8f;
+  --color-danger-foreground: #1a0e0f;
 
-  --color-border: var(--slate-6);
-  --color-border-hover: var(--slate-7);
-  --color-border-strong: var(--slate-8);
-  --color-divider: var(--slate-5);
+  /* 错误状态 */
+  --color-error: #d15f66;
+  --color-error-text: #e4878c;
+  --color-error-foreground: #1a0d0f;
 
-  /* Primary */
+  /* Interaction colors */
 
-  --color-primary: var(--blue-9);
-  --color-primary-hover: var(--blue-10);
-  --color-primary-active: var(--blue-10);
-  --color-primary-text: var(--blue-11);
-  --color-primary-inverse: white;
+  /* 普通元素悬停背景 */
+  --color-hover: #24282d;
 
-  /* Focus */
+  /* 普通元素按下背景 */
+  --color-active: #2d3238;
 
-  --color-focus-border: var(--slate-8);
-  --color-focus-shadow: var(--slate-7);
+  /* 悬停或按下时的强调文字 */
+  --color-interactive-text: #8db5d8;
 
-  /* Form controls */
+  /* Selection colors */
 
-  --color-input-background: var(--slate-2);
-  --color-input-background-disabled: var(--slate-3);
+  /* 当前选中项 */
+  --color-selected: #22384a;
+  --color-selected-text: #a8c8e2;
 
-  --color-input-text: var(--slate-12);
-  --color-input-placeholder: var(--slate-9);
+  /* 已勾选项 */
+  --color-checked: #242a2f;
+  --color-checked-text: #e1e5e8;
 
-  --color-input-border: var(--slate-7);
-  --color-input-border-hover: var(--slate-8);
-  --color-input-border-focus: var(--slate-9);
+  /* Border colors */
 
-  /* Buttons */
+  /* 默认边框 */
+  --color-border: #343a40;
 
-  --color-button-background: var(--slate-3);
-  --color-button-background-hover: var(--slate-4);
-  --color-button-background-active: var(--slate-5);
+  /* 悬停边框 */
+  --color-border-hover: #464d54;
 
-  --color-button-border: var(--slate-7);
-  --color-button-border-hover: var(--slate-8);
-  --color-button-text: var(--slate-12);
+  /* 强调边框 */
+  --color-border-strong: #59626b;
 
-  --color-button-primary-background: var(--blue-9);
-  --color-button-primary-background-hover: var(--blue-10);
-  --color-button-primary-background-active: var(--blue-10);
-  --color-button-primary-border: var(--blue-9);
-  --color-button-primary-text: white;
+  /* 分隔线 */
+  --color-divider: #2a2f34;
 
-  /* Titles */
+  /* Focus colors */
 
-  --color-page-title: var(--slate-12);
-  --color-page-subtitle: var(--slate-11);
+  --color-focus-border: #6f8faa;
+  --color-focus-shadow: rgba(111, 143, 170, 0.3);
 
-  --color-component-title: var(--blue-11);
-  --color-section-title: var(--slate-12);
+  /* Form control colors */
 
-  /* Error */
+  /* 输入控件背景 */
+  --color-input-background: #15181b;
 
-  --color-error-background: #e5484d;
+  /* 禁用输入控件背景 */
+  --color-input-background-disabled: #202428;
+
+  /* 输入内容文字 */
+  --color-input-text: #e6e9ec;
+
+  /* 输入提示文字 */
+  --color-input-placeholder: #777f88;
+
+  /* 默认边框 */
+  --color-input-border: #3b4249;
+
+  /* 悬停边框 */
+  --color-input-border-hover: #515961;
+
+  /* 聚焦边框 */
+  --color-input-border-focus: var(--color-focus-border);
+
+  /* Button colors */
+
+  /* 普通按钮 */
+  --color-button-background: #24282d;
+  --color-button-background-hover: #2d3238;
+  --color-button-background-active: #373d44;
+
+  --color-button-border: #3b4249;
+  --color-button-border-hover: #515961;
+  --color-button-border-active: #626b74;
+
+  --color-button-text: #e6e9ec;
+
+  /* 主要按钮 */
+  --color-button-primary-background: var(--color-primary);
+  --color-button-primary-background-hover: #5e90ba;
+  --color-button-primary-background-active: #4f80a7;
+
+  --color-button-primary-border: var(--color-primary);
+  --color-button-primary-border-hover: #527fa3;
+  --color-button-primary-border-active: #466d8d;
+
+  --color-button-primary-text: var(--color-primary-foreground);
 }

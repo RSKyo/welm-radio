@@ -4,7 +4,7 @@ import {
   assertNonNegativeInteger,
   assertPositive,
 } from "../base/assert.js";
-import { createElementByHTML } from "../base/elm-helper.js";
+import { createElementByHTML } from "../base/helper.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;

@@ -37,29 +37,3 @@
   padding: 0 !important;
   margin: 0 !important;
 }
-
-#timeline-cursor-info {
-  position: absolute;
-  top: 6px;
-  left: 8px;
-
-  font-size: 10px;
-  line-height: 12px;
-
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: pre-line;
-}
-
-#timeline-playhead-info {
-  position: absolute;
-  top: 20px;
-  left: 8px;
-
-  font-size: 10px;
-  line-height: 12px;
-
-  color: rgba(255, 77, 79, 0.5);
-  font-variant-numeric: tabular-nums;
-  white-space: pre-line;
-}

@@ -113,11 +113,16 @@ export function assertNonEmptyArray(arr, assertionSubject = "arr") {
 
 export function assertNonBlankStringArray(arr, assertionSubject = "arr") {
   if (!is.isNonBlankStringArray(arr)) {
-    throw new Error(`${assertionSubject} must be an array of non-blank strings`);
+    throw new Error(
+      `${assertionSubject} must be an array of non-blank strings`,
+    );
   }
 }
 
-export function assertNonEmptyNonBlankStringArray(arr, assertionSubject = "arr") {
+export function assertNonEmptyNonBlankStringArray(
+  arr,
+  assertionSubject = "arr",
+) {
   if (!is.isNonEmptyNonBlankStringArray(arr)) {
     throw new Error(
       `${assertionSubject} must be a non-empty array of non-blank strings`,
@@ -144,7 +149,11 @@ export function assertNonBlankStringOrNonEmptyArray(
   }
 }
 
-export function assertPlainObjectArray(arr, assertionSubject = "arr", ...fields) {
+export function assertPlainObjectArray(
+  arr,
+  assertionSubject = "arr",
+  ...fields
+) {
   if (!is.isPlainObjectArray(arr)) {
     throw new Error(`${assertionSubject} must be an array of plain objects`);
   }
@@ -158,7 +167,9 @@ export function assertNonEmptyPlainObjectArray(
   ...fields
 ) {
   if (!is.isNonEmptyPlainObjectArray(arr)) {
-    throw new Error(`${assertionSubject} must be a non-empty array of plain objects`);
+    throw new Error(
+      `${assertionSubject} must be a non-empty array of plain objects`,
+    );
   }
 
   assertFieldsInPlainObjectArray(arr, assertionSubject, ...fields);
@@ -194,7 +205,11 @@ export function assertPlainObjectOrNonEmptyArray(
   assertFieldsInPlainObjectArray(objs, assertionSubject, ...fields);
 }
 
-function assertFieldsInPlainObjectArray(arr, assertionSubject = "arr", ...fields) {
+function assertFieldsInPlainObjectArray(
+  arr,
+  assertionSubject = "arr",
+  ...fields
+) {
   for (const obj of arr) {
     for (const field of fields) {
       assertKeyExists(field, obj, `${assertionSubject}.${field}`);
@@ -312,7 +327,11 @@ export function assertValueExists(value, target, assertionSubject = "value") {
 }
 
 // Value non-existence assertions
-export function assertValueNotExists(value, target, assertionSubject = "value") {
+export function assertValueNotExists(
+  value,
+  target,
+  assertionSubject = "value",
+) {
   if (hasValue(target, value)) {
     throw new Error(`${assertionSubject} already exists: ${value}`);
   }
@@ -408,17 +427,11 @@ export function assertElementNode(value, assertionSubject = "value") {
   }
 }
 
-// Assertions related to selectors and HTML elements
-export function assertNonBlankStringOrHtmlElement(value, assertionSubject = "value") {
-  if (!is.isNonBlankString(value) && !is.isHtmlElement(value)) {
-    throw new Error(
-      `${assertionSubject} must be a non-blank string or an HTML element`,
-    );
-  }
-}
-
 // Assertions related to selectors and element nodes
-export function assertNonBlankStringOrElementNode(value, assertionSubject = "value") {
+export function assertNonBlankStringOrElementNode(
+  value,
+  assertionSubject = "value",
+) {
   if (!is.isNonBlankString(value) && !is.isElementNode(value)) {
     throw new Error(
       `${assertionSubject} must be a non-blank string or an element node`,
@@ -427,12 +440,18 @@ export function assertNonBlankStringOrElementNode(value, assertionSubject = "val
 }
 
 // Assertions related to element matching and containment
-export function assertElementMatches(element, selector, assertionSubject = "element") {
+export function assertElementMatches(
+  element,
+  selector,
+  assertionSubject = "element",
+) {
   assertHtmlElement(element, assertionSubject);
   assertNonBlankString(selector, "selector");
 
   if (!element.matches(selector)) {
-    throw new Error(`${assertionSubject} does not match the selector: ${selector}`);
+    throw new Error(
+      `${assertionSubject} does not match the selector: ${selector}`,
+    );
   }
 }
 
@@ -451,3 +470,5 @@ export function assertElementContains(
     );
   }
 }
+
+

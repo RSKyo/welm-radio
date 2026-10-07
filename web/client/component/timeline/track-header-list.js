@@ -2,15 +2,15 @@ import {
   assertPlainObject,
   assertPositive,
   assertValueExists,
+  assertValueForMode,
 } from "../base/assert.js";
 import {
   createElementByHTML,
   normalizeValue,
-  assertValueForMode,
   isEqualValue,
   filterValue,
   getBySelector,
-} from "../base/elm-helper.js";
+} from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
 import { CompactCombobox } from "../combobox.js";
 import { CompactGainSlider, CompactPanSlider } from "../slider.js";
