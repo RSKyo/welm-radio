@@ -10,49 +10,38 @@ import { createElementByHTML, getBySelector } from "./base/helper.js";
 import { Elm } from "./base/elm.js";
 
 const MAIN_TEMPLATE = `
-<div class="slider-main" data-role="main">
+<div class="slider-main" data-role="slider-main">
   <button
       type="button"
       class="slider-prev"
-      data-role="prev"
+      data-role="slider-prev"
   >
   </button>
   <div
       class="slider-label"
-      data-role="label"
+      data-role="slider-label"
   >
   </div>
   <button
       type="button"
       class="slider-next"
-      data-role="next"
+      data-role="slider-next"
   >
   </button>
   <input
       type="range"
       class="slider-range"
-      data-role="range"
+      data-role="slider-range"
   >
   <div
       class="slider-value"
-      data-role="value"
+      data-role="slider-value"
   >
   </div>
 </div>
 `;
 
-const ACTIONS_TEMPLATE = `
-<div class="slider-actions" data-role="actions">
-  <input
-      type="number"
-      class="slider-value-input"
-      data-role="value-input"
-  >
-</div>
-`;
-
 const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
-const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
 
 export class Slider extends Elm {
   // state
@@ -76,7 +65,7 @@ export class Slider extends Elm {
   #prevEl = null;
   #nextEl = null;
   #valueEl = null;
-  #valueInputEl = null;
+  #labelEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -174,9 +163,9 @@ export class Slider extends Elm {
       throw new Error("max must be greater than min");
     }
 
-    this.resolveOption("primaryColor", (value, assertionSubject) => {
+    this.resolveOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
-      this.rootElement.style.setProperty("--slider-primary-color", value);
+      this.rootElement.style.setProperty("--color-slider", value);
     });
   }
 
@@ -271,10 +260,6 @@ export class Slider extends Elm {
     this.event.on(this.#rangeEl, "input", this.#rangeInputHandler);
     this.event.on(this.#prevEl, "click", this.#prevClickHandler);
     this.event.on(this.#nextEl, "click", this.#nextClickHandler);
-
-    if (this.#showActions) {
-      this.event.on(this.#valueInputEl, "blur", this.#valueInputBlurHandler);
-    }
   }
 
   #rangeInputHandler = (event) => {
@@ -283,11 +268,13 @@ export class Slider extends Elm {
 
   #prevClickHandler = () => {
     let value = this.#value - this.#step;
+    this.#rangeEl.value = value;
     this.#setValue(value);
   };
 
   #nextClickHandler = () => {
     let value = this.#value + this.#step;
+    this.#rangeEl.value = value;
     this.#setValue(value);
   };
 
@@ -342,16 +329,9 @@ export class Slider extends Elm {
     const valueElWidth = this.#valueEl.offsetWidth;
     const minLeft = prevElWidth + valueElWidth / 2;
     const maxLeft = mainWidth - nextElWidth - valueElWidth / 2;
-
     const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
 
     this.#valueEl.style.left = `${left}px`;
-    this.#valueEl.style.transform = "translateX(-50%)";
-
-    // valueInputEl
-    if (this.#showActions) {
-      this.#valueInputEl.value = this.#value;
-    }
   }
 
   // can be overridden by subclasses to format the value display
@@ -364,16 +344,14 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-    // main
     const mainEl = mainTemplate.cloneNode(true);
     const [labelEl, rangeEl, prevEl, nextEl, valueEl] = getBySelector(
       mainEl,
-      '[data-role="label"]',
-      '[data-role="range"]',
-      '[data-role="prev"]',
-      '[data-role="next"]',
-      '[data-role="value"]',
-      
+      '[data-role="slider-label"]',
+      '[data-role="slider-range"]',
+      '[data-role="slider-prev"]',
+      '[data-role="slider-next"]',
+      '[data-role="slider-value"]',
     );
 
     labelEl.textContent = this.#labelText;
@@ -382,34 +360,18 @@ export class Slider extends Elm {
     rangeEl.max = this.#max;
     rangeEl.step = this.#step;
     rangeEl.value = this.#value;
-    
+
     prevEl.textContent = this.#prevText;
     nextEl.textContent = this.#nextText;
-    
 
     this.#mainEl = mainEl;
     this.#rangeEl = rangeEl;
     this.#prevEl = prevEl;
     this.#nextEl = nextEl;
     this.#valueEl = valueEl;
+    this.#labelEl = labelEl;
 
-    // actions
-    const actionsEl = actionsTemplate.cloneNode(true);
-    const valueInputEl = getBySelector(actionsEl, '[data-role="value-input"]');
-
-    if (this.#showActions) {
-      valueInputEl.min = this.#min;
-      valueInputEl.max = this.#max;
-      valueInputEl.step = this.#step;
-    }
-
-    this.#valueInputEl = valueInputEl;
-
-    // add to the root element
     this.rootElement.appendChild(mainEl);
-    if (this.#showActions) {
-      this.rootElement.appendChild(actionsEl);
-    }
 
     this.#updateUIState();
   }

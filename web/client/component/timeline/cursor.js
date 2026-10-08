@@ -5,6 +5,10 @@ export class TimelineCursor extends Elm {
   // state(read-write)
   #pixelsPerSecond = 50;
   #time = 0;
+  // ui
+  #containerEl = null;
+  #marginLeft = 0;
+  #marginRight = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -30,6 +34,41 @@ export class TimelineCursor extends Elm {
       assertNonNegative(value, assertionSubject);
       this.#time = value;
     });
+
+    this.resolveOption("marginLeft", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#marginLeft = value;
+    });
+
+    this.resolveOption("marginRight", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#marginRight = value;
+    });
+
+    const containerEl = this.rootElement.parentElement;
+    if (!containerEl) {
+      throw new Error("Container element not found");
+    }
+    this.#containerEl = containerEl;
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-only)
+  // -----------------------------------------------------------------------------
+
+  get left() {
+    return Number((this.#marginLeft + this.#time * this.#pixelsPerSecond).toFixed(2));
+  }
+
+  get #offsetTime() {
+    return this.#marginLeft / this.#pixelsPerSecond;
+  }
+
+  get #maxTime() {
+    return (
+      (this.#containerEl.clientWidth - this.#marginLeft - this.#marginRight) /
+      this.#pixelsPerSecond
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -43,11 +82,14 @@ export class TimelineCursor extends Elm {
   set time(value) {
     assertNonNegative(value, "time");
 
-    if (value === this.#time) {
+    let newTime = value - this.#offsetTime;
+    newTime = Math.min(Math.max(newTime, 0), this.#maxTime);
+
+    if (newTime === this.#time) {
       return;
     }
 
-    this.#time = value;
+    this.#time = newTime;
     this.#updateUIState();
 
     this.#emitTimeChange();
@@ -66,14 +108,6 @@ export class TimelineCursor extends Elm {
 
     this.#pixelsPerSecond = value;
     this.#updateUIState();
-  }
-
-  // -----------------------------------------------------------------------------
-  // state(read-only)
-  // -----------------------------------------------------------------------------
-
-  get left() {
-    return this.#time * this.#pixelsPerSecond;
   }
 
   // -----------------------------------------------------------------------------

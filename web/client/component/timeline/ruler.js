@@ -1,10 +1,6 @@
 import { Elm } from "../base/elm.js";
 import { assertPositive, assertNonNegative } from "../base/assert.js";
-import {
-  createElementByHTML,
-  xToTime,
-  formatTime,
-} from "../base/helper.js";
+import { createElementByHTML, formatTime } from "../base/helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">
@@ -30,6 +26,8 @@ export class TimelineRuler extends Elm {
   #pixelsPerSecond = 0;
   #duration = 0;
   #containerWidth = 0;
+  #paddingLeft = 0;
+  #paddingRight = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -88,6 +86,16 @@ export class TimelineRuler extends Elm {
       this.#containerWidth = value;
     });
 
+    this.resolveOption("paddingLeft", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#paddingLeft = value;
+    });
+
+    this.resolveOption("paddingRight", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#paddingRight = value;
+    });
+
     this.#width = this.#calculateWidth();
   }
 
@@ -95,45 +103,23 @@ export class TimelineRuler extends Elm {
   // state(read-only)
   // -----------------------------------------------------------------------------
 
-  get basePixelsPerInterval() {
-    return this.#basePixelsPerInterval;
-  }
-
-  get baseTimeUnit() {
-    return this.#baseTimeUnit;
-  }
-
-  get baseZoom() {
-    return this.#baseZoom;
-  }
-
-  get minZoom() {
-    return this.#minZoom;
-  }
-
-  get maxZoom() {
-    return this.#maxZoom;
-  }
-
-  get basePixelsPerSecond() {
-    return this.#basePixelsPerSecond;
-  }
-
-  get minPixelsPerSecond() {
-    return this.#minPixelsPerSecond;
-  }
-
-  get maxPixelsPerSecond() {
-    return this.#maxPixelsPerSecond;
-  }
-
   get width() {
     return this.#width;
+  }
+
+  get scaleWidth() {
+    return Math.max(this.#width - this.#paddingLeft - this.#paddingRight, 0);
+  }
+
+  get seconds() {
+    return Number((this.scaleWidth / this.#pixelsPerSecond).toFixed(3));
   }
 
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------
+
+  /** pixels per second */
 
   get pixelsPerSecond() {
     return this.#pixelsPerSecond;
@@ -168,6 +154,8 @@ export class TimelineRuler extends Elm {
     }
   }
 
+  /** duration */
+
   get duration() {
     return Number(this.#duration.toFixed(3));
   }
@@ -195,6 +183,8 @@ export class TimelineRuler extends Elm {
     }
   }
 
+  /** container width */
+
   get containerWidth() {
     return this.#containerWidth;
   }
@@ -217,8 +207,10 @@ export class TimelineRuler extends Elm {
   }
 
   #calculateWidth() {
-    const durationWidth = this.#duration * this.#pixelsPerSecond;
-    return Number(Math.max(durationWidth, this.#containerWidth).toFixed(2));
+    const durationScaleWidth = this.#duration * this.#pixelsPerSecond;
+    const rulerWidth =
+      durationScaleWidth + this.#paddingLeft + this.#paddingRight;
+    return Number(Math.max(rulerWidth, this.#containerWidth).toFixed(2));
   }
 
   // -----------------------------------------------------------------------------
@@ -230,12 +222,7 @@ export class TimelineRuler extends Elm {
   }
 
   #emitPixelsPerSecondChange() {
-    this.handler.emit("pixelsPerSecondChangeHandler", {
-      elm: this,
-      duration: this.#duration,
-      pixelsPerSecond: this.#pixelsPerSecond,
-      width: this.#width,
-    });
+    this.handler.emit("pixelsPerSecondChangeHandler", this.#getEventObject());
   }
 
   set onDurationChange(handler) {
@@ -243,12 +230,7 @@ export class TimelineRuler extends Elm {
   }
 
   #emitDurationChange() {
-    this.handler.emit("durationChangeHandler", {
-      elm: this,
-      duration: this.#duration,
-      pixelsPerSecond: this.#pixelsPerSecond,
-      width: this.#width,
-    });
+    this.handler.emit("durationChangeHandler", this.#getEventObject());
   }
 
   set onWidthChange(handler) {
@@ -256,15 +238,18 @@ export class TimelineRuler extends Elm {
   }
 
   #emitWidthChange() {
-    const seconds = xToTime(this.#width, this.#pixelsPerSecond);
+    this.handler.emit("widthChangeHandler", this.#getEventObject());
+  }
 
-    this.handler.emit("widthChangeHandler", {
+  #getEventObject() {
+    return {
       elm: this,
       duration: this.#duration,
       pixelsPerSecond: this.#pixelsPerSecond,
       width: this.#width,
-      seconds,
-    });
+      scaleWidth: this.scaleWidth,
+      seconds: this.seconds,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -275,13 +260,13 @@ export class TimelineRuler extends Elm {
     this.rootElement.replaceChildren();
     this.rootElement.style.width = `${this.#width}px`;
 
-    this.#renderTicks(this.#width);
+    this.#renderTicks(this.scaleWidth);
   }
 
-  #renderTicks(width) {
+  #renderTicks(scaleWidth) {
     const { intervalSeconds, intervalPixels } = this.#getRulerInterval();
 
-    const tickCount = Math.floor(width / intervalPixels);
+    const tickCount = Math.floor(scaleWidth / intervalPixels);
 
     const subdivisionCount = 10;
     const minorIntervalPixels = intervalPixels / subdivisionCount;
@@ -292,7 +277,8 @@ export class TimelineRuler extends Elm {
 
       // major tick
       const tickEl = tickTemplate.cloneNode(true);
-      tickEl.style.left = `${x}px`;
+
+      tickEl.style.left = `${this.#paddingLeft + x}px`;
       tickEl.classList.add("is-major");
 
       const textElement = tickEl.querySelector(".timeline-ruler-tick-text");
@@ -303,13 +289,15 @@ export class TimelineRuler extends Elm {
       // minor ticks
       for (let minorIndex = 1; minorIndex < subdivisionCount; minorIndex++) {
         const minorX = x + minorIndex * minorIntervalPixels;
-        if (minorX > width) {
+
+        if (minorX > scaleWidth) {
           break;
         }
 
         const minorTickEl = tickTemplate.cloneNode(true);
 
-        minorTickEl.style.left = `${minorX}px`;
+        minorTickEl.style.left = `${this.#paddingLeft + minorX}px`;
+
         if (minorIndex === subdivisionCount / 2) {
           minorTickEl.classList.add("is-middle");
         } else {

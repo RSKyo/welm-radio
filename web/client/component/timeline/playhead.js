@@ -10,7 +10,9 @@ export class TimelinePlayhead extends Elm {
   // ui
   #containerEl = null;
   #handleEl = null;
-  #dragOffsetX = 0;
+  #handleElOffsetX = 0;
+  #marginLeft = 0;
+  #marginRight = 0;
 
   constructor(root, options = {}) {
     super(root, {
@@ -39,12 +41,42 @@ export class TimelinePlayhead extends Elm {
       this.#time = value;
     });
 
+    this.resolveOption("marginLeft", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#marginLeft = value;
+    });
+
+    this.resolveOption("marginRight", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+      this.#marginRight = value;
+    });
+
     const containerEl = this.rootElement.parentElement;
     if (!containerEl) {
       throw new Error("Container element not found");
     }
-
     this.#containerEl = containerEl;
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-only)
+  // -----------------------------------------------------------------------------
+
+  get left() {
+    return Number(
+      (this.#marginLeft + this.#time * this.#pixelsPerSecond).toFixed(2),
+    );
+  }
+
+  get #offsetTime() {
+    return this.#marginLeft / this.#pixelsPerSecond;
+  }
+
+  get #maxTime() {
+    return (
+      (this.#containerEl.clientWidth - this.#marginLeft - this.#marginRight) /
+      this.#pixelsPerSecond
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -58,11 +90,14 @@ export class TimelinePlayhead extends Elm {
   set time(value) {
     assertNonNegative(value, "time");
 
-    if (value === this.#time) {
+    let newTime = value - this.#offsetTime;
+    newTime = Math.min(Math.max(newTime, 0), this.#maxTime);
+
+    if (newTime === this.#time) {
       return;
     }
 
-    this.#time = value;
+    this.#time = newTime;
     this.#updateUIState();
 
     this.#emitTimeChange();
@@ -81,18 +116,6 @@ export class TimelinePlayhead extends Elm {
 
     this.#pixelsPerSecond = value;
     this.#updateUIState();
-  }
-
-  // -----------------------------------------------------------------------------
-  // state(read-only)
-  // -----------------------------------------------------------------------------
-
-  get left() {
-    if (this.#pixelsPerSecond == null) {
-      return 0;
-    }
-
-    return Number((this.#time * this.#pixelsPerSecond).toFixed(2));
   }
 
   // -----------------------------------------------------------------------------
@@ -134,7 +157,7 @@ export class TimelinePlayhead extends Elm {
     const rect = this.#containerEl.getBoundingClientRect();
     const pointerX = event.clientX - rect.left;
 
-    this.#dragOffsetX = pointerX - this.left;
+    this.#handleElOffsetX = pointerX - this.left;
 
     this.#draggingPointerId = event.pointerId;
 
@@ -177,7 +200,7 @@ export class TimelinePlayhead extends Elm {
     const pointerId = this.#draggingPointerId;
 
     this.#draggingPointerId = null;
-    this.#dragOffsetX = 0;
+    this.#handleElOffsetX = 0;
 
     if (pointerId != null && this.#handleEl.hasPointerCapture(pointerId)) {
       this.#handleEl.releasePointerCapture(pointerId);
@@ -212,7 +235,7 @@ export class TimelinePlayhead extends Elm {
   #updateTimeByPointer(event) {
     const rect = this.#containerEl.getBoundingClientRect();
 
-    let contentX = event.clientX - rect.left - this.#dragOffsetX;
+    let contentX = event.clientX - rect.left - this.#handleElOffsetX;
 
     contentX = Math.min(Math.max(contentX, 0), this.#containerEl.clientWidth);
 

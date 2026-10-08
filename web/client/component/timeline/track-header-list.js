@@ -247,7 +247,6 @@ export class TrackHeaderList extends ItemsElm {
 
     const gainSliderElm = new CompactGainSlider(gainEl, {
       labelText: "Gain",
-      primaryColor: "#51A8DD",
     });
     gainSliderElm.value = gainSliderElm.gainToDb(item.gain);
 
@@ -271,7 +270,6 @@ export class TrackHeaderList extends ItemsElm {
 
     const panSliderElm = new CompactPanSlider(panEl, {
       labelText: "Pan",
-      primaryColor: "#8B81C3",
     });
     panSliderElm.value = item.pan;
 

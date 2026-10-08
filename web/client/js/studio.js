@@ -2,7 +2,7 @@ import { setThemeMode } from "./theme.js";
 
 import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
-import {  CompactSlider } from "../component/slider.js";
+import { CompactSlider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
@@ -35,11 +35,13 @@ const zoomElm = new CompactSlider("#zoom", {
   step: 1,
   value: 50,
   suffix: "%",
-  primaryColor: "#787878",
+  label: "Zoom",
 });
 
 const rulerElm = new TimelineRuler("#ruler", {
   timelineElement: timelineEl,
+  paddingLeft: 4,
+  paddingRight: 4,
 });
 
 const trackHeaderListElm = new TrackHeaderList("#track-header-list", {
@@ -58,11 +60,15 @@ const timelinePlayheadElm = new TimelinePlayhead("#playhead", {
   timelineElement: timelineEl,
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   time: 0,
+  marginLeft: 4,
+  marginRight: 4,
 });
 
 const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   time: 0,
+  marginLeft: 4,
+  marginRight: 4,
 });
 
 const cursorTimeletElm = new Timelet("#cursor-timelet", {
