@@ -1,0 +1,100 @@
+.tumbler {
+  display: flex;
+
+  width: 100%;
+}
+
+.tumbler-main {
+  position: relative;
+
+  flex: 1;
+
+  height: 100%;
+  overflow: hidden;
+
+  user-select: none;
+}
+
+.tumbler-ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+
+  will-change: transform;
+}
+
+.tumbler-ruler.is-snapping {
+  transition: transform 100ms ease-out;
+}
+
+.tumbler-tick {
+  position: absolute;
+  left: 0;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+
+  transform: translateY(-50%);
+}
+
+.tumbler-label {
+  flex: 1;
+
+  padding-right: 4px;
+
+  color: var(--color-text);
+
+  opacity: 0.2;
+
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tumbler-label.is-current {
+  opacity: 1;
+}
+
+.tumbler-mark {
+  width: 6px;
+  height: 1px;
+
+  background: var(--color-text-muted);
+}
+
+/* Medium */
+
+.tumbler.md {
+  min-height: var(--component-height-md);
+  height: var(--component-height-md);
+
+  font-size: var(--font-size-md);
+
+  border-radius: var(--border-radius-md);
+}
+
+/* Small */
+
+.tumbler.sm {
+  min-height: var(--component-height-sm);
+  height: var(--component-height-sm);
+
+  font-size: var(--font-size-sm);
+
+  border-radius: var(--border-radius-sm);
+}
+
+/* Extra Small */
+
+.tumbler.xs {
+  min-height: var(--component-height-xs);
+  height: var(--component-height-xs);
+
+  font-size: var(--font-size-xs);
+
+  border-radius: var(--border-radius-xs);
+}

@@ -343,7 +343,7 @@ export class ClipGroup extends ItemsElm {
       return;
     }
 
-    this.selectedValue = value;
+    this.#setSelectedValue(value);
 
     const clipGroupRect = this.rootElement.getBoundingClientRect();
 

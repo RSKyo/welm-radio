@@ -1,19 +1,24 @@
 .track-list {
   --track-height: 100px;
 
+  position: relative;
+
   display: flex;
   flex-direction: column;
   gap: 4px;
 
-  position: relative;
+  padding: 0 !important;
+
+  border: 0 !important;
 }
 
 .track {
   position: relative;
   height: var(--track-height, 100px);
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: var(--border-radius-md);
 
   background: var(--color-surface-raised);
 }

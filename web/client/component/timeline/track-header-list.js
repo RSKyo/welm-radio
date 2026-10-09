@@ -12,9 +12,9 @@ import {
   getBySelector,
 } from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
-import { CompactCombobox } from "../combobox.js";
-import { CompactGainSlider, CompactPanSlider } from "../slider.js";
-import { CompactToggleButton } from "../toggle-button.js";
+import { Combobox } from "../combobox.js";
+import { GainSlider, PanSlider } from "../slider.js";
+import { ToggleButton } from "../toggle-button.js";
 
 const DEFAULT_TRACK_HEADER_MIN_HEIGHT = 132;
 
@@ -241,23 +241,27 @@ export class TrackHeaderList extends ItemsElm {
       '[data-role="pan"]',
     );
 
-    const nameElm = new CompactCombobox(nameEl, {
+    const nameElm = new Combobox(nameEl, {
+      rootClassExtra: "sm",
       items: getTrackNames(),
     });
     // nameElm.value = item.name;
 
-    const gainSliderElm = new CompactGainSlider(gainEl, {
+    const gainSliderElm = new GainSlider(gainEl, {
+      rootClassExtra: "sm",
       labelText: "Gain",
     });
     gainSliderElm.value = gainSliderElm.gainToDb(item.gain);
 
-    const panSliderElm = new CompactPanSlider(panEl, {
+    const panSliderElm = new PanSlider(panEl, {
+      rootClassExtra: "sm",
       labelText: "Pan",
       color: "var(--color-slider-pan)",
     });
     panSliderElm.value = item.pan;
 
-    const lockToggleElm = new CompactToggleButton(lockEl, {
+    const lockToggleElm = new ToggleButton(lockEl, {
+      rootClassExtra: "sm",
       activeValue: true,
       inactiveValue: false,
       activeText: "Locked",
@@ -266,7 +270,8 @@ export class TrackHeaderList extends ItemsElm {
     });
     lockToggleElm.value = item.locked;
 
-    const mutedToggleElm = new CompactToggleButton(mutedEl, {
+    const mutedToggleElm = new ToggleButton(mutedEl, {
+      rootClassExtra: "sm",
       activeValue: true,
       inactiveValue: false,
       activeText: "Muted",

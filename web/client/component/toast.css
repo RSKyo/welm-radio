@@ -11,8 +11,8 @@
   max-width: min(480px, calc(100vw - 32px));
   padding: 10px 16px;
 
-  color: var(--color-text-inverse);
-  background: var(--color-text);
+  color: var(--color-info-foreground);
+  background: var(--color-info);
   border-radius: 8px;
   box-shadow:
     0 4px 12px rgb(0 0 0 / 12%),
@@ -40,7 +40,7 @@
 }
 
 .toast.is-error {
-  color: white;
+  color: var(--color-error-foreground);
   background: var(--color-error);
 }
 

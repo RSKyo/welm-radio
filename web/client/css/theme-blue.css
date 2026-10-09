@@ -1,6 +1,16 @@
 :root {
-  --border-radius: 4px;
-  --border-radius-compact: 3px;
+  --font-size-md: 14px;
+  --font-size-sm: 11px;
+  --font-size-xs: 9px;
+  --component-height-md: 28px;
+  --component-height-sm: 22px;
+  --component-height-xs: 16px;
+  --component-padding-md: 4px 8px;
+  --component-padding-sm: 3px 6px;
+  --component-padding-xs: 2px 4px;
+  --border-radius-md: 4px;
+  --border-radius-sm: 3px;
+  --border-radius-xs: 2px;
 }
 
 :root {
@@ -165,7 +175,11 @@
 
   /* Custom colors */
 
-  --color-slider-pan: #77428D;
+  --color-slider-pan: #77428d;
+  --color-clip: #dce8f2;
+  --color-clip-hover: #d2e2ee;
+  --color-clip-selected: #bfd7e9;
+  --color-clip-selected-hover: #b3cee3;
 }
 
 [data-theme="dark"] {
@@ -333,5 +347,9 @@
 
   /* Custom colors */
 
-  --color-slider-pan: #986DB2;
+  --color-slider-pan: #986db2;
+  --color-clip: #243443;
+  --color-clip-hover: #2a3d4e;
+  --color-clip-selected: #33536c;
+  --color-clip-selected-hover: #3b607d;
 }

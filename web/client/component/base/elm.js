@@ -61,6 +61,15 @@ export class Elm {
       const classes = rootClass.trim().split(/\s+/);
       this.#rootElement.classList.add(...classes);
     }
+
+    const rootClassExtra = this.#options.rootClassExtra ?? this.#dataset.rootClassExtra;
+    
+    if (rootClassExtra != null) {
+      assertNonBlankString(rootClassExtra, "rootClassExtra");
+
+      const extraClasses = rootClassExtra.trim().split(/\s+/);
+      this.#rootElement.classList.add(...extraClasses);
+    }
   }
 
   get rootElement() {

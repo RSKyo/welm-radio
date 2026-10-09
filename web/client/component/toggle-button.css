@@ -5,17 +5,12 @@
   align-items: center;
   justify-content: center;
 
-  min-height: 28px;
-  height: 28px;
-
   border: 1px solid var(--color-button-border);
-  border-radius: var(--border-radius);
 
   color: var(--color-button-text);
   background: var(--color-button-background);
   text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 
-  font-size: 14px;
   line-height: 1;
 
   cursor: pointer;
@@ -69,13 +64,36 @@
   pointer-events: none;
 }
 
-/* Compact */
+/* Medium */
 
-.toggle-button-compact {
-  min-height: 24px;
-  height: 24px;
+.toggle-button,
+.toggle-button.md {
+  min-height: var(--component-height-md);
+  height: var(--component-height-md);
 
-  border-radius: var(--border-radius-compact);
+  border-radius: var(--border-radius-md);
 
-  font-size: 12px;
+  font-size: var(--font-size-md);
+}
+
+/* Small */
+
+.toggle-button.sm {
+  min-height: var(--component-height-sm);
+  height: var(--component-height-sm);
+
+  border-radius: var(--border-radius-sm);
+
+  font-size: var(--font-size-sm);
+}
+
+/* Extra Small */
+
+.toggle-button.xs {
+  min-height: var(--component-height-xs);
+  height: var(--component-height-xs);
+
+  border-radius: var(--border-radius-xs);
+
+  font-size: var(--font-size-xs);
 }

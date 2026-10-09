@@ -2,13 +2,13 @@ import { setThemeMode } from "./theme.js";
 
 import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
-import { Slider, CompactSlider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
 import { TimelinePlayhead } from "../component/timeline/playhead.js";
 import { TimelineCursor } from "../component/timeline/cursor.js";
 import { Timelet } from "../component/timelet.js";
+import { Tumbler } from "../component/tumbler.js";
 
 setThemeMode("light");
 
@@ -18,8 +18,8 @@ let timelineContainerPointerSeconds = 0;
 // Elements
 // -----------------------------------------------------------------------------
 
-const addTrackBtn = resolveElement("#add-track");
-const addClipBtn = resolveElement("#add-clip");
+const addTrackBtn = resolveElement(".track-add");
+const addClipBtn = resolveElement(".clip-add");
 
 const timelineHeaderEl = resolveElement(".timeline-header");
 const timelineEl = resolveElement(".timeline");
@@ -28,14 +28,17 @@ const timelineContentEl = resolveElement(".timeline-content");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
-const zoomElm = new CompactSlider("#zoom", {
+const zoomElm = new Tumbler("#zoom", {
+  rootClass: "tumbler xs",
   percentBase: 50,
   min: 5,
   max: 250,
   step: 1,
   value: 50,
+  wheelReverse: true,
+  pixelsPerStep: 10,
+  wheelPixelsPerStep: 30,
   suffix: "%",
-  label: "Zoom",
 });
 
 const rulerElm = new TimelineRuler("#ruler", {
@@ -72,18 +75,16 @@ const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
 });
 
 const cursorTimeletElm = new Timelet("#cursor-timelet", {
+  rootClassExtra: "xs",
   full: true,
   seconds: 0,
-  color: "var(--color-primary-text)",
-  fontSize: "10px",
   prefix: "C",
 });
 
 const playheadTimeletElm = new Timelet("#playhead-timelet", {
+  rootClassExtra: "xs",
   full: true,
   seconds: 0,
-  color: "var(--color-primary-text)",
-  fontSize: "10px",
   prefix: "P",
 });
 

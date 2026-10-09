@@ -1,24 +1,30 @@
 .track-header-list {
-    --track-header-height: 100px;
+  --track-header-height: 100px;
+
+  position: relative;
 
   display: flex;
   flex-direction: column;
   gap: 4px;
 
-  position: relative;
+  padding: 0 !important;
 }
 
 .track-header {
   position: relative;
-  height: var(--track-header-height, 100px);
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--color-surface-raised);
 
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  height: var(--track-header-height, 100px);
+
+  padding: 8px;
+
+  border: 0;
+  border-radius: var(--border-radius-md);
+
+  background: var(--color-surface-raised);
 }
 
 .track-header.is-selected {

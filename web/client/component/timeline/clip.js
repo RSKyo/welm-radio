@@ -8,7 +8,7 @@ import { createElementByHTML } from "../base/helper.js";
 
 const DEFAULT_CLIP_HEIGHT = 40;
 const DEFAULT_CLIP_ROW_GAP = 4;
-const TRIM_HANDLE_WIDTH = 4;
+const CLIP_TRIM_HANDLE_WIDTH = 4;
 
 const TRIM_START_TEMPLATE = `
 <div data-role="trim-start"></div>
@@ -131,8 +131,8 @@ export class Clip extends Elm {
     });
 
     this.rootElement.style.setProperty(
-      "--trim-width",
-      `${TRIM_HANDLE_WIDTH}px`,
+      "--clip-trim-width",
+      `${CLIP_TRIM_HANDLE_WIDTH}px`,
     );
   }
 

@@ -1,6 +1,4 @@
 .timeline-ruler {
-  --color-ruler: var(--color-text-secondary);
-
   position: sticky;
   height: 24px;
   top: 0;
@@ -29,14 +27,12 @@
   position: absolute;
   bottom: 0;
   height: 4px;
-  background: var(--color-text-muted);
 }
 
 .timeline-ruler-tick.is-middle .timeline-ruler-tick-mark {
   position: absolute;
   bottom: 0;
   height: 6px;
-  background: var(--color-text-muted);
 }
 
 .timeline-ruler-tick-text {
@@ -45,6 +41,6 @@
   left: 4px;
   white-space: nowrap;
   font-size: 10px;
-  color: var(--color-ruler);
+  color: var(--color-text);
   text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 }

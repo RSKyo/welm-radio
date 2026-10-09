@@ -7,6 +7,9 @@ import {
 import {
   assertString,
   assertNonBlankString,
+  assertArray,
+  assertPlainObjectArray,
+  assertNoDuplicatePlainObjectValues,
 } from "./base/assert.js";
 
 const MAIN_TEMPLATE = `
@@ -49,8 +52,8 @@ export class Combobox extends Elm {
 
   constructor(root, options = {}) {
     super(root, {
-      defaultRootClass: "combobox",
       ...options,
+      defaultRootClass: "combobox",
     });
 
     this.#init();
@@ -66,7 +69,9 @@ export class Combobox extends Elm {
     this.resolveOption(
       "items",
       (value, assertionSubject) => {
-        this.#assertItems(value, assertionSubject);
+        assertPlainObjectArray(value, assertionSubject, "text", "value");
+        assertNoDuplicatePlainObjectValues(value, "text", assertionSubject);
+        assertNoDuplicatePlainObjectValues(value, "value", assertionSubject);
         this.#items = value.map((item) => ({ ...item }));
       },
       true,
@@ -77,41 +82,6 @@ export class Combobox extends Elm {
       this.#text = value;
       this.#value = this.#resolveValue(value);
     });
-  }
-
-  #assertItems(items, assertionSubject = "items") {
-    if (!Array.isArray(items)) {
-      throw new TypeError(`${assertionSubject} must be an array`);
-    }
-
-    const texts = new Set();
-
-    for (let index = 0; index < items.length; index++) {
-      const item = items[index];
-      const itemSubject = `${assertionSubject}[${index}]`;
-
-      if (
-        item == null ||
-        typeof item !== "object" ||
-        Array.isArray(item)
-      ) {
-        throw new TypeError(`${itemSubject} must be an object`);
-      }
-
-      assertNonBlankString(item.text, `${itemSubject}.text`);
-
-      if (!Object.hasOwn(item, "value") || item.value == null) {
-        throw new Error(`${itemSubject}.value is required`);
-      }
-
-      if (texts.has(item.text)) {
-        throw new Error(
-          `${assertionSubject} contains duplicate text: ${item.text}`,
-        );
-      }
-
-      texts.add(item.text);
-    }
   }
 
   // -----------------------------------------------------------------------------
@@ -135,17 +105,10 @@ export class Combobox extends Elm {
     this.#setText(value);
   }
 
-  get value() {
-    return this.#value;
-  }
-
   #setText(text, updateInput = true) {
     const value = this.#resolveValue(text);
 
-    if (
-      text === this.#text &&
-      isEqualValue(value, this.#value)
-    ) {
+    if (text === this.#text && isEqualValue(value, this.#value)) {
       return;
     }
 
@@ -160,26 +123,14 @@ export class Combobox extends Elm {
     this.#emitChange();
   }
 
-  #selectItem(item) {
-    if (
-      item.text === this.#text &&
-      isEqualValue(item.value, this.#value)
-    ) {
-      return;
-    }
-
-    this.#text = item.text;
-    this.#value = item.value;
-
-    this.#updateInputValue();
-    this.#updateSelectedState();
-    this.#emitChange();
+  get value() {
+    return this.#value;
   }
 
   #resolveValue(text) {
     const item = this.#items.find((item) => item.text === text);
 
-    return item?.value ?? null;
+    return item?.value ?? text;
   }
 
   // -----------------------------------------------------------------------------
@@ -203,23 +154,11 @@ export class Combobox extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(
-      this.#inputEl,
-      "focus",
-      this.#inputFocusHandler,
-    );
+    this.event.on(this.#inputEl, "focus", this.#inputFocusHandler);
 
-    this.event.on(
-      this.#inputEl,
-      "blur",
-      this.#inputBlurHandler,
-    );
+    this.event.on(this.#inputEl, "blur", this.#inputBlurHandler);
 
-    this.event.on(
-      this.#inputEl,
-      "input",
-      this.#inputInputHandler,
-    );
+    this.event.on(this.#inputEl, "input", this.#inputInputHandler);
 
     this.event.on(
       this.#dropdownEl,
@@ -227,14 +166,9 @@ export class Combobox extends Elm {
       this.#dropdownMouseDownHandler,
     );
 
-    this.event.on(
-      this.#dropdownEl,
-      "click",
-      this.#dropdownClickHandler,
-      {
-        selector: '[data-role="combobox-item"]',
-      },
-    );
+    this.event.on(this.#dropdownEl, "click", this.#dropdownClickHandler, {
+      selector: '[data-role="combobox-item"]',
+    });
   }
 
   #inputFocusHandler = () => {
@@ -261,7 +195,7 @@ export class Combobox extends Elm {
       return;
     }
 
-    this.#selectItem(item);
+    this.#setText(item.text);
     this.#inputEl.blur();
   };
 
@@ -278,10 +212,7 @@ export class Combobox extends Elm {
       const index = Number(itemEl.dataset.index);
       const item = this.#items[index];
 
-      itemEl.classList.toggle(
-        "is-selected",
-        item?.text === this.#text,
-      );
+      itemEl.classList.toggle("is-selected", item?.text === this.#text);
     }
   }
 
@@ -319,14 +250,5 @@ export class Combobox extends Elm {
 
       this.#dropdownEl.append(itemEl);
     }
-  }
-}
-
-export class CompactCombobox extends Combobox {
-  constructor(root, options = {}) {
-    super(root, {
-      ...options,
-      defaultRootClass: "combobox combobox-compact",
-    });
   }
 }

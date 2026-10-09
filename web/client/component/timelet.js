@@ -15,7 +15,7 @@ export class Timelet extends Elm {
   // state(read-write)
   #seconds = 0;
 
-  // ui
+  // element
   #prefixEl = null;
   #paddingEl = null;
   #timeEl = null;
@@ -23,8 +23,8 @@ export class Timelet extends Elm {
 
   constructor(root, options = {}) {
     super(root, {
-      ...options,
       defaultRootClass: "timelet",
+      ...options,
     });
 
     this.#init();
@@ -44,12 +44,12 @@ export class Timelet extends Elm {
 
     this.resolveOption("prefix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
-      this.#prefix = String(value);
+      this.#prefix = value;
     });
 
     this.resolveOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
-      this.#suffix = String(value);
+      this.#suffix = value;
     });
 
     this.resolveOption("seconds", (value, assertionSubject) => {
@@ -59,12 +59,7 @@ export class Timelet extends Elm {
 
     this.resolveOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
-      this.rootElement.style.setProperty("--color-time", `${value}`);
-    });
-
-    this.resolveOption("fontSize", (value, assertionSubject) => {
-      assertNonBlankString(value, assertionSubject);
-      this.rootElement.style.setProperty("--font-size", `${value}`);
+      this.rootElement.style.setProperty("--color-time", value);
     });
   }
 
@@ -93,19 +88,19 @@ export class Timelet extends Elm {
 
   #render() {
     this.rootElement.innerHTML = `
-      <span data-role="prefix"></span>
-      <span data-role="padding"></span><span data-role="time"></span>
-      <span data-role="suffix"></span>
+      <span class="timelet-prefix"></span>
+      <span class="timelet-padding"></span><span class="timelet-time"></span>
+      <span class="timelet-suffix"></span>
     `;
 
-    this.#prefixEl = this.rootElement.querySelector('[data-role="prefix"]');
-    this.#paddingEl = this.rootElement.querySelector('[data-role="padding"]');
-    this.#timeEl = this.rootElement.querySelector('[data-role="time"]');
-    this.#suffixEl = this.rootElement.querySelector('[data-role="suffix"]');
+    this.#prefixEl = this.rootElement.querySelector(".timelet-prefix");
+    this.#paddingEl = this.rootElement.querySelector(".timelet-padding");
+    this.#timeEl = this.rootElement.querySelector(".timelet-time");
+    this.#suffixEl = this.rootElement.querySelector(".timelet-suffix");
   }
 
   // -----------------------------------------------------------------------------
-  // ui
+  // update ui state
   // -----------------------------------------------------------------------------
 
   #updateUIState() {
@@ -120,18 +115,21 @@ export class Timelet extends Elm {
   #resolvePaddingAndTime() {
     const text = formatTime(this.#seconds, this.#full);
 
-    const startIndex = text.search(/[1-9]/);
+    let startIndex = text.search(/[1-9]/);
 
-    if (startIndex !== -1) {
-      return {
-        padding: text.slice(0, startIndex),
-        time: text.slice(startIndex),
-      };
+    if (startIndex === -1) {
+      startIndex = text.length - 5;
+    } else {
+      const decimalIndex = text.indexOf(".");
+
+      if (decimalIndex !== -1 && startIndex > decimalIndex) {
+        startIndex = decimalIndex - 1;
+      }
     }
 
     return {
-      padding: text.slice(0, -5),
-      time: text.slice(-5),
+      padding: text.slice(0, startIndex),
+      time: text.slice(startIndex),
     };
   }
 }

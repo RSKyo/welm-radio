@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="./component/timeline/playhead.css" />
     <link rel="stylesheet" href="./component/timeline/cursor.css" />
     <link rel="stylesheet" href="./component/timelet.css" />
+    <link rel="stylesheet" href="./component/tumbler.css" />
   </head>
 
   <body>
@@ -45,16 +46,13 @@
             background: var(--color-surface);
           "
         >
-          <div
-            class="toolbar"
-            style="border-bottom: 1px solid var(--color-divider)"
-          >
-            <button id="add-track" type="button">添加音轨</button>
+          <div class="hbox j-end p-4 bb">
+            <button class="track-add" title="添加音轨">+</button>
           </div>
           <div class="grow vbox" style="position: relative">
             <div class="timeline-header gap-8">
               <div class="timeline-header-content vbox gap-8">
-                <div class="hbox j-center a-middle px-4 gap-8 pointer-info">
+                <div class="hbox j-center a-middle px-4 gap-8 bb pointer-info">
                   <span id="cursor-timelet"></span>
                   <span id="playhead-timelet"></span>
                 </div>
@@ -65,15 +63,11 @@
         </div>
         <!-- right -->
         <div class="grow vbox" style="background: var(--color-surface)">
-          <div
-            class="toolbar"
-            style="border-bottom: 1px solid var(--color-divider)"
-          >
-            <div class="grow">
-              <button id="add-clip" type="button">添加片段(测试)</button>
+          <div class="hbox p-4 bb">
+            <div class="grow hbox">
+              <button class="clip-add" title="添加片段(测试)">+</button>
             </div>
-
-            <div id="zoom" style="width: 100px"></div>
+            <div id="zoom" style="width: 60px" title="滚动缩放"></div>
           </div>
           <div class="grow vbox" style="position: relative">
             <div class="timeline">

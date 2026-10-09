@@ -1,44 +1,51 @@
 .clip {
   --clip-height: 40px;
-  --trim-width: 4px;
+  --clip-trim-width: 4px;
 
   position: absolute;
 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
   min-width: 2px;
   height: var(--clip-height);
-
-  border: 1px solid #8eb9df;
-  border-radius: 4px;
-
-  background: #cfe5f7;
-  color: #35536d;
-
-  cursor: pointer;
-  user-select: none;
+  box-sizing: border-box;
 
   overflow: hidden;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-radius: var(--border-radius-md);
+
+  color: var(--color-primary-text);
+  background: var(--color-clip);
+
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  box-sizing: border-box;
-
+  cursor: pointer;
+  user-select: none;
   touch-action: none;
 }
 
 .clip:hover {
-  border-color: #6da4d3;
-  background: #c3def3;
+  background: var(--color-clip-hover);
 }
 
 .clip.is-selected {
-  border-color: #3b82c4;
-  background: #afd4f1;
+  background: var(--color-clip-selected);
+}
 
-  box-shadow: 0 0 0 1px rgb(59 130 196 / 0.18);
+.clip.is-selected:hover {
+  background: var(--color-clip-selected-hover);
 }
 
 .clip.is-drag-ghost {
   opacity: 0.45;
+
   pointer-events: none;
 }
 
@@ -47,12 +54,14 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: var(--trim-width);
 
-  cursor: ew-resize;
-  z-index: 2;
+  width: var(--clip-trim-width);
 
   opacity: 0;
+
+  cursor: ew-resize;
+
+  z-index: 2;
 }
 
 .clip [data-role="trim-start"] {
@@ -65,26 +74,21 @@
 
 .clip.is-selected [data-role="trim-start"],
 .clip.is-selected [data-role="trim-end"] {
-  opacity: 1;
+  opacity: 0.4;
 }
 
 .clip.is-selected [data-role="trim-start"]::after,
 .clip.is-selected [data-role="trim-end"]::after {
   content: "";
-  position: absolute;
 
+  position: absolute;
   top: 4px;
   bottom: 4px;
+  left: 50%;
+
   width: 1px;
 
-  background: #3b82c4;
-}
+  background: var(--color-primary-text);
 
-.clip.is-selected [data-role="trim-start"]::after {
-  left: 1px;
+  transform: translateX(-50%);
 }
-
-.clip.is-selected [data-role="trim-end"]::after {
-  right: 1px;
-}
-

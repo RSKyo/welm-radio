@@ -356,21 +356,12 @@ export class Slider extends Elm {
   }
 }
 
-export class CompactSlider extends Slider {
-  constructor(root, options = {}) {
-    super(root, {
-      ...options,
-      defaultRootClass: "slider slider-compact",
-    });
-  }
-}
-
 /**
  * -60 dB ≈ gain 0.001
  * 0 dB = gain 1
  * +12 dB ≈ gain 3.98
  */
-export class CompactGainSlider extends CompactSlider {
+export class GainSlider extends Slider {
   constructor(root, options = {}) {
     super(root, {
       step: 0.5,
@@ -405,7 +396,7 @@ export class CompactGainSlider extends CompactSlider {
  *  0 = center
  * +1 = full right
  */
-export class CompactPanSlider extends CompactSlider {
+export class PanSlider extends Slider {
   constructor(root, options = {}) {
     super(root, {
       step: 0.01,
