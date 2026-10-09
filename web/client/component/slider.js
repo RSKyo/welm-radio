@@ -58,14 +58,12 @@ export class Slider extends Elm {
   #max = 100;
   #step = 1;
   #value = 0;
-  #showActions = false;
   // element
   #mainEl = null;
   #rangeEl = null;
   #prevEl = null;
   #nextEl = null;
   #valueEl = null;
-  #labelEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -152,11 +150,6 @@ export class Slider extends Elm {
       assertNumber(value, assertionSubject);
       const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
       this.#value = normalizedValue;
-    });
-
-    this.resolveOption("showActions", (value, assertionSubject) => {
-      assertBoolean(value, assertionSubject);
-      this.#showActions = value;
     });
 
     if (this.#max <= this.#min) {
@@ -278,19 +271,6 @@ export class Slider extends Elm {
     this.#setValue(value);
   };
 
-  #valueInputBlurHandler = (event) => {
-    const inputEl = event.currentTarget;
-    const value = inputEl.valueAsNumber;
-
-    if (Number.isNaN(value)) {
-      inputEl.value = this.#value;
-      return;
-    }
-
-    this.value = value;
-    inputEl.value = this.#value;
-  };
-
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
@@ -369,7 +349,6 @@ export class Slider extends Elm {
     this.#prevEl = prevEl;
     this.#nextEl = nextEl;
     this.#valueEl = valueEl;
-    this.#labelEl = labelEl;
 
     this.rootElement.appendChild(mainEl);
 

@@ -1,4 +1,9 @@
 :root {
+  --border-radius: 4px;
+  --border-radius-compact: 3px;
+}
+
+:root {
   color-scheme: light;
 
   /* Surface background colors */
@@ -157,6 +162,10 @@
 
   --color-focus-border: #7f96aa;
   --color-focus-shadow: rgba(92, 119, 143, 0.24);
+
+  /* Custom colors */
+
+  --color-slider-pan: #77428D;
 }
 
 [data-theme="dark"] {
@@ -321,4 +330,8 @@
   --color-button-primary-border-active: #466d8d;
 
   --color-button-primary-text: var(--color-primary-foreground);
+
+  /* Custom colors */
+
+  --color-slider-pan: #986DB2;
 }

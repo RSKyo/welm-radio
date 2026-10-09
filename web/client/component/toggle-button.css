@@ -1,22 +1,20 @@
 .toggle-button {
-  --toggle-button-active-color: #0a84ff;
+  --color-toggle-button: var(--color-primary);
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  min-width: 28px;
+  min-height: 28px;
   height: 28px;
 
-  padding: 0 8px;
+  border: 1px solid var(--color-button-border);
+  border-radius: var(--border-radius);
 
-  border: 1px solid #c9cdd4;
-  border-radius: 4px;
+  color: var(--color-button-text);
+  background: var(--color-button-background);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 
-  background-color: #ffffff;
-  color: #60656f;
-
-  font: inherit;
   font-size: 14px;
   line-height: 1;
 
@@ -31,17 +29,21 @@
 }
 
 .toggle-button:hover {
-  background-color: #f3f4f6;
+  border-color: var(--color-button-border-hover);
+  background: var(--color-button-background-hover);
 }
 
 .toggle-button:active {
-  background-color: #e9ebef;
+  border-color: var(--color-button-border-active);
+  background: var(--color-button-background-active);
 }
 
 .toggle-button.is-active {
-  border-color: var(--toggle-button-active-color);
-  background-color: var(--toggle-button-active-color);
-  color: #ffffff;
+  border-color: var(--color-toggle-button);
+
+  color: var(--color-text-inverse);
+  background: var(--color-toggle-button);
+  text-shadow: none;
 }
 
 .toggle-button.is-active:hover {
@@ -53,27 +55,27 @@
 }
 
 .toggle-button:focus-visible {
-  outline: 2px solid var(--toggle-button-active-color);
+  outline: 2px solid var(--color-toggle-button);
   outline-offset: 2px;
 }
 
 .toggle-button:disabled,
 .toggle-button.is-disabled {
   opacity: 0.45;
+
+  background: var(--color-input-background-disabled);
+
   cursor: default;
   pointer-events: none;
 }
 
-/* compact */
+/* Compact */
 
 .toggle-button-compact {
-  min-width: 22px;
-  height: 22px;
+  min-height: 24px;
+  height: 24px;
 
-  padding: 0 5px;
-
-  border: 0px;
-  border-radius: 3px;
+  border-radius: var(--border-radius-compact);
 
   font-size: 12px;
 }

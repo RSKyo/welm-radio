@@ -2,7 +2,7 @@ import { setThemeMode } from "./theme.js";
 
 import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
-import { CompactSlider } from "../component/slider.js";
+import { Slider, CompactSlider } from "../component/slider.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";

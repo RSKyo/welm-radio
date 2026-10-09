@@ -241,21 +241,28 @@ export class TrackHeaderList extends ItemsElm {
       '[data-role="pan"]',
     );
 
-    const nameElm = new CompactCombobox(nameEl);
-    nameElm.dropdownValues = getTrackNames();
-    nameElm.value = item.name;
+    const nameElm = new CompactCombobox(nameEl, {
+      items: getTrackNames(),
+    });
+    // nameElm.value = item.name;
 
     const gainSliderElm = new CompactGainSlider(gainEl, {
       labelText: "Gain",
     });
     gainSliderElm.value = gainSliderElm.gainToDb(item.gain);
 
+    const panSliderElm = new CompactPanSlider(panEl, {
+      labelText: "Pan",
+      color: "var(--color-slider-pan)",
+    });
+    panSliderElm.value = item.pan;
+
     const lockToggleElm = new CompactToggleButton(lockEl, {
       activeValue: true,
       inactiveValue: false,
       activeText: "Locked",
       inactiveText: "Unlocked",
-      activeColor: "#B4A582",
+      color: "#B4A582",
     });
     lockToggleElm.value = item.locked;
 
@@ -264,14 +271,9 @@ export class TrackHeaderList extends ItemsElm {
       inactiveValue: false,
       activeText: "Muted",
       inactiveText: "Unmuted",
-      activeColor: "#A96360",
+      color: "#A96360",
     });
     mutedToggleElm.value = item.muted;
-
-    const panSliderElm = new CompactPanSlider(panEl, {
-      labelText: "Pan",
-    });
-    panSliderElm.value = item.pan;
 
     this.#itemElmsMap.set(value, {
       name: nameElm,
@@ -310,5 +312,41 @@ export class TrackHeaderList extends ItemsElm {
 }
 
 function getTrackNames() {
-  return ["主持人", "嘉宾", "背景音乐", "环境音", "音效", "标识音"];
+  return [
+    {
+      value: "voice",
+      text: "人声",
+      description: "以说话内容为主，例如问候、主持、故事、新闻或访谈。",
+    },
+    {
+      value: "music",
+      text: "音乐",
+      description: "完整或独立播放的音乐内容，例如歌曲、纯音乐或配乐。",
+    },
+    {
+      value: "bed",
+      text: "背景垫乐",
+      description: "用于人声下方持续铺垫的轻音乐，通常不会单独作为正文播放。",
+    },
+    {
+      value: "ambience",
+      text: "环境声",
+      description: "营造场景氛围的自然或空间声音，例如雨声、海浪、咖啡馆声。",
+    },
+    {
+      value: "effect",
+      text: "音效",
+      description: "较短的提示、转场或动作声音，例如铃声、按键声、掌声。",
+    },
+    {
+      value: "jingle",
+      text: "标识音",
+      description: "用于节目、栏目或品牌识别的短音频，例如台呼、片头标识。",
+    },
+    {
+      value: "mixed",
+      text: "混合成品",
+      description: "已经混合完成的音频，可能同时包含人声、音乐和音效。",
+    },
+  ];
 }

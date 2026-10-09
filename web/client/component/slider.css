@@ -3,32 +3,39 @@
   --color-slider: var(--color-primary);
 
   display: flex;
-  flex-direction: row;
+
   width: 100%;
-  gap: 4px;
+  min-height: 28px;
+  height: 28px;
 }
 
 .slider-main {
-  flex: 1;
-  display: flex;
-  align-items: end;
   position: relative;
+
+  flex: 1;
+  min-width: 0;
 }
 
 .slider button.slider-prev,
 .slider button.slider-next {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   position: absolute;
-  padding: 0;
-  border: 0;
   top: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 15px;
+  min-height: 15px;
+  padding: 0;
+
+  border: 0;
+
   color: var(--color-text-muted);
-
-  line-height: 1;
-
   background: transparent;
+
+  font-size: 11px;
+  line-height: 1;
 }
 
 .slider button.slider-prev {
@@ -40,15 +47,19 @@
 }
 
 .slider-range {
-  display: block;
-  width: 100%;
+  position: absolute;
+  right: 0;
+  bottom: 6.5px;
+  left: 0;
+
+  height: 2px;
   margin: 0;
   padding: 0;
-  height: 2px;
 
   appearance: none;
 
   border-radius: 1px;
+
   background: var(--color-surface-sunken);
 
   cursor: pointer;
@@ -73,11 +84,21 @@
   height: 12px;
   margin-top: -5px;
 
-  border: 1px solid color-mix(in srgb, var(--color-slider) 25%, transparent);
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--color-slider) 25%,
+      transparent
+    );
   border-radius: 50%;
 
   background: var(--color-surface-raised);
-  box-shadow: 2px 1px 0 color-mix(in srgb, var(--color-slider) 15%, transparent);
+  box-shadow: 2px 1px 0
+    color-mix(
+      in srgb,
+      var(--color-slider) 15%,
+      transparent
+    );
 
   cursor: pointer;
 }
@@ -87,83 +108,87 @@
 .slider-range::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  margin-top: -5px;
 
-  border: 1px solid color-mix(in srgb, var(--color-slider) 25%, transparent);
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--color-slider) 25%,
+      transparent
+    );
   border-radius: 50%;
 
   background: var(--color-surface-raised);
-  box-shadow: 2px 1px 0 color-mix(in srgb, var(--color-slider) 15%, transparent);
+  box-shadow: 2px 1px 0
+    color-mix(
+      in srgb,
+      var(--color-slider) 15%,
+      transparent
+    );
 
   cursor: pointer;
 }
 
 .slider-value {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   position: absolute;
   top: 0;
   left: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 15px;
   padding: 2px 4px;
+
   border-radius: 4px;
 
-  line-height: 1;
   color: var(--color-slider);
+
+  font-size: 11px;
+  line-height: 1;
+
   transform: translateX(-50%);
 }
 
 .slider-label {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   position: absolute;
-  padding: 0;
-  border: 0;
   top: 0;
   left: 12px;
 
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  font-weight: 500;
-  color: color-mix(in srgb, var(--color-text) 20%, transparent);
+  height: 15px;
+  padding: 0;
+
+  border: 0;
+
+  color: color-mix(
+    in srgb,
+    var(--color-text) 20%,
+    transparent
+  );
   text-shadow: 0 1px 0
-    color-mix(in srgb, var(--color-text-inverse) 50%, transparent);
+    color-mix(
+      in srgb,
+      var(--color-text-inverse) 50%,
+      transparent
+    );
+
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
 
   pointer-events: none;
   user-select: none;
 }
 
-/* normal */
-
-.slider:not(.slider-compact) {
-  height: 28px;
-  padding: 0 0 8px 0;
-}
-
-.slider:not(.slider-compact) button.slider-prev,
-.slider:not(.slider-compact) button.slider-next {
-  min-width: 15px;
-  min-height: 15px;
-
-  font-size: 10px;
-}
-
-.slider:not(.slider-compact) .slider-value {
-  height: 15px;
-  font-size: 10px;
-}
-
-.slider:not(.slider-compact) .slider-label {
-  height: 15px;
-  font-size: 10px;
-}
-
-/* compact */
+/* Compact */
 
 .slider-compact {
+  min-height: 24px;
   height: 24px;
-  padding: 0 0 5px 0;
 }
 
 .slider-compact button.slider-prev,
@@ -174,12 +199,13 @@
   font-size: 9px;
 }
 
-.slider-compact .slider-value {
-  height: 12px;
-  font-size: 9px;
+.slider-compact .slider-range {
+  bottom: 5px;
 }
 
+.slider-compact .slider-value,
 .slider-compact .slider-label {
   height: 12px;
+
   font-size: 9px;
 }

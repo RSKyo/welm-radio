@@ -4,32 +4,48 @@ import {
   isEqualValue,
   getBySelector,
 } from "./base/helper.js";
-import { assertString, assertNonBlankStringArray } from "./base/assert.js";
+import {
+  assertString,
+  assertNonBlankString,
+} from "./base/assert.js";
 
 const MAIN_TEMPLATE = `
-<div class="combobox-main" data-role="main">
+<div class="combobox-main" data-role="combobox-main">
   <input
     class="combobox-input"
     type="text"
     autocomplete="off"
     placeholder="Select or enter an option"
-    data-role="input"
+    data-role="combobox-input"
   />
-  <div class="combobox-dropdown" data-role="dropdown"></div>
+  <div
+    class="combobox-dropdown"
+    data-role="combobox-dropdown"
+  ></div>
 </div>
 `;
 
 const DROPDOWN_ITEM_TEMPLATE = `
-<div class="combobox-item" data-role="dropdown-item"></div>
+<div
+  class="combobox-item"
+  data-role="combobox-item"
+></div>
 `;
 
 const mainTemplate = createElementByHTML(MAIN_TEMPLATE);
 const dropdownItemTemplate = createElementByHTML(DROPDOWN_ITEM_TEMPLATE);
 
 export class Combobox extends Elm {
-  // state
-  #value = "";
-  #dropdownValues = [];
+  // state(read-only)
+  #items = [];
+
+  // state(read-write)
+  #text = "";
+  #value = null;
+
+  // element
+  #inputEl = null;
+  #dropdownEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -37,59 +53,133 @@ export class Combobox extends Elm {
       ...options,
     });
 
+    this.#init();
     this.#render();
     this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
-  // get/set state value
+  // initialization
   // -----------------------------------------------------------------------------
+
+  #init() {
+    this.resolveOption(
+      "items",
+      (value, assertionSubject) => {
+        this.#assertItems(value, assertionSubject);
+        this.#items = value.map((item) => ({ ...item }));
+      },
+      true,
+    );
+
+    this.resolveOption("text", (value, assertionSubject) => {
+      assertString(value, assertionSubject);
+      this.#text = value;
+      this.#value = this.#resolveValue(value);
+    });
+  }
+
+  #assertItems(items, assertionSubject = "items") {
+    if (!Array.isArray(items)) {
+      throw new TypeError(`${assertionSubject} must be an array`);
+    }
+
+    const texts = new Set();
+
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      const itemSubject = `${assertionSubject}[${index}]`;
+
+      if (
+        item == null ||
+        typeof item !== "object" ||
+        Array.isArray(item)
+      ) {
+        throw new TypeError(`${itemSubject} must be an object`);
+      }
+
+      assertNonBlankString(item.text, `${itemSubject}.text`);
+
+      if (!Object.hasOwn(item, "value") || item.value == null) {
+        throw new Error(`${itemSubject}.value is required`);
+      }
+
+      if (texts.has(item.text)) {
+        throw new Error(
+          `${assertionSubject} contains duplicate text: ${item.text}`,
+        );
+      }
+
+      texts.add(item.text);
+    }
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-only)
+  // -----------------------------------------------------------------------------
+
+  get items() {
+    return this.#items.map((item) => ({ ...item }));
+  }
+
+  // -----------------------------------------------------------------------------
+  // state(read-write)
+  // -----------------------------------------------------------------------------
+
+  get text() {
+    return this.#text;
+  }
+
+  set text(value) {
+    assertString(value, "text");
+    this.#setText(value);
+  }
 
   get value() {
     return this.#value;
   }
 
-  set value(value) {
-    assertString(value);
-    this.#setValue(value);
-  }
+  #setText(text, updateInput = true) {
+    const value = this.#resolveValue(text);
 
-  #setValue(value) {
-    const oldValue = this.#value;
-    const newValue = value;
-
-    if (isEqualValue(oldValue, newValue)) {
+    if (
+      text === this.#text &&
+      isEqualValue(value, this.#value)
+    ) {
       return;
     }
 
-    this.#value = newValue;
+    this.#text = text;
+    this.#value = value;
+
+    if (updateInput) {
+      this.#updateInputValue();
+    }
+
+    this.#updateSelectedState();
+    this.#emitChange();
+  }
+
+  #selectItem(item) {
+    if (
+      item.text === this.#text &&
+      isEqualValue(item.value, this.#value)
+    ) {
+      return;
+    }
+
+    this.#text = item.text;
+    this.#value = item.value;
 
     this.#updateInputValue();
     this.#updateSelectedState();
-
-    this.#emitChange(newValue);
+    this.#emitChange();
   }
 
-  get dropdownValues() {
-    return [...this.#dropdownValues];
-  }
+  #resolveValue(text) {
+    const item = this.#items.find((item) => item.text === text);
 
-  set dropdownValues(values) {
-    assertNonBlankStringArray(values);
-    this.#setDropdownValues(values);
-  }
-
-  #setDropdownValues(values) {
-    const oldValue = this.#dropdownValues;
-    const newValue = [...values];
-
-    if (isEqualValue(oldValue, newValue)) {
-      return;
-    }
-
-    this.#dropdownValues = newValue;
-
-    this.#renderDropdownValues(newValue);
+    return item?.value ?? null;
   }
 
   // -----------------------------------------------------------------------------
@@ -100,10 +190,11 @@ export class Combobox extends Elm {
     this.handler.set("changeHandler", handler);
   }
 
-  #emitChange(value) {
+  #emitChange() {
     this.handler.emit("changeHandler", {
       elm: this,
-      value,
+      text: this.#text,
+      value: this.#value,
     });
   }
 
@@ -112,20 +203,38 @@ export class Combobox extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    const [inputEl, dropdownEl] = getBySelector(
-      this.rootElement,
-      '[data-role="input"]',
-      '[data-role="dropdown"]',
+    this.event.on(
+      this.#inputEl,
+      "focus",
+      this.#inputFocusHandler,
     );
 
-    this.event.on(inputEl, "focus", this.#inputFocusHandler);
-    this.event.on(inputEl, "blur", this.#inputBlurHandler);
-    this.event.on(inputEl, "change", this.#inputChangeHandler);
+    this.event.on(
+      this.#inputEl,
+      "blur",
+      this.#inputBlurHandler,
+    );
 
-    this.event.on(dropdownEl, "mousedown", this.#dropdownMouseDownHandler);
-    this.event.on(dropdownEl, "click", this.#dropdownClickHandler, {
-      selector: '[data-role="dropdown-item"]',
-    });
+    this.event.on(
+      this.#inputEl,
+      "input",
+      this.#inputInputHandler,
+    );
+
+    this.event.on(
+      this.#dropdownEl,
+      "mousedown",
+      this.#dropdownMouseDownHandler,
+    );
+
+    this.event.on(
+      this.#dropdownEl,
+      "click",
+      this.#dropdownClickHandler,
+      {
+        selector: '[data-role="combobox-item"]',
+      },
+    );
   }
 
   #inputFocusHandler = () => {
@@ -136,9 +245,8 @@ export class Combobox extends Elm {
     this.rootElement.classList.remove("is-open");
   };
 
-  #inputChangeHandler = (event) => {
-    const value = event.target.value.trim();
-    this.#setValue(value);
+  #inputInputHandler = (event) => {
+    this.#setText(event.target.value, false);
   };
 
   #dropdownMouseDownHandler = (event) => {
@@ -146,57 +254,70 @@ export class Combobox extends Elm {
   };
 
   #dropdownClickHandler = (event, { element }) => {
-    const value = element.dataset.value;
-    this.#setValue(value);
+    const index = Number(element.dataset.index);
+    const item = this.#items[index];
 
-    const inputEl = getBySelector(this.rootElement, '[data-role="input"]');
-    inputEl.blur();
+    if (item == null) {
+      return;
+    }
+
+    this.#selectItem(item);
+    this.#inputEl.blur();
   };
 
-  // ---------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------
   // update ui state
-  // ---------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------
 
   #updateInputValue() {
-    const inputEl = getBySelector(this.rootElement, '[data-role="input"]');
-    inputEl.value = this.#value ?? "";
+    this.#inputEl.value = this.#text;
   }
 
   #updateSelectedState() {
-    const dropdownEl = getBySelector(
-      this.rootElement,
-      '[data-role="dropdown"]',
-    );
+    for (const itemEl of this.#dropdownEl.children) {
+      const index = Number(itemEl.dataset.index);
+      const item = this.#items[index];
 
-    for (const itemEl of dropdownEl.children) {
-      const value = itemEl.dataset.value;
-      itemEl.classList.toggle("is-selected", this.#value === value);
+      itemEl.classList.toggle(
+        "is-selected",
+        item?.text === this.#text,
+      );
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------
   // render
-  // ---------------------------------------------------------------------------
+  // -----------------------------------------------------------------------------
 
   #render() {
-    this.rootElement.append(mainTemplate.cloneNode(true));
-  }
+    const mainEl = mainTemplate.cloneNode(true);
 
-  #renderDropdownValues(values) {
-    const dropdownEl = getBySelector(
-      this.rootElement,
-      '[data-role="dropdown"]',
+    const [inputEl, dropdownEl] = getBySelector(
+      mainEl,
+      '[data-role="combobox-input"]',
+      '[data-role="combobox-dropdown"]',
     );
 
-    dropdownEl.replaceChildren();
+    this.#inputEl = inputEl;
+    this.#dropdownEl = dropdownEl;
 
-    for (const value of values) {
-      const dropdownItemEl = dropdownItemTemplate.cloneNode(true);
+    this.#renderItems();
 
-      dropdownItemEl.textContent = value;
-      dropdownItemEl.dataset.value = value;
+    this.rootElement.append(mainEl);
 
-      dropdownEl.append(dropdownItemEl);
+    this.#updateInputValue();
+    this.#updateSelectedState();
+  }
+
+  #renderItems() {
+    for (let index = 0; index < this.#items.length; index++) {
+      const item = this.#items[index];
+      const itemEl = dropdownItemTemplate.cloneNode(true);
+
+      itemEl.textContent = item.text;
+      itemEl.dataset.index = index;
+
+      this.#dropdownEl.append(itemEl);
     }
   }
 }
