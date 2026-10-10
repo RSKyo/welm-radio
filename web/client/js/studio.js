@@ -18,8 +18,9 @@ let timelineContainerPointerSeconds = 0;
 // Elements
 // -----------------------------------------------------------------------------
 
-const addTrackBtn = resolveElement(".track-add");
-const addClipBtn = resolveElement(".clip-add");
+const addTrackBtn = resolveElement("#track-add");
+const removeTrackBtn = resolveElement("#track-remove");
+const addClipBtn = resolveElement("#clip-add");
 
 const timelineHeaderEl = resolveElement(".timeline-header");
 const timelineEl = resolveElement(".timeline");
@@ -116,6 +117,7 @@ function bindEvents() {
   on(rulerElm, "widthChange", rulerWidthChange);
 
   on(addTrackBtn, "click", addTrack);
+  on(removeTrackBtn, "click", removeTrack);
   on(addClipBtn, "click", addClip);
 
   on(trackHeaderListElm, "selectedChange", trackHeaderListSelectedChange);
@@ -129,7 +131,6 @@ function bindEvents() {
 
 async function initData() {
   addTrack();
-  // trackListElm.timelineRuler = rulerElm;
 }
 
 // -----------------------------------------------------------------------------
@@ -180,8 +181,40 @@ function rulerWidthChange({ width, seconds }) {
 
 function addTrack() {
   const newTrack = createDefaultTrack();
-  trackListElm.addItem(newTrack, "track item");
-  trackHeaderListElm.addItem(newTrack, "track header item");
+  trackListElm.addTrack(newTrack);
+  trackHeaderListElm.addTrack(newTrack);
+
+  if (trackListElm.count === 1) {
+    trackListElm.selectedValue = newTrack.trackId;
+  }
+}
+
+function removeTrack() {
+  const selectedValue = trackListElm.selectedValue;
+
+  if (selectedValue === null) {
+    toast.show("No track selected");
+    return;
+  }
+
+  const selectedIndex = trackListElm.findItemIndexByValue(selectedValue);
+
+  trackListElm.removeTrack(selectedValue);
+  trackHeaderListElm.removeTrack(selectedValue);
+
+  if (trackListElm.isEmpty) {
+    addTrack();
+  }
+
+  // Select the new track based on the previous selection.
+  const lastIndex = trackListElm.count - 1;
+  const newSelectedIndex =
+    selectedIndex > lastIndex ? lastIndex : selectedIndex;
+  const newSelectedValue = trackListElm.getValueByIndex(newSelectedIndex);
+
+  trackListElm.selectedValue = newSelectedValue;
+
+  toast.show("Track removed");
 }
 
 function trackHeaderListSelectedChange({ value }) {

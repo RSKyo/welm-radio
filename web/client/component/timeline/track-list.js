@@ -170,6 +170,14 @@ export class TrackList extends ItemsElm {
     return maxDuration;
   }
 
+  addTrack(track) {
+    return this.addItem(track);
+  }
+
+  removeTrack(trackValue) {
+    return this.removeItem(trackValue);
+  }
+
   addClip(trackValue, clip) {
     const itemValues = this.itemValues;
     assertValueExists(trackValue, itemValues);

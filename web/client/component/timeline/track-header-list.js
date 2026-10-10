@@ -108,6 +108,14 @@ export class TrackHeaderList extends ItemsElm {
     element.style.height = `${height}px`;
   }
 
+  addTrack(track) {
+    return this.addItem(track);
+  }
+
+  removeTrack(trackValue) {
+    return this.removeItem(trackValue);
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------

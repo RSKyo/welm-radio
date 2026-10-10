@@ -86,6 +86,16 @@ export class ItemsElm extends Elm {
   // items
   // -----------------------------------------------------------------------------
 
+  get count() {
+    return this.#items.length;
+  }
+  get isEmpty() {
+    return this.#items.length === 0;
+  }
+  get isNotEmpty() {
+    return this.#items.length > 0;
+  }
+
   // Internal items for this class and subclasses. Do not mutate directly.
   get items() {
     return this.#items;
@@ -348,6 +358,21 @@ export class ItemsElm extends Elm {
   // item access
   // -----------------------------------------------------------------------------
 
+  findItemIndexByValue(value) {
+    return this.#items.findIndex((item) => item[this.#valueField] === value);
+  }
+
+  getItemByIndex(index) {
+    // don't assert the index here, just return null if it's out of bounds.
+    if (index < 0 || index >= this.#items.length) {
+      return null;
+    }
+
+    const item = this.#items[index];
+
+    return item == null ? null : { ...item };
+  }
+
   getItemByValue(value, mode = 1) {
     assertValueForMode(value, mode);
     const normalizedValue = normalizeValue(value, mode);
@@ -399,5 +424,14 @@ export class ItemsElm extends Elm {
 
   get itemValues() {
     return this.#items.map((item) => item[this.#valueField]);
+  }
+
+  getValueByIndex(index) {
+    // don't assert the index here, just return null if it's out of bounds.
+    if (index < 0 || index >= this.#items.length) {
+      return null;
+    }
+
+    return this.#items[index][this.#valueField];
   }
 }

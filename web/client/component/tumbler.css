@@ -64,6 +64,8 @@
   height: 1px;
 
   background: var(--color-text-muted);
+  box-shadow: 0 1px 0
+    color-mix(in srgb, var(--color-text-muted) 25%, transparent);
 }
 
 /* Medium */

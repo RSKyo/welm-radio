@@ -13,7 +13,7 @@
   min-width: 0;
   min-height: var(--component-height-md);
 
-  padding: var(var(--component-height-md););
+  padding: var(--component-height-md);
 
   border: 1px solid var(--color-input-border);
   border-radius:var(--border-radius-md);
@@ -52,7 +52,7 @@
 .combobox-item {
   padding: 4px;
 
-  border-radius: calc(var(--border-radius-md) - 1px);
+  border-radius: var(--border-radius-md);
 
   font-size: var(--font-size-md);
 
@@ -70,13 +70,45 @@
   box-shadow: inset 3px 0 var(--color-selected-indicator);
 }
 
+/* Medium */
+
+.combobox.md .combobox-input {
+  min-height: var(--component-height-md);
+  height: var(--component-height-md);
+
+  padding: var(--component-padding-md);
+
+  border-radius: var(--border-radius-md);
+
+  font-size: var(--font-size-md);
+}
+
+.combobox.md .combobox-dropdown {
+  top: calc(100% + 2px);
+
+  max-height: 240px;
+
+  padding: 4px;
+
+  border-radius: var(--border-radius-md);
+}
+
+.combobox.md .combobox-item {
+  padding: 4px;
+
+  border-radius: var(--border-radius-md);
+
+  font-size: var(--font-size-md);
+}
+
+
 /* Small */
 
 .combobox.sm .combobox-input {
   min-height: var(--component-height-sm);
   height: var(--component-height-sm);
 
-  padding: var(var(--component-height-md);-sm);
+  padding: var(--component-padding-sm);
 
   border-radius: var(--border-radius-sm);
 
@@ -96,7 +128,7 @@
 .combobox.sm .combobox-item {
   padding: 3px;
 
-  border-radius: calc(var(--border-radius-sm) - 1px);
+  border-radius: var(--border-radius-sm);
 
   font-size: var(--font-size-sm);
 }

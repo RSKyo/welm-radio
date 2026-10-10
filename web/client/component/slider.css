@@ -157,15 +157,13 @@
 .slider.md {
   min-height: var(--component-height-md);
   height: var(--component-height-md);
-  font-size: var(--font-size-md);
+  font-size: calc(var(--font-size-md) - 3px);
 }
 
 .slider.md button.slider-prev,
 .slider.md button.slider-next {
   min-width: 15px;
   min-height: 15px;
-
-  font-size: 11px;
 }
 
 .slider.md .slider-range {
@@ -175,7 +173,6 @@
 .slider.md .slider-value,
 .slider.md .slider-label {
   height: 15px;
-  font-size: 11px;
 }
 
 /* Small */
@@ -183,14 +180,13 @@
 .slider.sm {
   min-height: var(--component-height-sm);
   height: var(--component-height-sm);
-  font-size: var(--font-size-sm);
+  font-size: calc(var(--font-size-sm) - 2px);
 }
 
 .slider.sm button.slider-prev,
 .slider.sm button.slider-next {
   min-width: 12px;
   min-height: 12px;
-  font-size: 9px;
 }
 
 .slider.sm .slider-range {
@@ -200,5 +196,4 @@
 .slider.sm .slider-value,
 .slider.sm .slider-label {
   height: 12px;
-  font-size: 9px;
 }

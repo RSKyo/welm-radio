@@ -67,19 +67,20 @@
 }
 
 .track-header-list .slider-value {
-  background: color-mix(in srgb, var(--color-text-inverse) 50%, transparent);
+  background: color-mix(in srgb, var(--color-text-inverse) 80%, transparent);
 }
 
-.track-add,
-.clip-add {
+.icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
+
   min-width: 16px;
   min-height: 16px;
 
   padding: 0;
+
+  border: 0;
 
   font-size: 14px;
   line-height: 1;
