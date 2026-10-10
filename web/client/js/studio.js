@@ -21,6 +21,7 @@ let timelineContainerPointerSeconds = 0;
 const addTrackBtn = resolveElement("#track-add");
 const removeTrackBtn = resolveElement("#track-remove");
 const addClipBtn = resolveElement("#clip-add");
+const splitClipBtn = resolveElement("#clip-split");
 
 const timelineHeaderEl = resolveElement(".timeline-header");
 const timelineEl = resolveElement(".timeline");
@@ -119,6 +120,7 @@ function bindEvents() {
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
   on(addClipBtn, "click", addClip);
+  on(splitClipBtn, "click", splitClip);
 
   on(trackHeaderListElm, "selectedChange", trackHeaderListSelectedChange);
   on(trackListElm, "selectedChange", trackListSelectedChange);
@@ -243,11 +245,34 @@ function timelineCursorTimeChange({ time }) {
 }
 
 function addClip() {
-  const trackValue = trackListElm.selectedValue;
-  if (trackValue === null) return;
-
   const newClip = createDefaultClip();
-  trackListElm.addClip(trackValue, newClip);
+  trackListElm.addClip(newClip);
+}
+
+function splitClip() {
+  const result = trackListElm.splitClip();
+
+  switch (result) {
+    case "success":
+      toast.show("Clip split");
+      break;
+
+    case "no-selection":
+      toast.show("No clip selected");
+      break;
+
+    case "too-close-to-start":
+      toast.show("Playhead is too close to clip start");
+      break;
+
+    case "too-close-to-end":
+      toast.show("Playhead is too close to clip end");
+      break;
+
+    case "clip-not-found":
+      toast.show("Selected clip not found");
+      break;
+  }
 }
 
 // -----------------------------------------------------------------------------

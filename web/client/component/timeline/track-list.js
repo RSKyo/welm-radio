@@ -35,6 +35,8 @@ export class TrackList extends ItemsElm {
   #playheadTime = 0;
   // ClipGroup component map
   #clipGroupMap = new Map();
+  #selectedClipGroup = null;
+  #selectedClip = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -178,18 +180,24 @@ export class TrackList extends ItemsElm {
     return this.removeItem(trackValue);
   }
 
-  addClip(trackValue, clip) {
-    const itemValues = this.itemValues;
-    assertValueExists(trackValue, itemValues);
+  addClip(clip) {
     assertPlainObject(clip, "clip");
 
-    const clipGroupElm = this.#clipGroupMap.get(trackValue);
-
-    if (!clipGroupElm) {
-      throw new Error(`track not found: ${trackValue}`);
+    if (this.#selectedValue == null) {
+      return;
     }
 
+    const clipGroupElm = this.#clipGroupMap.get(this.#selectedValue);
+
     clipGroupElm.addItem(clip);
+  }
+
+  splitClip() {
+    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+      return "no-selection";
+    }
+
+    return this.#selectedClipGroup.splitClip();
   }
 
   // -----------------------------------------------------------------------------
@@ -309,6 +317,11 @@ export class TrackList extends ItemsElm {
       playheadTime: this.#playheadTime,
     });
 
+    clipGroupElm.onSelectedChange = ({ elm, clip }) => {
+      this.#selectedClip = clip;
+      this.#selectedClipGroup = clip == null ? null : elm;
+    };
+
     clipGroupElm.onDurationChange = () => {
       const newDuration = this.#getMaxDuration();
       this.#setDuration(newDuration);
@@ -318,6 +331,11 @@ export class TrackList extends ItemsElm {
       itemEl.style.height = `${height}px`;
 
       this.#emitTrackHeightChange(value, height);
+    };
+
+    clipGroupElm.onDragChange = ({ elm, clip }) => {c
+      this.#selectedClip = clip;
+      this.#selectedClipGroup = clip == null ? null : elm;
     };
 
     if (item.clips != null) {

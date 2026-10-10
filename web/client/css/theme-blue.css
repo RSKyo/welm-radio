@@ -180,6 +180,7 @@
   --color-clip-hover: #d2e2ee;
   --color-clip-selected: #bfd7e9;
   --color-clip-selected-hover: #b3cee3;
+  --color-clip-border: #9fbfd8;
 }
 
 [data-theme="dark"] {
@@ -352,4 +353,5 @@
   --color-clip-hover: #2a3d4e;
   --color-clip-selected: #33536c;
   --color-clip-selected-hover: #3b607d;
+  --color-clip-border: #4f7696;
 }

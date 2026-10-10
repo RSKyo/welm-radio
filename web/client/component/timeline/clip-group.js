@@ -202,7 +202,8 @@ export class ClipGroup extends ItemsElm {
       maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
     }
 
-    const height = (maxRowIndex + 1) * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const height =
+      (maxRowIndex + 1) * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
@@ -271,6 +272,52 @@ export class ClipGroup extends ItemsElm {
     return rowIndex;
   }
 
+  splitClip() {
+    if (this.#selectedValue == null) {
+      return "no-selection";
+    }
+
+    const selectedClipId = this.#selectedValue;
+    const selectedClip = this.#clipMap.get(selectedClipId);
+
+    if (!selectedClip) {
+      return "clip-not-found";
+    }
+
+    const splitTime = this.#playheadTime;
+
+    if (splitTime <= selectedClip.clipStart + DEFAULT_CLIP_MIN_DURATION) {
+      return "too-close-to-start";
+    }
+
+    if (splitTime >= selectedClip.clipEnd - DEFAULT_CLIP_MIN_DURATION) {
+      return "too-close-to-end";
+    }
+
+    const originalClipItem = this.getItemByValue(selectedClipId);
+
+    const trimSplit =
+      splitTime - originalClipItem.clipStart + originalClipItem.trimStart;
+
+    const newClip = {
+      ...originalClipItem,
+      clipId: crypto.randomUUID(),
+      clipStart: splitTime,
+      trimStart: trimSplit,
+    };
+
+    originalClipItem.trimEnd = trimSplit;
+
+    this.updateItem(originalClipItem, "update item for splitting clip", {
+      renderFor: "trim-end",
+    });
+    this.addItem(newClip);
+
+    this.selectedValue = newClip.clipId;
+
+    return "success";
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
@@ -283,6 +330,7 @@ export class ClipGroup extends ItemsElm {
     this.handler.emit("selectedChangeHandler", {
       elm: this,
       value,
+      clip: this.#clipMap.get(value) ?? null,
     });
   }
 
@@ -306,6 +354,10 @@ export class ClipGroup extends ItemsElm {
       elm: this,
       height,
     });
+  }
+
+  set onDragChange(handler) {
+    this.handler.set("dragChangeHandler", handler);
   }
 
   // -----------------------------------------------------------------------------
@@ -464,8 +516,12 @@ export class ClipGroup extends ItemsElm {
         return;
       }
 
-      clipElm.rowIndex = newRowIndex;
-      clipElm.clipStart = newClipStart;
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+      item.clipStart = newClipStart;
+      item.rowIndex = newRowIndex;
+
+      this.updateItem(item, "item for dragging move");
 
       return;
     }
@@ -483,7 +539,21 @@ export class ClipGroup extends ItemsElm {
 
       const newTrimStart = Number((clipElm.trimStart + deltaTime).toFixed(3));
 
-      clipElm.trimStart = newTrimStart;
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+
+      const oldTrimStart = item.trimStart;
+      const oldClipStart = item.clipStart;
+      const newClipStart = clipElm.calculateClipStartFromTrimStart(
+        oldTrimStart,
+        newTrimStart,
+        oldClipStart,
+      );
+
+      item.trimStart = newTrimStart;
+      item.clipStart = newClipStart;
+
+      this.updateItem(item, "update item for dragging trim-start");
 
       return;
     }
@@ -501,7 +571,11 @@ export class ClipGroup extends ItemsElm {
 
       const newTrimEnd = Number((clipElm.trimEnd + deltaTime).toFixed(3));
 
-      clipElm.trimEnd = newTrimEnd;
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+      item.trimEnd = newTrimEnd;
+
+      this.updateItem(item, "update item for dragging trim-end");
     }
   }
 
@@ -634,6 +708,7 @@ export class ClipGroup extends ItemsElm {
 
     const { deltaX } = dragPosition;
 
+    // Keep the nearest snap target within the threshold.
     let snapLeft = null;
     let snapDistance = SNAP_THRESHOLD;
 
@@ -649,18 +724,22 @@ export class ClipGroup extends ItemsElm {
     if (this.#dragMode === "trim-start") {
       let newDraggingLeft = clipElm.left + deltaX;
 
+      // Leftmost position allowed by the source audio.
       const audioStartLeft =
         clipElm.left -
         (clipElm.trimStart - clipElm.audioStart) * this.#pixelsPerSecond;
 
+      // Same-row clips limit how far the trim edge can move.
       const { previousClipElm } = this.#getAdjacentClipElms(clipElm);
       const prevClipEndLeft = previousClipElm?.endLeft ?? 0;
 
       const minAllowedLeft = Math.max(audioStartLeft, prevClipEndLeft);
 
+      // Keep at least the minimum clip duration.
       const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
       const maxAllowedLeft = clipElm.endLeft - minWidth;
 
+      // Snap to the previous clip in the same row.
       if (previousClipElm) {
         trySnap(
           previousClipElm.endLeft,
@@ -668,6 +747,28 @@ export class ClipGroup extends ItemsElm {
         );
       }
 
+      // Snap to either edge of clips in other rows.
+      for (const otherClipElm of this.#clipMap.values()) {
+        if (otherClipElm === clipElm) {
+          continue;
+        }
+
+        if (otherClipElm.rowIndex === clipElm.rowIndex) {
+          continue;
+        }
+
+        trySnap(
+          otherClipElm.left,
+          Math.abs(newDraggingLeft - otherClipElm.left),
+        );
+
+        trySnap(
+          otherClipElm.endLeft,
+          Math.abs(newDraggingLeft - otherClipElm.endLeft),
+        );
+      }
+
+      // Snap to the playhead only when it is inside the valid trim range.
       if (playheadLeft >= minAllowedLeft && playheadLeft <= maxAllowedLeft) {
         trySnap(playheadLeft, Math.abs(newDraggingLeft - playheadLeft));
       }
@@ -676,6 +777,7 @@ export class ClipGroup extends ItemsElm {
         newDraggingLeft = snapLeft;
       }
 
+      // Clamp the final position to the valid trim range.
       const newLeft = Math.min(
         Math.max(newDraggingLeft, minAllowedLeft),
         maxAllowedLeft,
@@ -692,18 +794,22 @@ export class ClipGroup extends ItemsElm {
     if (this.#dragMode === "trim-end") {
       let newDraggingEndLeft = clipElm.endLeft + deltaX;
 
+      // Rightmost position allowed by the source audio.
       const audioEndLeft =
         clipElm.endLeft +
         (clipElm.audioEnd - clipElm.trimEnd) * this.#pixelsPerSecond;
 
+      // Same-row clips limit how far the trim edge can move.
       const { nextClipElm } = this.#getAdjacentClipElms(clipElm);
       const nextClipLeft = nextClipElm?.left ?? audioEndLeft;
 
       const maxAllowedLeft = Math.min(audioEndLeft, nextClipLeft);
 
+      // Keep at least the minimum clip duration.
       const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
       const minAllowedLeft = clipElm.left + minWidth;
 
+      // Snap to the next clip in the same row.
       if (nextClipElm) {
         trySnap(
           nextClipElm.left,
@@ -711,6 +817,28 @@ export class ClipGroup extends ItemsElm {
         );
       }
 
+      // Snap to either edge of clips in other rows.
+      for (const otherClipElm of this.#clipMap.values()) {
+        if (otherClipElm === clipElm) {
+          continue;
+        }
+
+        if (otherClipElm.rowIndex === clipElm.rowIndex) {
+          continue;
+        }
+
+        trySnap(
+          otherClipElm.left,
+          Math.abs(newDraggingEndLeft - otherClipElm.left),
+        );
+
+        trySnap(
+          otherClipElm.endLeft,
+          Math.abs(newDraggingEndLeft - otherClipElm.endLeft),
+        );
+      }
+
+      // Snap to the playhead only when it is inside the valid trim range.
       if (playheadLeft >= minAllowedLeft && playheadLeft <= maxAllowedLeft) {
         trySnap(playheadLeft, Math.abs(newDraggingEndLeft - playheadLeft));
       }
@@ -719,6 +847,7 @@ export class ClipGroup extends ItemsElm {
         newDraggingEndLeft = snapLeft;
       }
 
+      // Clamp the final position to the valid trim range.
       const newEndLeft = Math.min(
         Math.max(newDraggingEndLeft, minAllowedLeft),
         maxAllowedLeft,
@@ -844,15 +973,6 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
-  afterUpdateItem(updatedItem) {
-    const value = updatedItem[this.valueField];
-    const clipElm = this.#clipMap.get(value);
-
-    clipElm?.destroy();
-    this.#clipMap.delete(value);
-  }
-
-  // override
   createItemElement(item) {
     const value = item[this.valueField];
     const itemEl = clipTemplate.cloneNode(true);
@@ -866,6 +986,8 @@ export class ClipGroup extends ItemsElm {
     };
 
     const clipRowIndex = this.#findAvailableRowIndex(clipOptions);
+    item.rowIndex = clipRowIndex;
+
     clipOptions.rowIndex = clipRowIndex;
 
     const clipElm = new Clip(itemEl, clipOptions);
@@ -905,13 +1027,20 @@ export class ClipGroup extends ItemsElm {
     this.#setHeight(newHeight);
   }
 
-  // override
-  afterRenderUpdatedItem(updatedItem) {
-    const newDuration = this.#getMaxClipEnd();
-    this.#setDuration(newDuration);
+  renderUpdatedItem(updatedItem, assertionSubject = "item") {
+    const value = updatedItem[this.valueField];
+    const clipElm = this.#clipMap.get(value);
 
-    const newHeight = this.#calculateHeight();
-    this.#setHeight(newHeight);
+    if (!clipElm) {
+      return;
+    }
+
+    clipElm.setTrimStartAndClipStart(
+      updatedItem.trimStart,
+      updatedItem.clipStart,
+    );
+    clipElm.trimEnd = updatedItem.trimEnd;
+    clipElm.rowIndex = updatedItem.rowIndex;
   }
 
   // override

@@ -304,7 +304,7 @@ export class ItemsElm extends Elm {
     assertValueExists(value, this.itemValues, assertionSubject);
 
     // remove item
-    const removedItem = this.#removeItem(value);
+    const removedItem = this.#removeItem(value, assertionSubject);
 
     // render the removed item
     this.#removeItemRender(removedItem, assertionSubject);
