@@ -22,6 +22,8 @@ const addTrackBtn = resolveElement("#track-add");
 const removeTrackBtn = resolveElement("#track-remove");
 const addClipBtn = resolveElement("#clip-add");
 const splitClipBtn = resolveElement("#clip-split");
+const removeClipBtn = resolveElement("#clip-remove");
+const duplicateClipBtn = resolveElement("#clip-duplicate");
 
 const timelineHeaderEl = resolveElement(".timeline-header");
 const timelineEl = resolveElement(".timeline");
@@ -113,7 +115,6 @@ function bindEvents() {
   on(timelineContentEl, "dblclick", timelineContentDoubleClick);
   on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
-  // on(rulerElm, "timelinePointerChange", rulerTimelinePointerChange);
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
 
@@ -121,6 +122,8 @@ function bindEvents() {
   on(removeTrackBtn, "click", removeTrack);
   on(addClipBtn, "click", addClip);
   on(splitClipBtn, "click", splitClip);
+  on(removeClipBtn, "click", removeClip);
+  on(duplicateClipBtn, "click", duplicateClip);
 
   on(trackHeaderListElm, "selectedChange", trackHeaderListSelectedChange);
   on(trackListElm, "selectedChange", trackListSelectedChange);
@@ -246,18 +249,32 @@ function timelineCursorTimeChange({ time }) {
 
 function addClip() {
   const newClip = createDefaultClip();
-  trackListElm.addClip(newClip);
+  const result = trackListElm.addClip(newClip);
+
+  switch (result) {
+    case "success":
+      toast.show("Clip added");
+      break;
+
+    case "track-not-selected":
+      toast.show("No track selected");
+      break;
+
+    case "track-not-found":
+      toast.show("Selected track not found");
+      break;
+  }
 }
 
 function splitClip() {
   const result = trackListElm.splitClip();
 
-  switch (result) {
-    case "success":
+    switch (result) {
+      case "success":
       toast.show("Clip split");
       break;
 
-    case "no-selection":
+    case "clip-not-selected":
       toast.show("No clip selected");
       break;
 
@@ -267,6 +284,42 @@ function splitClip() {
 
     case "too-close-to-end":
       toast.show("Playhead is too close to clip end");
+      break;
+
+    case "clip-not-found":
+      toast.show("Selected clip not found");
+      break;
+  }
+}
+
+function removeClip() {
+  const result = trackListElm.removeClip();
+
+  switch (result) {
+    case "success":
+      toast.show("Clip removed");
+      break;
+
+    case "clip-not-selected":
+      toast.show("No clip selected");
+      break;
+
+    case "clip-not-found":
+      toast.show("Selected clip not found");
+      break;
+  }
+}
+
+function duplicateClip() {
+  const result = trackListElm.duplicateClip();
+
+  switch (result) {
+    case "success":
+      toast.show("Clip duplicated");
+      break;
+
+    case "clip-not-selected":
+      toast.show("No clip selected");
       break;
 
     case "clip-not-found":

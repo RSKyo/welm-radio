@@ -8,11 +8,9 @@
   justify-content: center;
   align-items: center;
 
-  min-width: 2px;
+  min-width: 4px;
   height: var(--clip-height);
   box-sizing: border-box;
-
-  overflow: hidden;
 
   padding: 0 !important;
   margin: 0 !important;
@@ -21,36 +19,62 @@
   border-radius: var(--border-radius-md);
 
   color: var(--color-primary-text);
-  background: var(--color-clip);
-
-  white-space: nowrap;
-  text-overflow: ellipsis;
 
   cursor: pointer;
   user-select: none;
   touch-action: none;
 }
 
-.clip:hover {
+.clip-content {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  overflow: hidden;
+
+  border: 0 !important;
+  border-radius: inherit;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: 0 !important;
+
+  background: var(--color-clip);
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  z-index: 2;
+}
+
+.clip-content:hover {
   background: var(--color-clip-hover);
 }
 
-.clip.is-selected {
+.clip.is-selected .clip-content {
   background: var(--color-clip-selected);
 }
 
-.clip.is-selected:hover {
+.clip.is-selected .clip-content:hover {
   background: var(--color-clip-selected-hover);
 }
 
-.clip.is-drag-ghost {
-  opacity: 0.45;
-
-  pointer-events: none;
+.clip-content:hover {
+  background: var(--color-clip-hover);
 }
 
-.clip [data-role="trim-start"],
-.clip [data-role="trim-end"] {
+.clip.is-selected .clip-content {
+  background: var(--color-clip-selected);
+}
+
+.clip.is-selected .clip-content:hover {
+  background: var(--color-clip-selected-hover);
+}
+
+.clip-trim-start,
+.clip-trim-end {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -61,24 +85,24 @@
 
   cursor: ew-resize;
 
-  z-index: 2;
+  z-index: 10;
 }
 
-.clip [data-role="trim-start"] {
+.clip-trim-start {
   left: 0;
 }
 
-.clip [data-role="trim-end"] {
+.clip-trim-end {
   right: 0;
 }
 
-.clip.is-selected [data-role="trim-start"],
-.clip.is-selected [data-role="trim-end"] {
+.clip.is-selected .clip-trim-start,
+.clip.is-selected .clip-trim-end {
   opacity: 0.4;
 }
 
-.clip.is-selected [data-role="trim-start"]::after,
-.clip.is-selected [data-role="trim-end"]::after {
+.clip.is-selected .clip-trim-start::after,
+.clip.is-selected .clip-trim-end::after {
   content: "";
 
   position: absolute;
@@ -91,4 +115,17 @@
   background: var(--color-primary-text);
 
   transform: translateX(-50%);
+}
+
+.clip.is-drag-ghost {
+  border-left-color: var(--color-clip-dragging-border);
+  border-right-color: var(--color-clip-dragging-border);
+
+  pointer-events: none;
+
+  z-index: 20;
+}
+
+.clip.is-drag-ghost > * {
+  opacity: 0.45;
 }

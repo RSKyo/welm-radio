@@ -1,9 +1,6 @@
 import {
   assertNonNegative,
-  assertPlainObjectArray,
   assertPositive,
-  assertValueExists,
-  assertPlainObject,
   assertValueForMode,
 } from "../base/assert.js";
 import {
@@ -181,23 +178,43 @@ export class TrackList extends ItemsElm {
   }
 
   addClip(clip) {
-    assertPlainObject(clip, "clip");
-
     if (this.#selectedValue == null) {
-      return;
+      return "track-not-selected";
     }
 
-    const clipGroupElm = this.#clipGroupMap.get(this.#selectedValue);
+    const trackId = this.#selectedValue;
+    const clipGroupElm = this.#clipGroupMap.get(trackId);
 
-    clipGroupElm.addItem(clip);
+    if (!clipGroupElm) {
+      return "track-not-found";
+    }
+
+    clipGroupElm.addClip(clip);
+    return "success";
   }
 
   splitClip() {
     if (this.#selectedClip == null || this.#selectedClipGroup == null) {
-      return "no-selection";
+      return "clip-not-selected";
     }
 
     return this.#selectedClipGroup.splitClip();
+  }
+
+  removeClip() {
+    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+      return "clip-not-selected";
+    }
+
+    return this.#selectedClipGroup.removeClip();
+  }
+
+  duplicateClip() {
+    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+      return "clip-not-selected";
+    }
+
+    return this.#selectedClipGroup.duplicateClip();
   }
 
   // -----------------------------------------------------------------------------
@@ -279,6 +296,9 @@ export class TrackList extends ItemsElm {
       clipGroupElm.destroy();
     }
     this.#clipGroupMap.clear();
+
+    this.#selectedClip = null;
+    this.#selectedClipGroup = null;
   }
 
   // override
@@ -289,6 +309,11 @@ export class TrackList extends ItemsElm {
 
     const value = removedItem[this.valueField];
     const clipGroupElm = this.#clipGroupMap.get(value);
+
+    if (clipGroupElm === this.#selectedClipGroup) {
+      this.#selectedClip = null;
+      this.#selectedClipGroup = null;
+    }
 
     clipGroupElm?.destroy();
     this.#clipGroupMap.delete(value);
@@ -332,19 +357,6 @@ export class TrackList extends ItemsElm {
 
       this.#emitTrackHeightChange(value, height);
     };
-
-    clipGroupElm.onDragChange = ({ elm, clip }) => {c
-      this.#selectedClip = clip;
-      this.#selectedClipGroup = clip == null ? null : elm;
-    };
-
-    if (item.clips != null) {
-      assertPlainObjectArray(item.clips);
-
-      for (const clip of item.clips) {
-        clipGroupElm.addItem(clip);
-      }
-    }
 
     this.#clipGroupMap.set(value, clipGroupElm);
 

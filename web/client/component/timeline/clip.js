@@ -11,14 +11,18 @@ const DEFAULT_CLIP_ROW_GAP = 4;
 const CLIP_TRIM_HANDLE_WIDTH = 4;
 
 const TRIM_START_TEMPLATE = `
-<div data-role="trim-start"></div>
+<div class="clip-trim-start"></div>
 `;
 const TRIM_END_TEMPLATE = `
-<div data-role="trim-end"></div>
+<div class="clip-trim-end"></div>
+`;
+const CONTENT_TEMPLATE = `
+<div class="clip-content"></div>
 `;
 
 const trimStartTemplate = createElementByHTML(TRIM_START_TEMPLATE);
 const trimEndTemplate = createElementByHTML(TRIM_END_TEMPLATE);
+const contentTemplate = createElementByHTML(CONTENT_TEMPLATE);
 
 export class Clip extends Elm {
   // state(read-only)
@@ -36,6 +40,9 @@ export class Clip extends Elm {
   #height = DEFAULT_CLIP_HEIGHT;
   #rowGap = DEFAULT_CLIP_ROW_GAP;
   #frontTrim = "end";
+  #trimStartEl = null;
+  #trimEndEl = null;
+  #contentEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -443,11 +450,19 @@ export class Clip extends Elm {
 
   #render() {
     // main
+    const contentEl = contentTemplate.cloneNode(true);
     const trimStartEl = trimStartTemplate.cloneNode(true);
     const trimEndEl = trimEndTemplate.cloneNode(true);
-    this.rootElement.textContent = this.#clipId;
+
+    this.rootElement.appendChild(contentEl);
     this.rootElement.appendChild(trimStartEl);
     this.rootElement.appendChild(trimEndEl);
+
+    this.#contentEl = contentEl;
+    this.#trimStartEl = trimStartEl;
+    this.#trimEndEl = trimEndEl;
+
+    contentEl.textContent = this.#clipId;
 
     this.#updateUIState();
   }
@@ -468,14 +483,7 @@ export class Clip extends Elm {
   }
 
   #updateFrontTrimState() {
-    const trimStartEl = this.rootElement.querySelector(
-      '[data-role="trim-start"]',
-    );
-
-    const trimEndEl = this.rootElement.querySelector('[data-role="trim-end"]');
-
-    trimStartEl.style.zIndex = this.#frontTrim === "start" ? "2" : "1";
-
-    trimEndEl.style.zIndex = this.#frontTrim === "end" ? "2" : "1";
+    this.#trimStartEl.style.zIndex = this.#frontTrim === "start" ? "11" : "10";
+    this.#trimEndEl.style.zIndex = this.#frontTrim === "end" ? "11" : "10";
   }
 }
