@@ -269,8 +269,8 @@ function addClip() {
 function splitClip() {
   const result = trackListElm.splitClip();
 
-    switch (result) {
-      case "success":
+  switch (result) {
+    case "success":
       toast.show("Clip split");
       break;
 
@@ -352,5 +352,27 @@ function createDefaultClip(options = {}) {
     trimEnd: 10,
     clipStart: 2,
     rowIndex: 0,
+    audioMeta: {
+      audioPath:
+        "/Users/zzz/Music/Audio Library/21a7cc07-a75a-48fe-b3c1-bffa27e4db23.mp3",
+      metaPath:
+        "/Users/zzz/Music/Audio Library/21a7cc07-a75a-48fe-b3c1-bffa27e4db23.meta.json",
+      title: "✂️ Independence from You — 너로부터 독립하다",
+      extension: ".mp3",
+      description: "",
+      language: "zh",
+      type: "",
+      position: "",
+      dayPart: [],
+      category: [],
+      cutPoints: [],
+      content: "",
+      alternateGroup: "",
+      duration: null,
+      start: "00:00:00.000",
+      end: "00:00:10.000",
+      createdAt: "2026-08-16T05:20:17.956Z",
+      updatedAt: "2026-08-16T05:20:17.956Z",
+    },
   };
 }

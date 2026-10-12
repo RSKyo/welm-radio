@@ -180,7 +180,10 @@ export class ClipGroup extends ItemsElm {
 
   set playheadTime(value) {
     assertNonNegative(value, "playheadTime");
+    this.#setPlayheadTime(value);
+  }
 
+  #setPlayheadTime(value) {
     if (value === this.#playheadTime) {
       return;
     }
@@ -188,8 +191,105 @@ export class ClipGroup extends ItemsElm {
     this.#playheadTime = value;
   }
 
+  // ---------------------------------------------------------------------------
+  // clip methods
+  // ---------------------------------------------------------------------------
+
+  addClip(clip) {
+    assertPlainObject(clip, "clip");
+
+    this.addItem(clip);
+  }
+
+  splitClip() {
+    if (this.#selectedValue == null) {
+      return "clip-not-selected";
+    }
+
+    const clipId = this.#selectedValue;
+    const clipElm = this.#clipMap.get(clipId);
+
+    if (!clipElm) {
+      return "clip-not-found";
+    }
+
+    const splitTime = this.#playheadTime;
+
+    if (splitTime <= clipElm.clipStart + DEFAULT_CLIP_MIN_DURATION) {
+      return "too-close-to-start";
+    }
+
+    if (splitTime >= clipElm.clipEnd - DEFAULT_CLIP_MIN_DURATION) {
+      return "too-close-to-end";
+    }
+
+    const originalClipItem = this.getItemByValue(clipId);
+
+    const trimSplit =
+      splitTime - originalClipItem.clipStart + originalClipItem.trimStart;
+
+    const newClip = {
+      ...originalClipItem,
+      clipId: crypto.randomUUID(),
+      clipStart: splitTime,
+      trimStart: trimSplit,
+    };
+
+    originalClipItem.trimEnd = trimSplit;
+
+    this.updateItem(originalClipItem, "update item for splitting clip");
+    this.addItem(newClip);
+
+    this.selectedValue = newClip.clipId;
+
+    return "success";
+  }
+
+  duplicateClip() {
+    if (this.#selectedValue == null) {
+      return "clip-not-selected";
+    }
+
+    const clipId = this.#selectedValue;
+    const clipElm = this.#clipMap.get(clipId);
+
+    if (!clipElm) {
+      return "clip-not-found";
+    }
+
+    const originalClipItem = this.getItemByValue(clipId);
+    const newClip = {
+      ...originalClipItem,
+      clipId: crypto.randomUUID(),
+      clipStart: clipElm.clipEnd,
+    };
+
+    this.addItem(newClip);
+    this.selectedValue = newClip.clipId;
+
+    return "success";
+  }
+
+  removeClip() {
+    if (this.#selectedValue == null) {
+      return "clip-not-selected";
+    }
+
+    const clipId = this.#selectedValue;
+    const clipElm = this.#clipMap.get(clipId);
+
+    if (!clipElm) {
+      return "clip-not-found";
+    }
+
+    this.removeItem(clipId);
+    this.selectedValue = null;
+
+    return "success";
+  }
+
   // -----------------------------------------------------------------------------
-  // methods
+  // layout
   // -----------------------------------------------------------------------------
 
   #getMaxClipEnd() {
@@ -279,99 +379,6 @@ export class ClipGroup extends ItemsElm {
     }
 
     return rowIndex;
-  }
-
-  addClip(clip) {
-    assertPlainObject(clip, "clip");
-
-    this.addItem(clip);
-  }
-
-  splitClip() {
-    if (this.#selectedValue == null) {
-      return "clip-not-selected";
-    }
-
-    const clipId = this.#selectedValue;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    const splitTime = this.#playheadTime;
-
-    if (splitTime <= clipElm.clipStart + DEFAULT_CLIP_MIN_DURATION) {
-      return "too-close-to-start";
-    }
-
-    if (splitTime >= clipElm.clipEnd - DEFAULT_CLIP_MIN_DURATION) {
-      return "too-close-to-end";
-    }
-
-    const originalClipItem = this.getItemByValue(clipId);
-
-    const trimSplit =
-      splitTime - originalClipItem.clipStart + originalClipItem.trimStart;
-
-    const newClip = {
-      ...originalClipItem,
-      clipId: crypto.randomUUID(),
-      clipStart: splitTime,
-      trimStart: trimSplit,
-    };
-
-    originalClipItem.trimEnd = trimSplit;
-
-    this.updateItem(originalClipItem, "update item for splitting clip");
-    this.addItem(newClip);
-
-    this.selectedValue = newClip.clipId;
-
-    return "success";
-  }
-
-  removeClip() {
-    if (this.#selectedValue == null) {
-      return "clip-not-selected";
-    }
-
-    const clipId = this.#selectedValue;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    this.removeItem(clipId);
-    this.selectedValue = null;
-
-    return "success";
-  }
-
-  duplicateClip() {
-    if (this.#selectedValue == null) {
-      return "clip-not-selected";
-    }
-
-    const clipId = this.#selectedValue;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    const originalClipItem = this.getItemByValue(clipId);
-    const newClip = {
-      ...originalClipItem,
-      clipId: crypto.randomUUID(),
-      clipStart: clipElm.clipEnd,
-    };
-
-    this.addItem(newClip);
-    this.selectedValue = newClip.clipId;
-
-    return "success";
   }
 
   // -----------------------------------------------------------------------------
@@ -539,97 +546,21 @@ export class ClipGroup extends ItemsElm {
     this.#endDragging(event);
   };
 
-  #commitDragging() {
-    const clipElm = this.#draggingClipElm;
-    if (!clipElm) {
+  #pointerCancelHandler = (event) => {
+    if (!this.#draggingClipElm) {
       return;
     }
 
-    if (this.#dragMode === "move") {
-      const pendingMove = this.#pendingMove;
-      if (pendingMove == null) {
-        return;
-      }
-
-      const { rowIndex: newRowIndex, left: newLeft } = pendingMove;
-
-      const newClipStart = Number((newLeft / this.#pixelsPerSecond).toFixed(3));
-
-      const newClipEnd = Number((newClipStart + clipElm.duration).toFixed(3));
-
-      if (
-        !this.#isPlacementAvailable(
-          clipElm.clipId,
-          newClipStart,
-          newClipEnd,
-          newRowIndex,
-        )
-      ) {
-        return;
-      }
-
-      // update item
-      const item = this.getItemByValue(clipElm.clipId);
-      item.clipStart = newClipStart;
-      item.rowIndex = newRowIndex;
-
-      this.updateItem(item, "item for dragging move");
-
+    if (event.pointerId !== this.#draggingPointerId) {
       return;
     }
 
-    if (this.#dragMode === "trim-start") {
-      const pendingTrim = this.#pendingTrim;
-      if (pendingTrim == null) {
-        return;
-      }
+    this.#endDragging(event);
+  };
 
-      const { left } = pendingTrim;
-
-      const deltaX = left - clipElm.left;
-      const deltaTime = deltaX / this.#pixelsPerSecond;
-
-      const newTrimStart = Number((clipElm.trimStart + deltaTime).toFixed(3));
-
-      // update item
-      const item = this.getItemByValue(clipElm.clipId);
-
-      const oldTrimStart = item.trimStart;
-      const oldClipStart = item.clipStart;
-      const newClipStart = clipElm.calculateClipStartFromTrimStart(
-        oldTrimStart,
-        newTrimStart,
-        oldClipStart,
-      );
-
-      item.trimStart = newTrimStart;
-      item.clipStart = newClipStart;
-
-      this.updateItem(item, "update item for dragging trim-start");
-
-      return;
-    }
-
-    if (this.#dragMode === "trim-end") {
-      const pendingTrim = this.#pendingTrim;
-      if (pendingTrim == null) {
-        return;
-      }
-
-      const { width } = pendingTrim;
-
-      const deltaX = width - clipElm.width;
-      const deltaTime = deltaX / this.#pixelsPerSecond;
-
-      const newTrimEnd = Number((clipElm.trimEnd + deltaTime).toFixed(3));
-
-      // update item
-      const item = this.getItemByValue(clipElm.clipId);
-      item.trimEnd = newTrimEnd;
-
-      this.updateItem(item, "update item for dragging trim-end");
-    }
-  }
+  // ---------------------------------------------------------------------------
+  // dragging
+  // ---------------------------------------------------------------------------
 
   #createDraggingGhost() {
     const element = this.#draggingElement;
@@ -956,6 +887,98 @@ export class ClipGroup extends ItemsElm {
     };
   }
 
+  #commitDragging() {
+    const clipElm = this.#draggingClipElm;
+    if (!clipElm) {
+      return;
+    }
+
+    if (this.#dragMode === "move") {
+      const pendingMove = this.#pendingMove;
+      if (pendingMove == null) {
+        return;
+      }
+
+      const { rowIndex: newRowIndex, left: newLeft } = pendingMove;
+
+      const newClipStart = Number((newLeft / this.#pixelsPerSecond).toFixed(3));
+
+      const newClipEnd = Number((newClipStart + clipElm.duration).toFixed(3));
+
+      if (
+        !this.#isPlacementAvailable(
+          clipElm.clipId,
+          newClipStart,
+          newClipEnd,
+          newRowIndex,
+        )
+      ) {
+        return;
+      }
+
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+      item.clipStart = newClipStart;
+      item.rowIndex = newRowIndex;
+
+      this.updateItem(item, "item for dragging move");
+
+      return;
+    }
+
+    if (this.#dragMode === "trim-start") {
+      const pendingTrim = this.#pendingTrim;
+      if (pendingTrim == null) {
+        return;
+      }
+
+      const { left } = pendingTrim;
+
+      const deltaX = left - clipElm.left;
+      const deltaTime = deltaX / this.#pixelsPerSecond;
+
+      const newTrimStart = Number((clipElm.trimStart + deltaTime).toFixed(3));
+
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+
+      const oldTrimStart = item.trimStart;
+      const oldClipStart = item.clipStart;
+      const newClipStart = clipElm.calculateClipStartFromTrimStart(
+        oldTrimStart,
+        newTrimStart,
+        oldClipStart,
+      );
+
+      item.trimStart = newTrimStart;
+      item.clipStart = newClipStart;
+
+      this.updateItem(item, "update item for dragging trim-start");
+
+      return;
+    }
+
+    if (this.#dragMode === "trim-end") {
+      const pendingTrim = this.#pendingTrim;
+      if (pendingTrim == null) {
+        return;
+      }
+
+      const { width } = pendingTrim;
+
+      const deltaX = width - clipElm.width;
+      const deltaTime = deltaX / this.#pixelsPerSecond;
+
+      const newTrimEnd = Number((clipElm.trimEnd + deltaTime).toFixed(3));
+
+      // update item
+      const item = this.getItemByValue(clipElm.clipId);
+      item.trimEnd = newTrimEnd;
+
+      this.updateItem(item, "update item for dragging trim-end");
+    }
+  }
+
   #endDragging(event) {
     const pointerId = this.#draggingPointerId;
 
@@ -981,18 +1004,6 @@ export class ClipGroup extends ItemsElm {
       this.rootElement.releasePointerCapture(event.pointerId);
     }
   }
-
-  #pointerCancelHandler = (event) => {
-    if (!this.#draggingClipElm) {
-      return;
-    }
-
-    if (event.pointerId !== this.#draggingPointerId) {
-      return;
-    }
-
-    this.#endDragging(event);
-  };
 
   // ---------------------------------------------------------------------------
   // overrides
