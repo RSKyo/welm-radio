@@ -35,6 +35,6 @@ export const audioApi = {
 
   getAudioPlayerSrc: (audioPath) =>
     audioPath
-      ? `/audio/api/load-audio?audioPath=${encodeURIComponent(audioPath)}`
+      ? `/audio/api/load-audio-data?audioPath=${encodeURIComponent(audioPath)}`
       : "",
 };

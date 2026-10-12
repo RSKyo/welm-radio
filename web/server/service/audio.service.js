@@ -327,7 +327,7 @@ export async function importAudios() {
   };
 }
 
-export async function loadAudio(audioPath) {
+export async function loadAudioData(audioPath) {
   assertExistingFile(audioPath, "audioPath");
 
   const ext = nodePath.extname(audioPath).toLowerCase();

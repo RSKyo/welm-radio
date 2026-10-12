@@ -10,7 +10,7 @@ import {
   listAudios,
   removeAudios,
   importAudios,
-  loadAudio,
+  loadAudioData,
 } from "../service/audio.service.js";
 
 const apiRouter = new ApiRouter("/audio/api");
@@ -69,9 +69,9 @@ apiRouter.post("/import-audios", () => {
   return importAudios();
 });
 
-// GET /audio/api/load-audio
-apiRouter.get("/load-audio", async ({ data, res }) => {
-  const { contentType, buffer } = await loadAudio(data.audioPath);
+// GET /audio/api/load-audio-data
+apiRouter.get("/load-audio-data", async ({ data, res }) => {
+  const { contentType, buffer } = await loadAudioData(data.audioPath);
 
   res.type(contentType);
   res.send(buffer);
