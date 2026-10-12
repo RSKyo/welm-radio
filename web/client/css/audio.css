@@ -1,0 +1,37 @@
+.page-header {
+  user-select: none;
+}
+
+.page-title {
+  font-weight: 500;
+  color: var(--color-primary-text);
+}
+
+
+
+
+
+.panel {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  padding: 8px;
+
+  border: 0;
+  border-radius: var(--border-radius-md);
+
+  background: var(--color-surface-raised);
+}
+
+.panel  label {
+    font-weight: 500;
+    color: var(--color-primary-text);
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left; 
+} 

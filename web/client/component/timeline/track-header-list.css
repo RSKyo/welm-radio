@@ -1,5 +1,5 @@
 .track-header-list {
-  --track-header-height: 100px;
+  --track-height: 132px;
 
   position: relative;
 
@@ -17,7 +17,7 @@
   flex-direction: column;
   gap: 8px;
 
-  height: var(--track-header-height, 100px);
+  height: var(--track-height);
 
   padding: 8px;
 

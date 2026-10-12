@@ -1,23 +1,9 @@
 .item-list {
-  --color-hover-indicator: #c8cdd2;
-  --color-active-indicator: #b8bec4;
-  --color-selected-indicator: #5d91bc;
-  --color-checked-indicator: #5d91bc;
-}
-
-[data-theme="dark"] .item-list {
-  --color-hover-indicator: #3a4046;
-  --color-active-indicator: #464d54;
-  --color-selected-indicator: #6f9fc8;
-  --color-checked-indicator: #6f9fc8;
-}
-
-.item-list {
   display: flex;
   flex-direction: column;
 }
 
-.item-list .item-list-item {
+.item-list-item {
   position: relative;
 
   min-height: 36px;
@@ -36,11 +22,11 @@
     box-shadow 120ms ease;
 }
 
-.item-list .item-list-item:last-child {
+.item-list-item:last-child {
   border-bottom: 0;
 }
 
-.item-list .item-list-empty {
+.item-list-empty {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +36,7 @@
   color: var(--color-text-muted);
 }
 
-.item-list .item-list-check {
+.item-list-check {
   position: absolute;
   z-index: 1;
 
@@ -65,7 +51,7 @@
   width: 36px;
 }
 
-.item-list .item-list-checkbox {
+.item-list-checkbox {
   margin: 0;
   cursor: pointer;
 }
@@ -74,7 +60,7 @@
   display: none;
 }
 
-.item-list .item-list-content {
+.item-list-content {
   display: flex;
   align-items: center;
 
@@ -89,7 +75,7 @@
   padding-left: 6px;
 }
 
-.item-list .item-list-text {
+.item-list-text {
   flex: 1;
   min-width: 0;
 
@@ -98,29 +84,26 @@
   text-overflow: ellipsis;
 }
 
-.item-list .item-list-item:hover {
+.item-list-item:hover {
   background-color: var(--color-hover);
   color: var(--color-interactive-text);
-  box-shadow: inset 3px 0 var(--color-hover-indicator);
+  box-shadow: inset 3px 0 var(--color-border-hover);
 }
 
-.item-list .item-list-item:active {
+.item-list-item:active {
   background-color: var(--color-active);
   color: var(--color-interactive-text);
-  box-shadow: inset 3px 0 var(--color-active-indicator);
+  box-shadow: inset 3px 0 var(--color-border-strong);
 }
 
-.item-list .item-list-item.is-checked {
+.item-list-item.is-checked {
   background-color: var(--color-checked);
   color: var(--color-checked-text);
-  box-shadow: inset 3px 0 var(--color-checked-indicator);
+  box-shadow: inset 3px 0 var(--color-primary);
 }
 
-
-
-.item-list .item-list-item.is-selected {
+.item-list-item.is-selected {
   background-color: var(--color-selected);
   color: var(--color-selected-text);
-  box-shadow: inset 3px 0 var(--color-selected-indicator);
+  box-shadow: inset 3px 0 var(--color-primary);
 }
-

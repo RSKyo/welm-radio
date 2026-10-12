@@ -25,13 +25,26 @@ const startTranscriptionBtn = document.querySelector("#start-transcription");
 // Components
 // -----------------------------------------------------------------------------
 
-const audioTypeFilterElm = new MultiChipGroup("#audio-type-filter");
-const audioLanguageFilterElm = new MultiChipGroup("#audio-language-filter");
-const audioPositionFilterElm = new MultiChipGroup("#audio-position-filter");
-const audioDayPartFilterElm = new MultiChipGroup("#audio-day-part-filter");
-const audioCategoryFilterElm = new MultiChipGroup("#audio-category-filter");
+const audioTypeFilterElm = new MultiChipGroup("#audio-type-filter", {
+  rootClassExtra: "sm",
+});
+const audioLanguageFilterElm = new MultiChipGroup("#audio-language-filter", {
+  rootClassExtra: "sm",
+});
+const audioPositionFilterElm = new MultiChipGroup("#audio-position-filter", {
+  rootClassExtra: "sm",
+});
+const audioDayPartFilterElm = new MultiChipGroup("#audio-day-part-filter", {
+  rootClassExtra: "sm",
+});
+const audioCategoryFilterElm = new MultiChipGroup("#audio-category-filter", {
+  rootClassExtra: "sm",
+});
 const audioAlternateGroupFilterElm = new MultiChipGroup(
   "#audio-alternate-group-filter",
+  {
+    rootClassExtra: "sm",
+  }
 );
 
 const audiosElm = new ItemList("#audios");
@@ -68,12 +81,12 @@ function initializePage() {
 }
 
 function bindEvents() {
-  on(audioTypeFilterElm, "selectedValueChange", filterChanged);
-  on(audioPositionFilterElm, "selectedValueChange", filterChanged);
-  on(audioDayPartFilterElm, "selectedValueChange", filterChanged);
-  on(audioLanguageFilterElm, "selectedValueChange", filterChanged);
-  on(audioCategoryFilterElm, "selectedValueChange", filterChanged);
-  on(audioAlternateGroupFilterElm, "selectedValueChange", filterChanged);
+  on(audioTypeFilterElm, "selectedChange", filterChanged);
+  on(audioPositionFilterElm, "selectedChange", filterChanged);
+  on(audioDayPartFilterElm, "selectedChange", filterChanged);
+  on(audioLanguageFilterElm, "selectedChange", filterChanged);
+  on(audioCategoryFilterElm, "selectedChange", filterChanged);
+  on(audioAlternateGroupFilterElm, "selectedChange", filterChanged);
 
   on("#set-audio-root", "click", setAudioRoot);
 
@@ -82,8 +95,8 @@ function bindEvents() {
   on("#import-audios", "click", importAudios);
   on("#order", "change", orderChanged);
 
-  on(audiosElm, "selectedValueChange", changeAudio);
-  on(audiosElm, "checkedValueChange", updateCheckedStateForSelectAll);
+  on(audiosElm, "selectedChange", changeAudio);
+  on(audiosElm, "checkedChange", updateCheckedStateForSelectAll);
   on(audiosElm, "doubleClick", doubleClickAudio);
 
   on("#save-meta", "click", saveMeta);

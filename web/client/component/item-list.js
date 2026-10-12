@@ -114,7 +114,7 @@ export class ItemList extends ItemsElm {
     this.#checkedValue = newValue;
 
     this.#updateCheckedUIState();
-    this.#emitCheckedValueChange(newValue);
+    this.#emitCheckedChange(newValue);
   }
 
   checkAll() {
@@ -151,7 +151,7 @@ export class ItemList extends ItemsElm {
     this.handler.set("checkedChangeHandler", handler);
   }
 
-  #emitCheckedValueChange(value) {
+  #emitCheckedChange(value) {
     this.handler.emit("checkedChangeHandler", {
       elm: this,
       item: this.getItemByValue(value, this.#checkedValueMode),
@@ -275,14 +275,14 @@ export class ItemList extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  afterSetItems(items) {
+  afterSetItems() {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
     this.#checkedValue = filterValue(this.#checkedValue, itemValues);
   }
 
   // override
-  afterRemoveItem(removedItem) {
+  afterRemoveItem() {
     const itemValues = this.itemValues;
     this.#selectedValue = filterValue(this.#selectedValue, itemValues);
     this.#checkedValue = filterValue(this.#checkedValue, itemValues);
@@ -303,7 +303,7 @@ export class ItemList extends ItemsElm {
   }
 
   // override
-  afterRenderItems(items) {
+  afterRenderItems() {
     this.#updateSelectedUIState();
     this.#updateCheckedUIState();
   }

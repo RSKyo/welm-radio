@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="./css/theme-blue.css" />
     <link rel="stylesheet" href="./css/global.css" />
 
+    <link rel="stylesheet" href="./css/audio.css" />
+
     <link rel="stylesheet" href="./component/toast.css" />
     <link rel="stylesheet" href="./component/chip-group.css" />
     <link rel="stylesheet" href="./component/item-list.css" />
@@ -17,9 +19,9 @@
   <body>
     <div class="vbox h-100 w-100">
       <!-- header -->
-      <div class="px-8 py-12 hbox a-center">
-        <div class="grow">
-          <h1 style="color: var(--color-primary-text)">Audio Library</h1>
+      <div class="hbox a-center page-header">
+        <div class="grow px-12 py-4">
+          <span class="page-title">Audio Library</span>
         </div>
       </div>
 
@@ -27,56 +29,66 @@
       <div class="grow hbox">
         <!-- filter -->
         <div
-          class="px-8 py-12 mx-8 scroll vbox gap-20"
+          class="vbox gap-8"
           style="
             width: 240px;
             min-width: 120px;
-            background-color: var(--color-surface-raised);
+            background: var(--color-surface);
           "
         >
-          <div class="fixed vbox gap-8">
-            <label>音频类型</label>
-            <div id="audio-type-filter" data-name="audio-type-filter"></div>
+          <div class="hbox j-end p-4 gap-4 bb">
+            <button id="track-add" class="icon-button" title="添加音轨">
+              ＋
+            </button>
+            <button id="track-remove" class="icon-button" title="删除音轨">
+              −
+            </button>
           </div>
+          <div class="grow vbox scroll px-4 gap-4">
+            <div class="panel">
+              <label>音频类型</label>
+              <div id="audio-type-filter" data-name="audio-type-filter"></div>
+            </div>
 
-          <div class="fixed vbox gap-8">
-            <label>音频位置</label>
-            <div
-              id="audio-position-filter"
-              data-name="audio-position-filter"
-            ></div>
-          </div>
+            <div class="panel">
+              <label>音频位置</label>
+              <div
+                id="audio-position-filter"
+                data-name="audio-position-filter"
+              ></div>
+            </div>
 
-          <div class="fixed vbox gap-8">
-            <label>音频日段</label>
-            <div
-              id="audio-day-part-filter"
-              data-name="audio-day-part-filter"
-            ></div>
-          </div>
+            <div class="panel">
+              <label>音频日段</label>
+              <div
+                id="audio-day-part-filter"
+                data-name="audio-day-part-filter"
+              ></div>
+            </div>
 
-          <div class="fixed vbox gap-8">
-            <label>音频语言</label>
-            <div
-              id="audio-language-filter"
-              data-name="audio-language-filter"
-            ></div>
-          </div>
+            <div class="panel">
+              <label>音频语言</label>
+              <div
+                id="audio-language-filter"
+                data-name="audio-language-filter"
+              ></div>
+            </div>
 
-          <div class="fixed vbox gap-8">
-            <label>音频分类</label>
-            <div
-              id="audio-category-filter"
-              data-name="audio-category-filter"
-            ></div>
-          </div>
+            <div class="panel">
+              <label>音频分类</label>
+              <div
+                id="audio-category-filter"
+                data-name="audio-category-filter"
+              ></div>
+            </div>
 
-          <div class="fixed vbox gap-8">
-            <label>音频备选组</label>
-            <div
-              id="audio-alternate-group-filter"
-              data-name="audio-alternate-group-filter"
-            ></div>
+            <div class="panel">
+              <label>音频备选组</label>
+              <div
+                id="audio-alternate-group-filter"
+                data-name="audio-alternate-group-filter"
+              ></div>
+            </div>
           </div>
         </div>
 

@@ -1,3 +1,5 @@
+import {assertNoDuplicateValues} from "../../js/assert.js";
+
 export * from "../../js/assert.js";
 
 export function assertValueForMode(value, mode = 1) {

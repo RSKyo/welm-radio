@@ -12,12 +12,14 @@ import {
 } from "./base/helper.js";
 import { ItemsElm } from "./base/items-elm.js";
 
+const EMPTY_TEMPLATE = `
+<div class="empty-placeholder">No Chips</div>
+`;
 const ITEM_TEMPLATE = `
 <div class="chip-group-item" data-role="item">
   <span class="chip-group-text" data-role="text"></span>
 </div>
 `;
-
 const ACTIONS_TEMPLATE = `
 <div class="chip-group-actions" data-role="actions">
   <button type="button" class="chip-group-action" data-role="action" data-action="select-all">全选</button>
@@ -25,6 +27,7 @@ const ACTIONS_TEMPLATE = `
 </div>
 `;
 
+const emptyTemplate = createElementByHTML(EMPTY_TEMPLATE);
 const itemTemplate = createElementByHTML(ITEM_TEMPLATE);
 const actionsTemplate = createElementByHTML(ACTIONS_TEMPLATE);
 
@@ -173,6 +176,11 @@ export class ChipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
   // overrides
   // ---------------------------------------------------------------------------
+
+   // override
+  createEmptyElement() {
+    return emptyTemplate.cloneNode(true);
+  }
 
   // override
   afterSetItems(items) {

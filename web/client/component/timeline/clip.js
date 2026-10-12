@@ -43,6 +43,8 @@ export class Clip extends Elm {
   #trimStartEl = null;
   #trimEndEl = null;
   #contentEl = null;
+  // audio cache
+  #audioCache = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -135,6 +137,10 @@ export class Clip extends Elm {
     this.resolveOption("rowGap", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#rowGap = value;
+    });
+
+    this.resolveOption("audioCache", (value, assertionSubject) => {
+      this.#audioCache = value;
     });
 
     this.rootElement.style.setProperty(

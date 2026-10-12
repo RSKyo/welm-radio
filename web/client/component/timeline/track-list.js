@@ -34,6 +34,8 @@ export class TrackList extends ItemsElm {
   #clipGroupMap = new Map();
   #selectedClipGroup = null;
   #selectedClip = null;
+  // audio cache
+  #audioCache = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -54,6 +56,10 @@ export class TrackList extends ItemsElm {
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
+    });
+
+    this.resolveOption("audioCache", (value, assertionSubject) => {
+      this.#audioCache = value;
     });
 
     this.rootElement.style.setProperty(
@@ -340,6 +346,7 @@ export class TrackList extends ItemsElm {
     const clipGroupElm = new ClipGroup(clipGroupEl, {
       pixelsPerSecond: this.#pixelsPerSecond,
       playheadTime: this.#playheadTime,
+      audioCache: this.#audioCache,
     });
 
     clipGroupElm.onSelectedChange = ({ elm, clip }) => {

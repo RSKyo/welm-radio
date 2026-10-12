@@ -2,6 +2,7 @@ import { setThemeMode } from "./theme.js";
 
 import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
+import { AudioCache } from "../component/timeline/audio-cache.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
 import { TrackHeaderList } from "../component/timeline/track-header-list.js";
 import { TrackList } from "../component/timeline/track-list.js";
@@ -32,6 +33,13 @@ const timelineContentEl = resolveElement(".timeline-content");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
+const audioContext = new AudioContext();
+
+const audioCache = new AudioCache({
+  audioContext,
+  fetchUrl: "/audio/api/load-audio-data",
+});
+
 const zoomElm = new Tumbler("#zoom", {
   rootClass: "tumbler xs",
   percentBase: 50,
@@ -53,14 +61,13 @@ const rulerElm = new TimelineRuler("#ruler", {
 
 const trackHeaderListElm = new TrackHeaderList("#track-header-list", {
   valueField: "trackId",
-  trackHeight: 120,
 });
 
 const trackListElm = new TrackList("#track-list", {
   valueField: "trackId",
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   trackWidth: rulerElm.width,
-  trackHeight: 120,
+  audioCache: audioCache,
 });
 
 const timelinePlayheadElm = new TimelinePlayhead("#playhead", {

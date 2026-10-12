@@ -22,7 +22,7 @@ const SNAP_THRESHOLD = 5;
 const DEFAULT_CLIP_GROUP_MIN_HEIGHT = 132;
 
 const EMPTY_TEMPLATE = `
-<div class="hbox j-center a-center w-100 h-100 empty-info">No Clips</div>
+<div class="empty-placeholder">No Clips</div>
 `;
 const CLIP_TEMPLATE = `
 <div data-role="clip">
@@ -52,6 +52,8 @@ export class ClipGroup extends ItemsElm {
 
   #pendingMove = null;
   #pendingTrim = null;
+  // audio cache
+  #audioCache = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -73,6 +75,10 @@ export class ClipGroup extends ItemsElm {
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
+    });
+
+    this.resolveOption("audioCache", (value, assertionSubject) => {
+      this.#audioCache = value;
     });
 
     this.resolveOption("playheadTime", (value, assertionSubject) => {
@@ -1051,6 +1057,7 @@ export class ClipGroup extends ItemsElm {
       pixelsPerSecond: this.#pixelsPerSecond,
       height: DEFAULT_CLIP_HEIGHT,
       rowGap: DEFAULT_CLIP_ROW_GAP,
+      audioCache: this.#audioCache,
     };
 
     const clipRowIndex = this.#findAvailableRowIndex(clipOptions);
