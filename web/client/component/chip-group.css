@@ -1,4 +1,20 @@
 .chip-group {
+  --item-height: var(--component-height-md);
+  --item-padding: var(--component-padding-md);
+  --item-font-size: var(--font-size-md);
+}
+.chip-group.sm {
+  --item-height: var(--component-height-sm);
+  --item-padding: var(--component-padding-sm);
+  --item-font-size: var(--font-size-sm);
+}
+.chip-group.xs {
+  --item-height: var(--component-height-xs);
+  --item-padding: var(--component-padding-xs);
+  --item-font-size: var(--font-size-xs);
+}
+
+.chip-group {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
@@ -15,8 +31,8 @@
 
   min-width: 0;
   max-width: 100%;
-  height: var(--component-height-md);
-  padding: var(--component-padding-md);
+  height: var(--item-height);
+  padding: var(--item-padding);
 
   border: 0;
   border-radius: 999px;
@@ -25,7 +41,7 @@
   color: var(--color-button-text);
   text-shadow: 0 1px 0 var(--color-text-marking-shadow);
 
-  font-size: var(--font-size-md);
+  font-size: var(--item-font-size);
   line-height: 1;
 
   cursor: pointer;
@@ -75,9 +91,10 @@
 }
 
 .chip-group-action {
-  height: var(--component-height-md);
+  min-width: 0;
   min-height: 0;
-  padding: var(--component-padding-md);
+
+  padding: 0 !important;
 
   border: 0 !important;
   border-radius: 999px !important;
@@ -85,7 +102,7 @@
   background: transparent !important;
   color: var(--color-text-muted);
 
-  font-size: var(--font-size-md);
+  font-size: var(--item-font-size);
   white-space: nowrap;
 
   cursor: pointer;
@@ -97,12 +114,10 @@
 }
 
 .chip-group .empty-placeholder {
-  font-size: var(--font-size-md);
+  font-size: var(--item-font-size);
 }
 
-/* -----------------------------------------------------------------------------
- * size: small
- * -------------------------------------------------------------------------- */
+/* small */
 
 .chip-group.sm {
   gap: 4px;
@@ -112,21 +127,7 @@
   gap: 4px;
 }
 
-.chip-group.sm .chip-group-item,
-.chip-group.sm .chip-group-action {
-  height: var(--component-height-sm);
-  padding: var(--component-padding-sm);
-
-  font-size: var(--font-size-sm);
-}
-
-.chip-group.sm .empty-placeholder {
-  font-size: var(--font-size-sm);
-}
-
-/* -----------------------------------------------------------------------------
- * size: extra small
- * -------------------------------------------------------------------------- */
+/* extra small */
 
 .chip-group.xs {
   gap: 2px;
@@ -134,16 +135,4 @@
 
 .chip-group.xs .chip-group-actions {
   gap: 2px;
-}
-
-.chip-group.xs .chip-group-item,
-.chip-group.xs .chip-group-action {
-  height: var(--component-height-xs);
-  padding: var(--component-padding-xs);
-
-  font-size: var(--font-size-xs);
-}
-
-.chip-group.xs .empty-placeholder {
-  font-size: var(--font-size-xs);
 }

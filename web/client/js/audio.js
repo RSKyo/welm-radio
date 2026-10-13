@@ -3,10 +3,12 @@ import { sleep, isEqualValue, formatTime } from "./util.js";
 
 import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
 import { ItemList } from "../component/item-list.js";
+import { AudioPlayer } from "../component/audio-player.js";
 
 import { audioApi } from "../api/audio.api.js";
 import { metaApi } from "../api/meta.api.js";
 import { whisperApi } from "../api/whisper.api.js";
+
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -14,7 +16,6 @@ import { whisperApi } from "../api/whisper.api.js";
 
 const selectAllChk = document.querySelector("#select-all");
 const audioCountEl = document.querySelector("#audio-count");
-const audioPlayerEl = document.querySelector("#audio-player");
 const metaFormFrm = document.querySelector("#meta-form");
 const metaFields = metaFormFrm.elements;
 const whisperModelEl = document.querySelector("#whisper-model");
@@ -48,6 +49,7 @@ const audioAlternateGroupFilterElm = new MultiChipGroup(
 );
 
 const audiosElm = new ItemList("#audios");
+const audioPlayerElm = new AudioPlayer("#audio-player");
 
 const audioTypeElm = new SoloChipGroup("#audio-type");
 const audioLanguageElm = new SoloChipGroup("#audio-language");
@@ -66,7 +68,7 @@ const state = {
     categories: [],
     alternateGroups: [],
   },
-  order: "default",
+  order: "updatedAt-desc",
 };
 
 // -----------------------------------------------------------------------------
@@ -93,7 +95,8 @@ function bindEvents() {
   on("#select-all", "change", setAudiosCheckedState);
   on("#remove-audios", "click", removeAudios);
   on("#import-audios", "click", importAudios);
-  on("#order", "change", orderChanged);
+  on("#order-audios-desc", "click", orderAudiosDescClickHandler);
+  on("#order-audios-asc", "click", orderAudiosAscClickHandler);
 
   on(audiosElm, "selectedChange", changeAudio);
   on(audiosElm, "checkedChange", updateCheckedStateForSelectAll);
@@ -214,8 +217,16 @@ async function importAudios() {
   listAudios();
 }
 
-async function orderChanged(event) {
-  state.order = event.target.value;
+async function orderAudiosDescClickHandler(event) {
+  state.order = event.target.dataset.order;
+
+  const audios = audiosElm.getItems();
+  orderAudios(audios);
+  audiosElm.setItems(audios);
+}
+
+async function orderAudiosAscClickHandler(event) {
+  state.order = event.target.dataset.order;
 
   const audios = audiosElm.getItems();
   orderAudios(audios);
@@ -229,7 +240,7 @@ async function changeAudio({ item }) {
 
 async function doubleClickAudio({ item }) {
   changeAudio({ item });
-  audioPlayerEl.play();
+  audioPlayerElm.play();
 }
 
 async function updateCheckedStateForSelectAll({ value }) {
@@ -368,13 +379,13 @@ async function detectDuration() {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
-    duration = audioPlayerEl.duration;
+    duration = audioPlayerElm.duration;
 
     if (Number.isFinite(duration)) {
       break;
     }
 
-    if (audioPlayerEl.error) {
+    if (audioPlayerElm.error) {
       toast.show("音频加载失败，无法获取时长");
       return;
     }
@@ -465,8 +476,7 @@ function orderAudios(audios) {
 }
 
 function setAudioPlayer(audioPath) {
-  audioPlayerEl.src = audioApi.getAudioPlayerSrc(audioPath);
-  audioPlayerEl.load();
+  audioPlayerElm.src = audioApi.getAudioPlayerSrc(audioPath);
 }
 
 /** meta form */

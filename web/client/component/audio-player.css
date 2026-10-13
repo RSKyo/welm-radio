@@ -1,0 +1,43 @@
+.audio-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  min-width: 0;
+
+  padding: 4px 8px;
+
+  box-sizing: border-box;
+}
+
+.audio-player-play {
+  flex: none;
+}
+
+.audio-player-current-time,
+.audio-player-duration {
+  flex: none;
+
+  min-width: 36px;
+
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.audio-player-progress {
+  flex: 1;
+  min-width: 80px;
+}
+
+.audio-player-volume {
+  flex: none;
+
+  width: 80px;
+}
+
+.audio-player-audio {
+  display: none;
+}
