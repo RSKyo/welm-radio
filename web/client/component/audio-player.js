@@ -1,62 +1,55 @@
-import { Elm } from "../elm.js";
-import { formatTime } from "../../time.js";
-import { isNullishOrEmpty, isNonNegative } from "./base/is.js";
+import { assertNonBlankString, assertNonNegative } from "./base/assert.js";
 import {
-  assertNonBlankString,
-  assertNonNegative,
-  isNonNegative,
-} from "./base/assert.js";
+  createElementByHTML,
+  formatTime,
+  getBySelector,
+} from "./base/helper.js";
+import { isNonNegative, isNullishOrEmpty } from "./base/is.js";
+import { Elm } from "./base/elm.js";
+import { Range } from "./range.js";
 
-const AUDIO_TEMPLATE = `
-<audio class="audio-player-audio"></audio>
-`;
-const PLAY_BUTTON_TEMPLATE = `
-<button type="button" class="audio-player-play icon-button" title="播放">
-  ▶
-</button>
-`;
-const CURRENT_TIME_TEMPLATE = `
-<span class="audio-player-current-time">0</span>
-`;
-const PROGRESS_TEMPLATE = `
-<input class="audio-player-progress" type="range"
-  min="0"
-  max="0"
-  step="0.001"
-  value="0"
-  />
-`;
-const DURATION_TEMPLATE = `
-<span class="audio-player-duration">0</span>
-`;
-const VOLUME_TEMPLATE = `
-<input class="audio-player-volume" type="range"
-  min="0"
-  max="1"
-  step="0.01"
-  value="1"
-  />
+const AUDIO_PLAYER_TEMPLATE = `
+<div>
+  <audio class="audio-player-audio"></audio>
+
+  <button
+    type="button"
+    class="audio-player-play icon-button"
+    title="播放"
+  >
+    ▶
+  </button>
+
+  <div class="audio-player-main">
+    <div class="audio-player-title"></div>
+
+    <div class="audio-player-control">
+      <span class="audio-player-current-time">0</span>
+      <div class="audio-player-progress"></div>
+      <span class="audio-player-duration">0</span>
+    </div>
+  </div>
+</div>
 `;
 
-
-
-const audioTemplate = createElementByHTML(AUDIO_TEMPLATE);
-const playButtonTemplate = createElementByHTML(PLAY_BUTTON_TEMPLATE);
-const currentTimeTemplate = createElementByHTML(CURRENT_TIME_TEMPLATE);
-const progressTemplate = createElementByHTML(PROGRESS_TEMPLATE);
-const durationTemplate = createElementByHTML(DURATION_TEMPLATE);
-const volumeTemplate = createElementByHTML(VOLUME_TEMPLATE);
-
-
+const audioPlayerTemplate = createElementByHTML(AUDIO_PLAYER_TEMPLATE);
 
 export class AudioPlayer extends Elm {
-  #audioEl;
+  // state
+  #title = "";
+  #src = null;
+  #volume = 1;
 
-  #playButton;
-  #currentTimeElement;
-  #durationElement;
-  #progressElement;
-  #volumeElement;
+  // element
+  #audioEl = null;
+  #playButtonEl = null;
+  #titleEl = null;
+  #currentTimeEl = null;
+  #progressEl = null;
+  #durationEl = null;
+
+  // component
+  #progressRange = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -64,10 +57,36 @@ export class AudioPlayer extends Elm {
       defaultRootClass: "audio-player",
     });
 
+    this.#init();
     this.#render();
-    this.#resolveElements();
     this.#bindEvents();
-    this.#update();
+    this.#updateUIState();
+  }
+
+  // -----------------------------------------------------------------------------
+  // initialization
+  // -----------------------------------------------------------------------------
+
+  #init() {
+    this.resolveOption("title", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#title = value;
+    });
+
+    this.resolveOption("src", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#src = value;
+    });
+
+    this.resolveOption("volume", (value, assertionSubject) => {
+      assertNonNegative(value, assertionSubject);
+
+      if (value > 1) {
+        throw new Error(`${assertionSubject} must be between 0 and 1`);
+      }
+
+      this.#volume = value;
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -80,7 +99,7 @@ export class AudioPlayer extends Elm {
     return isNonNegative(duration) ? duration : 0;
   }
 
-   get paused() {
+  get paused() {
     return this.#audioEl.paused;
   }
 
@@ -88,25 +107,51 @@ export class AudioPlayer extends Elm {
   // state(read-write)
   // -----------------------------------------------------------------------------
 
+  /* title */
+
+  get title() {
+    return this.#title;
+  }
+
+  set title(value) {
+    assertNonBlankString(value, "title");
+
+    if (value === this.#title) {
+      return;
+    }
+
+    this.#title = value;
+
+    this.#updateTitleUIState();
+  }
+
+  /* src */
+
   get src() {
     return this.#audioEl.currentSrc;
   }
 
   set src(value) {
     if (isNullishOrEmpty(value)) {
+      this.#src = null;
+
       this.#audioEl.removeAttribute("src");
       this.#audioEl.load();
 
-      this.#update();
+      this.#updateUIState();
 
       return;
     }
 
     assertNonBlankString(value, "src");
 
+    this.#src = value;
+
     this.#audioEl.src = value;
     this.#audioEl.load();
   }
+
+  /* current time */
 
   get currentTime() {
     return this.#audioEl.currentTime;
@@ -115,8 +160,10 @@ export class AudioPlayer extends Elm {
   set currentTime(value) {
     assertNonNegative(value, "currentTime");
 
-    this.#audioEl.currentTime = value;
+    this.#audioEl.currentTime = Math.min(value, this.duration);
   }
+
+  /* volume */
 
   get volume() {
     return this.#audioEl.volume;
@@ -125,15 +172,13 @@ export class AudioPlayer extends Elm {
   set volume(value) {
     assertNonNegative(value, "volume");
 
-    if (value < 0 || value > 1) {
-      throw new Error("volume must be a number between 0 and 1");
+    if (value > 1) {
+      throw new Error("volume must be between 0 and 1");
     }
 
+    this.#volume = value;
     this.#audioEl.volume = value;
-    this.#volumeElement.value = value;
   }
-
- 
 
   // -----------------------------------------------------------------------------
   // playback
@@ -156,109 +201,137 @@ export class AudioPlayer extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // initialization
+  // render
   // -----------------------------------------------------------------------------
 
   #render() {
-    
+  const wrapperEl = audioPlayerTemplate.cloneNode(true);
+
+  const [
+    audioEl,
+    playButtonEl,
+    titleEl,
+    currentTimeEl,
+    progressEl,
+    durationEl,
+  ] = getBySelector(
+    wrapperEl,
+    ".audio-player-audio",
+    ".audio-player-play",
+    ".audio-player-title",
+    ".audio-player-current-time",
+    ".audio-player-progress",
+    ".audio-player-duration",
+  );
+
+  this.#audioEl = audioEl;
+  this.#playButtonEl = playButtonEl;
+  this.#titleEl = titleEl;
+  this.#currentTimeEl = currentTimeEl;
+  this.#progressEl = progressEl;
+  this.#durationEl = durationEl;
+
+  this.rootElement.append(...wrapperEl.childNodes);
+
+  this.#progressRange = new Range(this.#progressEl, {
+    min: 0,
+    max: 1,
+    step: 0.001,
+    value: 0,
+    fixed: 3,
+    showThumb: true,
+  });
+
+  this.#audioEl.volume = this.#volume;
+
+  if (this.#src != null) {
+    this.#audioEl.src = this.#src;
+    this.#audioEl.load();
   }
-
-  #resolveElements() {
-    this.#audioEl = this.rootElement.querySelector(".audio-player-audio");
-
-    this.#playButton = this.rootElement.querySelector(".audio-player-play");
-
-    this.#currentTimeElement = this.rootElement.querySelector(
-      ".audio-player-current-time",
-    );
-
-    this.#durationElement = this.rootElement.querySelector(
-      ".audio-player-duration",
-    );
-
-    this.#progressElement = this.rootElement.querySelector(
-      ".audio-player-progress",
-    );
-
-    this.#volumeElement = this.rootElement.querySelector(
-      ".audio-player-volume",
-    );
-  }
+}
 
   // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.on(this.#audioEl, "loadedmetadata", () => {
-      this.#update();
+    this.event.on(this.#audioEl, "loadedmetadata", () => {
+      this.#updateUIState();
     });
 
-    this.on(this.#audioEl, "durationchange", () => {
-      this.#updateDuration();
+    this.event.on(this.#audioEl, "durationchange", () => {
+      this.#updateDurationUIState();
     });
 
-    this.on(this.#audioEl, "timeupdate", () => {
-      this.#updateTime();
+    this.event.on(this.#audioEl, "timeupdate", () => {
+      this.#updateTimeUIState();
     });
 
-    this.on(this.#audioEl, "play", () => {
-      this.#updatePlayButton();
+    this.event.on(this.#audioEl, "play", () => {
+      this.#updatePlayButtonUIState();
     });
 
-    this.on(this.#audioEl, "pause", () => {
-      this.#updatePlayButton();
+    this.event.on(this.#audioEl, "pause", () => {
+      this.#updatePlayButtonUIState();
     });
 
-    this.on(this.#audioEl, "ended", () => {
-      this.#updatePlayButton();
-      this.#updateTime();
+    this.event.on(this.#audioEl, "ended", () => {
+      this.#updatePlayButtonUIState();
+      this.#updateTimeUIState();
     });
 
-    this.on(this.#playButton, "click", async () => {
+    this.event.on(this.#audioEl, "emptied", () => {
+      this.#updateUIState();
+    });
+
+    this.event.on(this.#playButtonEl, "click", async () => {
       await this.toggle();
     });
 
-    this.on(this.#progressElement, "input", () => {
-      this.currentTime = Number(this.#progressElement.value);
-    });
-
-    this.on(this.#volumeElement, "input", () => {
-      this.volume = Number(this.#volumeElement.value);
-    });
+    this.#progressRange.onChange = ({ value }) => {
+      this.currentTime = value;
+    };
   }
 
   // -----------------------------------------------------------------------------
   // update ui state
   // -----------------------------------------------------------------------------
 
-  #update() {
-    this.#updateDuration();
-    this.#updateTime();
-    this.#updatePlayButton();
+  #updateUIState() {
+    this.#updateTitleUIState();
+    this.#updateDurationUIState();
+    this.#updateTimeUIState();
+    this.#updatePlayButtonUIState();
   }
 
-  #updateDuration() {
+  #updateTitleUIState() {
+    this.#titleEl.textContent = this.#title;
+    this.#titleEl.title = this.#title;
+  }
+
+  #updateDurationUIState() {
     const duration = this.duration;
 
-    this.#durationElement.textContent = formatTime(duration);
-    this.#progressElement.max = duration;
+    this.#durationEl.textContent = formatTime(duration);
+
+    this.#progressRange.max = duration > 0 ? duration : 1;
   }
 
-  #updateTime() {
+  #updateTimeUIState() {
     const currentTime = this.currentTime;
 
-    this.#currentTimeElement.textContent = formatTime(currentTime);
-    this.#progressElement.value = currentTime;
+    this.#currentTimeEl.textContent = formatTime(currentTime);
+
+    this.#progressRange.setValue(currentTime);
   }
 
-  #updatePlayButton() {
+  #updatePlayButtonUIState() {
     if (this.paused) {
-      this.#playButton.textContent = "▶";
-      this.#playButton.title = "播放";
+      this.#playButtonEl.textContent = "▶";
+      this.#playButtonEl.title = "播放";
     } else {
-      this.#playButton.textContent = "❚❚";
-      this.#playButton.title = "暂停";
+      this.#playButtonEl.textContent = "❚❚";
+      this.#playButtonEl.title = "暂停";
     }
   }
 }

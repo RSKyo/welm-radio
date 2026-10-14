@@ -4,11 +4,11 @@ import { sleep, isEqualValue, formatTime } from "./util.js";
 import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
 import { ItemList } from "../component/item-list.js";
 import { AudioPlayer } from "../component/audio-player.js";
+import { Range } from "../component/range.js";
 
 import { audioApi } from "../api/audio.api.js";
 import { metaApi } from "../api/meta.api.js";
 import { whisperApi } from "../api/whisper.api.js";
-
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -45,7 +45,7 @@ const audioAlternateGroupFilterElm = new MultiChipGroup(
   "#audio-alternate-group-filter",
   {
     rootClassExtra: "sm",
-  }
+  },
 );
 
 const audiosElm = new ItemList("#audios");

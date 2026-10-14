@@ -9,6 +9,7 @@ import {
   assertNonNegative,
   isNullish,
   isNullishOrEmpty,
+  assertNonNegativeInteger,
 } from "./assert.js";
 
 export const toast = new Toast();
@@ -211,6 +212,29 @@ export function isEqualValue(value1, value2) {
   }
 
   return false;
+}
+
+export function clampValue(
+  value,
+  min,
+  max,
+  { fixed = null, needAssert = false } = {},
+) {
+  if (needAssert) {
+    assertNumber(value, "value");
+    assertNumber(min, "min");
+    assertNumber(max, "max");
+
+    if (min > max) {
+      throw new Error("min must not be greater than max");
+    }
+
+    if (fixed != null) {
+      assertNonNegativeInteger(fixed, "fixed");
+    }
+  }
+  const clampedValue = Math.min(Math.max(value, min), max);
+  return fixed != null ? Number(clampedValue.toFixed(fixed)) : clampedValue;
 }
 
 // -----------------------------------------------------------------------------

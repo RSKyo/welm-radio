@@ -1,0 +1,151 @@
+.range {
+  --range-height: var(--component-height-md);
+  --range-track-height: 6px;
+  --range-track-view-height: 2px;
+  --range-thumb-size: 14px;
+  --range-thumb-view-size: 12px;
+  --range-font-size: var(--font-size-md);
+
+  --color-range: var(--color-primary);
+}
+
+.range.sm {
+  --range-height: var(--component-height-sm);
+  --range-track-height: 6px;
+  --range-track-view-height: 2px;
+  --range-thumb-size: 12px;
+  --range-thumb-view-size: 10px;
+  --range-font-size: var(--font-size-sm);
+}
+
+.range.xs {
+  --range-height: var(--component-height-xs);
+  --range-track-height: 5px;
+  --range-track-view-height: 1px;
+  --range-thumb-size: 10px;
+  --range-thumb-view-size: 8px;
+  --range-font-size: var(--font-size-xs);
+}
+
+/* range */
+
+.range {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-width: 0;
+  height: var(--range-height);
+
+  user-select: none;
+}
+
+/* track */
+
+.range-track {
+  position: relative;
+
+  width: 100%;
+  height: var(--range-track-height);
+
+  cursor: pointer;
+  touch-action: none;
+}
+
+.range-track::before {
+  content: "";
+
+  position: absolute;
+
+  top: calc((100% - var(--range-track-view-height)) / 2);
+  right: 0;
+  left: 0;
+
+  height: var(--range-track-view-height);
+
+  border-radius: 999px;
+
+  background-color: var(--color-border);
+
+  transform: none;
+}
+
+/* fill */
+
+.range-fill {
+  position: absolute;
+
+  top: calc((100% - var(--range-track-view-height)) / 2);
+  left: 0;
+
+  width: 0;
+  height: var(--range-track-view-height);
+
+  border-radius: inherit;
+
+  background-color: var(--color-range);
+
+  transform: none;
+
+  pointer-events: none;
+}
+
+/* thumb */
+
+.range-thumb {
+  position: absolute;
+
+  top: 50%;
+  left: 0;
+
+  width: var(--range-thumb-size);
+  height: var(--range-thumb-size);
+
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%);
+
+  cursor: grab;
+  touch-action: none;
+}
+
+.range-thumb::before {
+  content: "";
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: var(--range-thumb-view-size);
+  height: var(--range-thumb-view-size);
+
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+
+  background: var(--color-surface-raised);
+
+  transform: translate(-50%, -50%);
+}
+
+.range-thumb:active {
+  cursor: grabbing;
+}
+
+/* text */
+
+.range-text {
+  position: absolute;
+
+  bottom: calc(50% + var(--range-thumb-size) / 2);
+  left: 0;
+
+  font-size: var(--range-font-size);
+  line-height: 1;
+  white-space: nowrap;
+
+  color: var(--color-text);
+
+  transform: translateX(-50%);
+
+  pointer-events: none;
+}

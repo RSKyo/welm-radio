@@ -1,19 +1,81 @@
 .audio-player {
+  --audio-player-gap: 8px;
+  --audio-player-font-size: var(--font-size-md);
+}
+
+.audio-player.sm {
+  --audio-player-gap: 6px;
+  --audio-player-font-size: var(--font-size-sm);
+}
+
+.audio-player.xs {
+  --audio-player-gap: 4px;
+  --audio-player-font-size: var(--font-size-xs);
+}
+
+.audio-player {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--audio-player-gap);
 
   width: 100%;
   min-width: 0;
 
-  padding: 4px 8px;
-
   box-sizing: border-box;
 }
+
+/* audio */
+
+.audio-player-audio {
+  display: none;
+}
+
+/* play */
 
 .audio-player-play {
   flex: none;
 }
+
+/* main */
+
+.audio-player-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+
+  min-width: 0;
+}
+
+/* title */
+
+.audio-player-title {
+  overflow: hidden;
+
+  min-width: 0;
+
+  font-size: var(--audio-player-font-size);
+  line-height: 1.2;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.audio-player-title:empty {
+  display: none;
+}
+
+/* control */
+
+.audio-player-control {
+  display: flex;
+  align-items: center;
+  gap: var(--audio-player-gap);
+
+  min-width: 0;
+}
+
+/* time */
 
 .audio-player-current-time,
 .audio-player-duration {
@@ -21,23 +83,17 @@
 
   min-width: 36px;
 
-  font-size: 12px;
+  font-size: var(--audio-player-font-size);
   line-height: 1;
+
   text-align: center;
   white-space: nowrap;
 }
 
+/* progress */
+
 .audio-player-progress {
   flex: 1;
+
   min-width: 80px;
-}
-
-.audio-player-volume {
-  flex: none;
-
-  width: 80px;
-}
-
-.audio-player-audio {
-  display: none;
 }
