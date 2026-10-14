@@ -49,7 +49,9 @@ const audioAlternateGroupFilterElm = new MultiChipGroup(
 );
 
 const audiosElm = new ItemList("#audios");
-const audioPlayerElm = new AudioPlayer("#audio-player");
+const audioPlayerElm = new AudioPlayer("#audio-player",{
+    rootClassExtra: "sm",
+  });
 
 const audioTypeElm = new SoloChipGroup("#audio-type");
 const audioLanguageElm = new SoloChipGroup("#audio-language");

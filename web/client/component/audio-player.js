@@ -1,4 +1,8 @@
-import { assertNonBlankString, assertNonNegative } from "./base/assert.js";
+import {
+  assertNonBlankString,
+  assertNonNegative,
+  assertValueIn,
+} from "./base/assert.js";
 import {
   createElementByHTML,
   formatTime,
@@ -12,23 +16,33 @@ const AUDIO_PLAYER_TEMPLATE = `
 <div>
   <audio class="audio-player-audio"></audio>
 
-  <button
-    type="button"
-    class="audio-player-play icon-button"
-    title="播放"
-  >
-    ▶
-  </button>
+  <div class="audio-player-top">
+    <div class="audio-player-top-left">
+      <div class="audio-player-title">
+        <div class="audio-player-title-text"></div>
+      </div>
+    </div>
 
-  <div class="audio-player-main">
-    <div class="audio-player-title"></div>
+    <div class="audio-player-top-center">
+      <button
+        type="button"
+        class="audio-player-play"
+        title="播放"
+      >
+        ▶
+      </button>
+    </div>
 
-    <div class="audio-player-control">
-      <span class="audio-player-current-time">0</span>
-      <div class="audio-player-progress"></div>
-      <span class="audio-player-duration">0</span>
+    <div class="audio-player-top-right">
+      <div class="audio-player-time">
+        <span class="audio-player-current-time">0</span>
+        <span>/</span>
+        <span class="audio-player-duration-time">0</span>
+      </div>
     </div>
   </div>
+
+  <div class="audio-player-progress"></div>
 </div>
 `;
 
@@ -39,14 +53,17 @@ export class AudioPlayer extends Elm {
   #title = "";
   #src = null;
   #volume = 1;
-
+  #rootClassExtra = null;
   // element
   #audioEl = null;
-  #playButtonEl = null;
+
   #titleEl = null;
+  #titleTextEl = null;
+  #playButtonEl = null;
+  #timeEl = null;
   #currentTimeEl = null;
+  #durationTimeEl = null;
   #progressEl = null;
-  #durationEl = null;
 
   // component
   #progressRange = null;
@@ -86,6 +103,13 @@ export class AudioPlayer extends Elm {
       }
 
       this.#volume = value;
+    });
+
+    this.resolveOption("rootClassExtra", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      assertValueIn(value, ["sm", "xs"], assertionSubject);
+
+      this.#rootClassExtra = value;
     });
   }
 
@@ -149,6 +173,8 @@ export class AudioPlayer extends Elm {
 
     this.#audioEl.src = value;
     this.#audioEl.load();
+
+    this.#updatePlayButtonUIState();
   }
 
   /* current time */
@@ -205,56 +231,72 @@ export class AudioPlayer extends Elm {
   // -----------------------------------------------------------------------------
 
   #render() {
-  const wrapperEl = audioPlayerTemplate.cloneNode(true);
+    const wrapperEl = audioPlayerTemplate.cloneNode(true);
 
-  const [
-    audioEl,
-    playButtonEl,
-    titleEl,
-    currentTimeEl,
-    progressEl,
-    durationEl,
-  ] = getBySelector(
-    wrapperEl,
-    ".audio-player-audio",
-    ".audio-player-play",
-    ".audio-player-title",
-    ".audio-player-current-time",
-    ".audio-player-progress",
-    ".audio-player-duration",
-  );
+    const [
+      audioEl,
+      titleEl,
+      titleTextEl,
+      playButtonEl,
+      timeEl,
+      currentTimeEl,
+      durationTimeEl,
+      progressEl,
+    ] = getBySelector(
+      wrapperEl,
+      ".audio-player-audio",
+      ".audio-player-title",
+      ".audio-player-title-text",
+      ".audio-player-play",
+      ".audio-player-time",
+      ".audio-player-current-time",
+      ".audio-player-duration-time",
+      ".audio-player-progress",
+    );
 
-  this.#audioEl = audioEl;
-  this.#playButtonEl = playButtonEl;
-  this.#titleEl = titleEl;
-  this.#currentTimeEl = currentTimeEl;
-  this.#progressEl = progressEl;
-  this.#durationEl = durationEl;
+    this.#audioEl = audioEl;
+    this.#titleEl = titleEl;
+    this.#titleTextEl = titleTextEl;
+    this.#playButtonEl = playButtonEl;
+    this.#timeEl = timeEl;
+    this.#currentTimeEl = currentTimeEl;
+    this.#durationTimeEl = durationTimeEl;
+    this.#progressEl = progressEl;
 
-  this.rootElement.append(...wrapperEl.childNodes);
+    this.rootElement.append(...wrapperEl.childNodes);
 
-  this.#progressRange = new Range(this.#progressEl, {
-    min: 0,
-    max: 1,
-    step: 0.001,
-    value: 0,
-    fixed: 3,
-    showThumb: true,
-  });
+    const rangeOptions = {
+      min: 0,
+      max: 1,
+      step: 0.001,
+      value: 0,
+      fixed: 3,
+      showThumb: true,
+    };
 
-  this.#audioEl.volume = this.#volume;
+    if (this.#rootClassExtra != null) {
+      rangeOptions.rootClassExtra = this.#rootClassExtra;
+    }
 
-  if (this.#src != null) {
-    this.#audioEl.src = this.#src;
-    this.#audioEl.load();
+    this.#progressRange = new Range(this.#progressEl, rangeOptions);
+
+    this.#audioEl.volume = this.#volume;
+
+    if (this.#src != null) {
+      this.#audioEl.src = this.#src;
+      this.#audioEl.load();
+    }
   }
-}
 
   // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
+    this.onResize = () => {
+      this.#updateTitleScrollingUIState();
+    };
+
     this.event.on(this.#audioEl, "loadedmetadata", () => {
       this.#updateUIState();
     });
@@ -264,7 +306,7 @@ export class AudioPlayer extends Elm {
     });
 
     this.event.on(this.#audioEl, "timeupdate", () => {
-      this.#updateTimeUIState();
+      this.#updateCurrentTimeUIState();
     });
 
     this.event.on(this.#audioEl, "play", () => {
@@ -277,7 +319,7 @@ export class AudioPlayer extends Elm {
 
     this.event.on(this.#audioEl, "ended", () => {
       this.#updatePlayButtonUIState();
-      this.#updateTimeUIState();
+      this.#updateCurrentTimeUIState();
     });
 
     this.event.on(this.#audioEl, "emptied", () => {
@@ -299,25 +341,44 @@ export class AudioPlayer extends Elm {
 
   #updateUIState() {
     this.#updateTitleUIState();
-    this.#updateDurationUIState();
     this.#updateTimeUIState();
     this.#updatePlayButtonUIState();
   }
 
   #updateTitleUIState() {
-    this.#titleEl.textContent = this.#title;
+    this.#titleTextEl.textContent = this.#title;
     this.#titleEl.title = this.#title;
+
+    this.#updateTitleScrollingUIState();
+  }
+
+  #updateTitleScrollingUIState() {
+    const scrolling = this.#titleTextEl.scrollWidth > this.#titleEl.clientWidth;
+
+    this.#titleTextEl.classList.toggle("scrolling", scrolling);
+  }
+
+  #updateTimeUIState() {
+    if (this.#src == null) {
+      this.#timeEl.style.display = "none";
+      return;
+    }
+
+    this.#timeEl.style.display = "";
+
+    this.#updateDurationUIState();
+    this.#updateCurrentTimeUIState();
   }
 
   #updateDurationUIState() {
     const duration = this.duration;
 
-    this.#durationEl.textContent = formatTime(duration);
+    this.#durationTimeEl.textContent = formatTime(duration);
 
     this.#progressRange.max = duration > 0 ? duration : 1;
   }
 
-  #updateTimeUIState() {
+  #updateCurrentTimeUIState() {
     const currentTime = this.currentTime;
 
     this.#currentTimeEl.textContent = formatTime(currentTime);
@@ -326,6 +387,17 @@ export class AudioPlayer extends Elm {
   }
 
   #updatePlayButtonUIState() {
+    const disabled = this.#src == null;
+
+    this.#playButtonEl.disabled = disabled;
+    this.#progressRange.disabled = disabled;
+
+    if (disabled) {
+      this.#playButtonEl.textContent = "▶";
+      this.#playButtonEl.title = "";
+      return;
+    }
+
     if (this.paused) {
       this.#playButtonEl.textContent = "▶";
       this.#playButtonEl.title = "播放";

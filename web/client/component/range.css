@@ -149,3 +149,8 @@
 
   pointer-events: none;
 }
+
+.range.disabled .range-track,
+.range.disabled .range-thumb {
+  cursor: default;
+}

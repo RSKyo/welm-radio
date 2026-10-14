@@ -31,6 +31,7 @@ export class Range extends Elm {
   #value = 0;
   #percentBase = null;
   #suffix = null;
+  #disabled = false;
   // element
   #rangeTrackEl = null;
   #rangeFillEl = null;
@@ -99,6 +100,11 @@ export class Range extends Elm {
     this.resolveOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#suffix = value;
+    });
+
+    this.resolveOption("disabled", (value, assertionSubject) => {
+      assertBoolean(value, assertionSubject);
+      this.#disabled = value;
     });
 
     this.resolveOption("showThumb", (value, assertionSubject) => {
@@ -266,6 +272,30 @@ export class Range extends Elm {
     }
   }
 
+  /* disabled (read-write) */
+
+  get disabled() {
+    return this.#disabled;
+  }
+
+  set disabled(value) {
+    this.setDisabled(value);
+  }
+
+  setDisabled(value, { updateUI = true } = {}) {
+    assertBoolean(value, "disabled");
+
+    if (value === this.#disabled) {
+      return;
+    }
+
+    this.#disabled = value;
+
+    if (updateUI) {
+      this.#updateDisabledUIState();
+    }
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
@@ -334,6 +364,10 @@ export class Range extends Elm {
   }
 
   #rangeTrackPointerDownHandler = (event) => {
+    if (this.#disabled) {
+      return;
+    }
+
     if (event.button !== 0) {
       return;
     }
@@ -370,6 +404,10 @@ export class Range extends Elm {
   };
 
   #rangeThumbPointerDownHandler = (event) => {
+    if (this.#disabled) {
+      return;
+    }
+
     if (event.button !== 0) {
       return;
     }
@@ -490,5 +528,9 @@ export class Range extends Elm {
 
       this.#rangeTextEl.style.left = `${left}px`;
     }
+  }
+
+  #updateDisabledUIState() {
+    this.rootElement.classList.toggle("disabled", this.#disabled);
   }
 }
