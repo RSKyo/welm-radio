@@ -33,8 +33,13 @@ export const audioApi = {
   // POST /audio/api/import-audios
   importAudios: () => http.post("/import-audios"),
 
-  getAudioPlayerSrc: (audioPath) =>
+  loadAudioData: (audioPath) =>
     audioPath
       ? `/audio/api/load-audio-data?audioPath=${encodeURIComponent(audioPath)}`
+      : "",
+
+  loadAudioStream: (audioPath) =>
+    audioPath
+      ? `/audio/api/load-audio-stream?audioPath=${encodeURIComponent(audioPath)}`
       : "",
 };

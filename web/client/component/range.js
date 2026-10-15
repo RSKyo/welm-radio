@@ -42,6 +42,7 @@ export class Range extends Elm {
   #showText = false;
   #draggingPointerId = null;
   #thumbDraggingOffsetX = 0;
+  #draggingOriginValue = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -142,6 +143,10 @@ export class Range extends Elm {
 
   get #progress() {
     return this.#ratio * 100;
+  }
+
+  get isDragging() {
+    return this.#draggingPointerId != null;
   }
 
   // -----------------------------------------------------------------------------
@@ -311,6 +316,17 @@ export class Range extends Elm {
     });
   }
 
+  set onEndChange(handler) {
+    this.handler.set("endChangeHandler", handler);
+  }
+
+  #emitEndChange(value) {
+    this.handler.emit("endChangeHandler", {
+      elm: this,
+      value,
+    });
+  }
+
   // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
@@ -380,6 +396,7 @@ export class Range extends Elm {
 
     this.#rangeTrackEl.setPointerCapture(event.pointerId);
     this.#draggingPointerId = event.pointerId;
+    this.#draggingOriginValue = this.#value;
 
     const rect = this.#rangeTrackEl.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -421,6 +438,7 @@ export class Range extends Elm {
 
     this.#rangeThumbEl.setPointerCapture(event.pointerId);
     this.#draggingPointerId = event.pointerId;
+    this.#draggingOriginValue = this.#value;
 
     const thumbRect = this.#rangeThumbEl.getBoundingClientRect();
     const thumbCenterX = thumbRect.left + thumbRect.width / 2;
@@ -454,6 +472,13 @@ export class Range extends Elm {
 
     this.#draggingPointerId = null;
     this.#thumbDraggingOffsetX = 0;
+
+    const changed = this.#draggingOriginValue !== this.#value;
+    this.#draggingOriginValue = null;
+
+    if (changed) {
+      this.#emitEndChange(this.#value);
+    }
   }
 
   #setValueByX(x, { emitEvent = true } = {}) {

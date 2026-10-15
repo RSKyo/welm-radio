@@ -25,6 +25,9 @@
   width: 100%;
   min-width: 0;
 
+  color: var(--color-button-text);
+  text-shadow: 0 1px 0 var(--color-text-marking-shadow);
+
   box-sizing: border-box;
 }
 
@@ -90,7 +93,7 @@
 }
 
 .audio-player-title-text.scrolling {
-  animation: audio-player-title-scroll 8s linear infinite;
+  animation: audio-player-title-scroll 15s linear infinite;
 }
 
 @keyframes audio-player-title-scroll {
@@ -152,6 +155,7 @@
 .audio-player-current-time,
 .audio-player-duration-time {
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* progress */

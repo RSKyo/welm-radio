@@ -98,7 +98,10 @@
         >
           <div class="hbox j-begin p-4 gap-4 bb">
             <div class="grow hbox j-begin gap-4">
-              <input id="select-all" type="checkbox" />
+              <div class="hbox j-center a-center" style="width: 32px">
+                <input id="select-all" type="checkbox" />
+              </div>
+
               <button id="import-audios" class="icon-button" title="导入音频">
                 ＋
               </button>
@@ -106,22 +109,7 @@
                 −
               </button>
 
-              <button
-                id="order-audios-desc"
-                class="icon-button"
-                data-order="updatedAt-desc"
-                title="由新到旧"
-              >
-                ↓
-              </button>
-              <button
-                id="order-audios-asc"
-                class="icon-button"
-                data-order="updatedAt-asc"
-                title="由旧到新"
-              >
-                ↑
-              </button>
+              <button id="order-audios" class="icon-button">⇅</button>
             </div>
 
             <div class="audios-info">
@@ -130,8 +118,7 @@
             </div>
           </div>
 
-          <div id="audios" class="grow scroll audio-list"></div>
-          <div id="audio-player"></div>
+          <div id="audio-list" class="grow scroll audio-list"></div>
         </div>
 
         <!-- meta -->
@@ -150,6 +137,9 @@
           </div>
 
           <div class="grow vbox scroll px-4 gap-4">
+            <div class="audio-player-container">
+              <div id="audio-player"></div>
+            </div>
             <form id="meta-form" class="form">
               <input name="audioPath" type="hidden" />
               <input name="metaPath" type="hidden" />

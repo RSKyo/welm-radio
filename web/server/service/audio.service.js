@@ -366,6 +366,11 @@ export async function loadAudioData(audioPath) {
   };
 }
 
+export function getAudioContentType(audioPath) {
+  const ext = nodePath.extname(audioPath).toLowerCase();
+  return audio_mime_types[ext] || "application/octet-stream";
+}
+
 // -----------------------------------------------------------------------------
 // Private Helpers
 // -----------------------------------------------------------------------------

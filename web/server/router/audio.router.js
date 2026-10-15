@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import nodePath from "node:path";
+import { pipeline } from "node:stream/promises";
 import { ApiRouter } from "welm-cdp/web";
 import {
   setAudioRoot,
@@ -11,6 +14,7 @@ import {
   removeAudios,
   importAudios,
   loadAudioData,
+  getAudioContentType,
 } from "../service/audio.service.js";
 
 const apiRouter = new ApiRouter("/audio/api");
@@ -75,6 +79,79 @@ apiRouter.get("/load-audio-data", async ({ data, res }) => {
 
   res.type(contentType);
   res.send(buffer);
+});
+
+// GET /audio/api/load-audio-stream
+apiRouter.get("/load-audio-stream", async ({ data, req, res }) => {
+  const audioPath = data.audioPath;
+
+  const stat = fs.statSync(audioPath);
+  const fileSize = stat.size;
+  const contentType = getAudioContentType(audioPath);
+
+  const range = req.headers.range;
+
+  if (range == null) {
+    res.status(200);
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Content-Length", fileSize);
+    res.setHeader("Content-Type", contentType);
+
+    await pipeline(fs.createReadStream(audioPath), res);
+
+    return;
+  }
+
+  const match = /^bytes=(\d+)-(\d*)$/.exec(range);
+
+  if (match == null) {
+    // 416 Range Not Satisfiable，表示你请求的字节范围无效，服务器无法满足
+    res.status(416);
+    res.setHeader("Content-Range", `bytes */${fileSize}`);
+    res.end();
+
+    return;
+  }
+
+  const start = Number(match[1]);
+
+  const end =
+    match[2] === "" ? fileSize - 1 : Math.min(Number(match[2]), fileSize - 1);
+
+  if (start >= fileSize || end < start) {
+    res.status(416);
+    res.setHeader("Content-Range", `bytes */${fileSize}`);
+    res.end();
+
+    return;
+  }
+
+  const contentLength = end - start + 1;
+
+  // 206 Partial Content，表示请求成功，但服务器只返回资源的一部分
+  res.status(206);
+  res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+  res.setHeader("Content-Length", contentLength);
+  res.setHeader("Content-Type", contentType);
+
+  // Do not use:
+  //   fs.createReadStream(audioPath).pipe(res);
+  //
+  // `pipe()` starts streaming asynchronously and returns immediately.
+  // The route handler may finish before the response has actually started,
+  // so ApiRouter can still see `res.headersSent === false` and send its own
+  // response (for example 204), which can interrupt/corrupt the audio stream.
+  //
+  // `await pipeline()` keeps the handler pending until the stream finishes,
+  // so the response is fully controlled by this route.
+  await pipeline(
+    fs.createReadStream(audioPath, {
+      start,
+      end,
+    }),
+    res,
+  );
 });
 
 export default apiRouter;

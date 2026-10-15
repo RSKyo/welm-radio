@@ -44,11 +44,12 @@
 
 /* audios */
 
-#select-all {
-  width: 16px;
-  min-width: 16px;
-  height: 16px;
-  min-height: 16px;
+.item-list-check-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
 }
 
 .audios-info {
@@ -67,6 +68,15 @@
 /* meta form */
 
 .form {
+  padding: 8px;
+
+  border: 0;
+  border-radius: var(--border-radius-md);
+
+  background: var(--color-surface-raised);
+}
+
+.audio-player-container {
   padding: 8px;
 
   border: 0;

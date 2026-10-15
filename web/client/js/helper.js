@@ -454,7 +454,7 @@ export function parseTime(value) {
  * @throws {Error}
  * Throws if `seconds` is not a non-negative finite number.
  */
-export function formatTime(seconds, full = false) {
+export function formatTime(seconds, {full = false} = {}) {
   if (seconds == null) {
     return null;
   }

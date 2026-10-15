@@ -48,7 +48,7 @@ const audioAlternateGroupFilterElm = new MultiChipGroup(
   },
 );
 
-const audiosElm = new ItemList("#audios");
+const audioListElm = new ItemList("#audio-list");
 const audioPlayerElm = new AudioPlayer("#audio-player", {
   rootClassExtra: "sm",
 });
@@ -97,12 +97,11 @@ function bindEvents() {
   on("#select-all", "change", setAudiosCheckedState);
   on("#remove-audios", "click", removeAudios);
   on("#import-audios", "click", importAudios);
-  on("#order-audios-desc", "click", orderAudiosDescClickHandler);
-  on("#order-audios-asc", "click", orderAudiosAscClickHandler);
+  on("#order-audios", "click", orderAudiosDescClickHandler);
 
-  on(audiosElm, "selectedChange", changeAudio);
-  on(audiosElm, "checkedChange", updateCheckedStateForSelectAll);
-  on(audiosElm, "doubleClick", doubleClickAudio);
+  on(audioListElm, "selectedChange", changeAudio);
+  on(audioListElm, "checkedChange", updateCheckedStateForSelectAll);
+  on(audioListElm, "doubleClick", doubleClickAudio);
 
   on("#save-meta", "click", saveMeta);
 
@@ -183,7 +182,7 @@ async function setAudioRoot() {
 }
 
 async function removeAudios() {
-  const audioPaths = audiosElm.checkedValue;
+  const audioPaths = audioListElm.checkedValue;
 
   if (audioPaths.length === 0) {
     toast.show("请先选择要删除的音频文件");
@@ -218,24 +217,26 @@ async function importAudios() {
 }
 
 async function orderAudiosDescClickHandler(event) {
-  state.order = event.target.dataset.order;
+  switch (state.order) {
+    case "updatedAt-desc":
+      state.order = "updatedAt-asc";
+      break;
+    case "updatedAt-asc":
+      state.order = "updatedAt-desc";
+      break;
+    default:
+      state.order = "updatedAt-desc";
+      break;
+  }
 
-  const audios = audiosElm.getItems();
+  const audios = audioListElm.getItems();
   orderAudios(audios);
-  audiosElm.setItems(audios);
-}
-
-async function orderAudiosAscClickHandler(event) {
-  state.order = event.target.dataset.order;
-
-  const audios = audiosElm.getItems();
-  orderAudios(audios);
-  audiosElm.setItems(audios);
+  audioListElm.setItems(audios);
 }
 
 async function changeAudio({ item }) {
   setFormMeta(item?.meta);
-  setAudioPlayer(item?.audioPath, item.base);
+  setAudioPlayer(item?.audioPath, item.meta.title);
 }
 
 async function doubleClickAudio({ item }) {
@@ -245,19 +246,19 @@ async function doubleClickAudio({ item }) {
 
 async function updateCheckedStateForSelectAll({ value }) {
   selectAllChk.checked =
-    value == null ? false : value.length === audiosElm.getItems().length;
+    value == null ? false : value.length === audioListElm.getItems().length;
 }
 
 async function setAudiosCheckedState(event) {
   if (event.target.checked) {
-    audiosElm.checkAll();
+    audioListElm.checkAll();
   } else {
-    audiosElm.uncheckAll();
+    audioListElm.uncheckAll();
   }
 }
 
 async function saveMeta() {
-  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
+  const item = audioListElm.getItemByValue(audioListElm.selectedValue);
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -275,7 +276,7 @@ async function saveMeta() {
     meta: savedMeta,
   };
 
-  audiosElm.updateItem(updatedItem);
+  audioListElm.updateItem(updatedItem);
 
   // if the category has changed, refresh the category filter
   if (!isEqualValue(item.meta.category, savedMeta.category)) {
@@ -293,7 +294,7 @@ async function saveMeta() {
 }
 
 async function startTranscription() {
-  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
+  const item = audioListElm.getItemByValue(audioListElm.selectedValue);
 
   if (!item) {
     toast.show("请先选择一个音频文件");
@@ -333,10 +334,10 @@ async function startTranscription() {
     meta: savedMeta,
   };
 
-  audiosElm.updateItem(updatedItem);
+  audioListElm.updateItem(updatedItem);
 
   // if current selected item is the same as the one we just transcribed, update the form meta
-  const currentItem = audiosElm.getItemByValue(audiosElm.selectedValue);
+  const currentItem = audioListElm.getItemByValue(audioListElm.selectedValue);
   if (currentItem && currentItem.audioPath === item.audioPath) {
     setFormMeta(savedMeta);
   }
@@ -366,7 +367,6 @@ async function selectVadModel() {
   toast.show(`已选择 VAD 模型: ${modelName}`);
 }
 
-
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
@@ -376,14 +376,14 @@ async function selectVadModel() {
 async function listAudios() {
   const audios = await audioApi.listAudios(state.filters);
   orderAudios(audios);
-  audiosElm.setItems(audios);
+  audioListElm.setItems(audios);
 
   audioCountEl.textContent = audios.length == 0 ? "0" : audios.length;
 
-  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
+  const item = audioListElm.getItemByValue(audioListElm.selectedValue);
   if (item) {
     setFormMeta(item.meta);
-    setAudioPlayer(item.audioPath, item.base);
+    setAudioPlayer(item.audioPath, item.meta.title);
   } else {
     setFormMeta({});
     setAudioPlayer("", "");
@@ -392,28 +392,6 @@ async function listAudios() {
 
 function orderAudios(audios) {
   const order = state.order;
-
-  if (order === "default") {
-    audios.sort((a, b) => {
-      const aTime = Date.parse(a.meta?.updatedAt ?? "");
-      const bTime = Date.parse(b.meta?.updatedAt ?? "");
-
-      const aHasTime = Number.isFinite(aTime);
-      const bHasTime = Number.isFinite(bTime);
-
-      // 没有更新时间的音频始终放前面
-      if (!aHasTime && !bHasTime) {
-        return a.name.localeCompare(b.name);
-      }
-
-      if (!aHasTime) return -1;
-      if (!bHasTime) return 1;
-
-      return (aTime - bTime) * -1 || a.name.localeCompare(b.name);
-    });
-    return;
-  }
-
   const [field, direction] = order.split("-");
   const factor = direction === "asc" ? 1 : -1;
 
@@ -437,7 +415,7 @@ function orderAudios(audios) {
 }
 
 function setAudioPlayer(audioPath, title) {
-  audioPlayerElm.src = audioApi.getAudioPlayerSrc(audioPath);
+  audioPlayerElm.src = audioApi.loadAudioStream(audioPath);
   audioPlayerElm.title = title;
 }
 

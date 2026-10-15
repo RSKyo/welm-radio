@@ -20,7 +20,7 @@ const AUDIO_PLAYER_TEMPLATE = `
   <div class="audio-player-top">
     <div class="audio-player-top-left">
       <div class="audio-player-title">
-        <div class="audio-player-title-text"></div>
+        <div class="audio-player-title-text scrolling"></div>
       </div>
     </div>
 
@@ -187,7 +187,7 @@ export class AudioPlayer extends Elm {
   set currentTime(value) {
     assertNonNegative(value, "currentTime");
 
-    this.#audioEl.currentTime = Math.min(value, this.duration);
+    this.#audioEl.currentTime = value;
   }
 
   /* volume */
@@ -379,6 +379,13 @@ export class AudioPlayer extends Elm {
       this.#updateTitleScrollingUIState();
     };
 
+    this.event.on(this.#audioEl, "error", () => {
+      console.log("audio error:", this.#audioEl.error);
+      console.log("src:", this.#audioEl.currentSrc);
+      console.log("networkState:", this.#audioEl.networkState);
+      console.log("readyState:", this.#audioEl.readyState);
+    });
+
     this.event.on(this.#audioEl, "loadedmetadata", () => {
       this.#updateUIState();
       this.#emitLoadedMetadata(this.#audioEl);
@@ -419,8 +426,17 @@ export class AudioPlayer extends Elm {
       await this.toggle();
     });
 
-    this.#progressRange.onChange = ({ value }) => {
+    this.#progressRange.onEndChange = ({ value }) => {
+      console.log({
+        value,
+        duration: this.duration,
+        audioDuration: this.#audioEl.duration,
+        currentTime: this.#audioEl.currentTime,
+      });
+
       this.currentTime = value;
+
+      console.log("after:", this.#audioEl.currentTime);
     };
   }
 
@@ -445,13 +461,13 @@ export class AudioPlayer extends Elm {
     const textWidth = this.#titleTextEl.scrollWidth;
     const containerWidth = this.#titleEl.clientWidth;
 
-    const scrolling = textWidth > containerWidth;
+    // const scrolling = textWidth > containerWidth;
 
-    this.#titleTextEl.classList.toggle("scrolling", scrolling);
+    // this.#titleTextEl.classList.toggle("scrolling", scrolling);
 
-    if (!scrolling) {
-      return;
-    }
+    // if (!scrolling) {
+    //   return;
+    // }
 
     this.#titleTextEl.style.setProperty(
       "--audio-player-title-scroll-from",
@@ -489,7 +505,9 @@ export class AudioPlayer extends Elm {
 
     this.#currentTimeEl.textContent = formatTime(currentTime);
 
-    this.#progressRange.setValue(currentTime);
+    if (!this.#progressRange.isDragging) {
+      this.#progressRange.setValue(currentTime);
+    }
   }
 
   #updatePlayButtonUIState() {
