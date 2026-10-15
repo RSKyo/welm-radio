@@ -495,7 +495,9 @@ export class AudioPlayer extends Elm {
   #updateDurationUIState() {
     const duration = this.duration;
 
-    this.#durationTimeEl.textContent = formatTime(duration);
+    this.#durationTimeEl.textContent = formatTime(duration, {
+      fixedMilliseconds: true,
+    });
 
     this.#progressRange.max = duration > 0 ? duration : 1;
   }
@@ -503,7 +505,9 @@ export class AudioPlayer extends Elm {
   #updateCurrentTimeUIState() {
     const currentTime = this.currentTime;
 
-    this.#currentTimeEl.textContent = formatTime(currentTime);
+    this.#currentTimeEl.textContent = formatTime(currentTime, {
+      fixedMilliseconds: true,
+    });
 
     if (!this.#progressRange.isDragging) {
       this.#progressRange.setValue(currentTime);

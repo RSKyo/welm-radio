@@ -113,7 +113,7 @@ export class Timelet extends Elm {
   }
 
   #resolvePaddingAndTime() {
-    const text = formatTime(this.#seconds, this.#full);
+    const text = formatTime(this.#seconds, { full: this.#full });
 
     let startIndex = text.search(/[1-9]/);
 
