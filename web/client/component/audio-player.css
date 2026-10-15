@@ -68,6 +68,8 @@
 /* title */
 
 .audio-player-title {
+  position: relative;
+
   display: flex;
   justify-content: start;
   align-items: center;
@@ -82,7 +84,7 @@
 }
 
 .audio-player-title-text {
-  display: inline-block;
+  flex: none;
 
   white-space: nowrap;
 }
@@ -93,11 +95,15 @@
 
 @keyframes audio-player-title-scroll {
   from {
-    transform: translateX(0);
+    transform: translateX(
+      var(--audio-player-title-scroll-from)
+    );
   }
 
   to {
-    transform: translateX(-100%);
+    transform: translateX(
+      var(--audio-player-title-scroll-to)
+    );
   }
 }
 

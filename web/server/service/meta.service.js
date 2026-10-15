@@ -1,7 +1,6 @@
 import nodePath from "node:path";
 import fs from "node:fs";
 
-
 import { readFileJsonSync, writeFileJsonSync } from "welm-cdp/fs";
 import { assertPlainObject, assertAbsolutePath } from "welm-cdp/infra/assert";
 
@@ -20,9 +19,8 @@ function createDefaultMeta(options = {}) {
     cutPoints: [], // HH:MM:SS.mmm[]
     content: "",
     alternateGroup: "", // 同一组音频的不同版本，使用相同的 alternateGroup 值来关联
-    duration: null, // HH:MM:SS.mmm
-    start: "00:00:00.000", // HH:MM:SS.mmm
-    end: null, // HH:MM:SS.mmm
+    duration: null,
+    end: null,
     createdAt: "",
     updatedAt: "",
   };

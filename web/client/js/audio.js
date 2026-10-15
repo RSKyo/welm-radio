@@ -49,9 +49,9 @@ const audioAlternateGroupFilterElm = new MultiChipGroup(
 );
 
 const audiosElm = new ItemList("#audios");
-const audioPlayerElm = new AudioPlayer("#audio-player",{
-    rootClassExtra: "sm",
-  });
+const audioPlayerElm = new AudioPlayer("#audio-player", {
+  rootClassExtra: "sm",
+});
 
 const audioTypeElm = new SoloChipGroup("#audio-type");
 const audioLanguageElm = new SoloChipGroup("#audio-language");
@@ -109,8 +109,6 @@ function bindEvents() {
   on("#start-transcription", "click", startTranscription);
   on("#select-whisper-model", "click", selectWhisperModel);
   on("#select-vad-model", "click", selectVadModel);
-
-  on("#detect-duration", "click", detectDuration);
 }
 
 async function initData() {
@@ -185,7 +183,7 @@ async function setAudioRoot() {
 }
 
 async function removeAudios() {
-  const audioPaths = audiosElm.getCheckedValue();
+  const audioPaths = audiosElm.checkedValue;
 
   if (audioPaths.length === 0) {
     toast.show("请先选择要删除的音频文件");
@@ -237,7 +235,7 @@ async function orderAudiosAscClickHandler(event) {
 
 async function changeAudio({ item }) {
   setFormMeta(item?.meta);
-  setAudioPlayer(item?.audioPath);
+  setAudioPlayer(item?.audioPath, item.base);
 }
 
 async function doubleClickAudio({ item }) {
@@ -368,45 +366,6 @@ async function selectVadModel() {
   toast.show(`已选择 VAD 模型: ${modelName}`);
 }
 
-async function detectDuration() {
-  const item = audiosElm.getItemByValue(audiosElm.selectedValue);
-
-  if (!item) {
-    toast.show("请先选择一个音频文件");
-    return;
-  }
-
-  let duration = null;
-  const timeout = 3000;
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    duration = audioPlayerElm.duration;
-
-    if (Number.isFinite(duration)) {
-      break;
-    }
-
-    if (audioPlayerElm.error) {
-      toast.show("音频加载失败，无法获取时长");
-      return;
-    }
-
-    await sleep(100);
-  }
-
-  if (!Number.isFinite(duration)) {
-    toast.show("音频信息尚未加载完成，请稍后再试");
-    return;
-  }
-
-  const formattedDuration = formatTime(duration);
-
-  metaFields.duration.value = formattedDuration;
-  metaFields.end.value ||= formattedDuration;
-
-  toast.show(`已检测音频时长: ${formattedDuration}`);
-}
 
 // -----------------------------------------------------------------------------
 // Page Logic
@@ -424,10 +383,10 @@ async function listAudios() {
   const item = audiosElm.getItemByValue(audiosElm.selectedValue);
   if (item) {
     setFormMeta(item.meta);
-    setAudioPlayer(item.audioPath);
+    setAudioPlayer(item.audioPath, item.base);
   } else {
     setFormMeta({});
-    setAudioPlayer("");
+    setAudioPlayer("", "");
   }
 }
 
@@ -477,8 +436,9 @@ function orderAudios(audios) {
   });
 }
 
-function setAudioPlayer(audioPath) {
+function setAudioPlayer(audioPath, title) {
   audioPlayerElm.src = audioApi.getAudioPlayerSrc(audioPath);
+  audioPlayerElm.title = title;
 }
 
 /** meta form */

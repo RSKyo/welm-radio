@@ -1,4 +1,5 @@
 import {
+  assertString,
   assertNonBlankString,
   assertNonNegative,
   assertValueIn,
@@ -138,7 +139,7 @@ export class AudioPlayer extends Elm {
   }
 
   set title(value) {
-    assertNonBlankString(value, "title");
+    assertString(value, "title");
 
     if (value === this.#title) {
       return;
@@ -289,6 +290,87 @@ export class AudioPlayer extends Elm {
   }
 
   // -----------------------------------------------------------------------------
+  // registered events
+  // -----------------------------------------------------------------------------
+
+  set onLoadedMetadata(handler) {
+    this.handler.set("loadedMetadataHandler", handler);
+  }
+
+  #emitLoadedMetadata(value) {
+    this.handler.emit("loadedMetadataHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onDurationChange(handler) {
+    this.handler.set("durationChangeHandler", handler);
+  }
+
+  #emitDurationChange(value) {
+    this.handler.emit("durationChangeHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onTimeUpdate(handler) {
+    this.handler.set("timeUpdateHandler", handler);
+  }
+
+  #emitTimeUpdate(value) {
+    this.handler.emit("timeUpdateHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onPlay(handler) {
+    this.handler.set("playHandler", handler);
+  }
+
+  #emitPlay(value) {
+    this.handler.emit("playHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onPause(handler) {
+    this.handler.set("pauseHandler", handler);
+  }
+
+  #emitPause(value) {
+    this.handler.emit("pauseHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onEnded(handler) {
+    this.handler.set("endedHandler", handler);
+  }
+
+  #emitEnded(value) {
+    this.handler.emit("endedHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  set onEmptied(handler) {
+    this.handler.set("emptiedHandler", handler);
+  }
+
+  #emitEmptied(value) {
+    this.handler.emit("emptiedHandler", {
+      elm: this,
+      value,
+    });
+  }
+
+  // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
 
@@ -299,31 +381,38 @@ export class AudioPlayer extends Elm {
 
     this.event.on(this.#audioEl, "loadedmetadata", () => {
       this.#updateUIState();
+      this.#emitLoadedMetadata(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "durationchange", () => {
       this.#updateDurationUIState();
+      this.#emitDurationChange(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "timeupdate", () => {
       this.#updateCurrentTimeUIState();
+      this.#emitTimeUpdate(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "play", () => {
       this.#updatePlayButtonUIState();
+      this.#emitPlay(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "pause", () => {
       this.#updatePlayButtonUIState();
+      this.#emitPause(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "ended", () => {
       this.#updatePlayButtonUIState();
       this.#updateCurrentTimeUIState();
+      this.#emitEnded(this.#audioEl);
     });
 
     this.event.on(this.#audioEl, "emptied", () => {
       this.#updateUIState();
+      this.#emitEmptied(this.#audioEl);
     });
 
     this.event.on(this.#playButtonEl, "click", async () => {
@@ -353,9 +442,26 @@ export class AudioPlayer extends Elm {
   }
 
   #updateTitleScrollingUIState() {
-    const scrolling = this.#titleTextEl.scrollWidth > this.#titleEl.clientWidth;
+    const textWidth = this.#titleTextEl.scrollWidth;
+    const containerWidth = this.#titleEl.clientWidth;
+
+    const scrolling = textWidth > containerWidth;
 
     this.#titleTextEl.classList.toggle("scrolling", scrolling);
+
+    if (!scrolling) {
+      return;
+    }
+
+    this.#titleTextEl.style.setProperty(
+      "--audio-player-title-scroll-from",
+      `${containerWidth}px`,
+    );
+
+    this.#titleTextEl.style.setProperty(
+      "--audio-player-title-scroll-to",
+      `-${textWidth}px`,
+    );
   }
 
   #updateTimeUIState() {

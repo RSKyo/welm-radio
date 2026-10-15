@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 
 import { config } from "welm-cdp/infra/config";
-import { log } from "welm-cdp/infra/log";
+import { runProgram } from "welm-cdp/infra/process";
 import {
   scanFilesSync,
   removeFileSync,
@@ -296,33 +296,59 @@ export async function importAudios() {
 
   // check file existence and absolute path
   // check if any of the selected files are in the audio root directory
+  const rootPath = nodePath.resolve(audio_root);
   for (const filePath of files) {
     assertExistingFile(filePath, "filePath");
 
-    const dir = nodePath.dirname(filePath);
-    if (dir.startsWith(audio_root)) {
+    const dirPath = nodePath.resolve(nodePath.dirname(filePath));
+    if (dirPath === rootPath || dirPath.startsWith(rootPath + nodePath.sep)) {
       throw new Error(
         `Cannot import audio file from the audio root directory: ${filePath}`,
       );
     }
   }
 
-  for (const filePath of files) {
+  const durations = await Promise.all(
+    files.map((filePath) => getAudioDuration(filePath)),
+  );
+
+  const destPaths = [];
+  for (let i = 0; i < files.length; i++) {
+    const filePath = files[i];
+    const duration = durations[i];
+
     // copy the file to the audio root directory with a random UUID as the file name
     const { ext, name } = nodePath.parse(filePath);
     const fileName = randomUUID() + ext;
     const destPath = nodePath.join(audio_root, fileName);
-    copyFileToSync(filePath, destPath);
 
-    // create meta file for the imported audio
-    const meta = loadMeta(destPath);
-    meta.title = name;
-    meta.extension = ext;
-    saveMeta(destPath, meta);
+    try {
+      copyFileToSync(filePath, destPath);
+
+      // create meta file for the imported audio
+      const meta = loadMeta(destPath);
+      meta.title = name;
+      meta.extension = ext;
+      meta.duration = duration;
+      meta.start = 0;
+      meta.end = duration;
+      saveMeta(destPath, meta);
+
+      destPaths.push(destPath);
+    } catch (error) {
+      if (fs.existsSync(destPath)) {
+        removeFileSync(destPath);
+      }
+      const metaPath = destPath.replace(/\.[^/.]+$/, ".meta.json");
+      if (fs.existsSync(metaPath)) {
+        removeFileSync(metaPath);
+      }
+      throw error;
+    }
   }
 
   return {
-    audioPaths: files,
+    audioPaths: destPaths,
     canceled: false,
   };
 }
@@ -394,4 +420,27 @@ function filterAudios(audios, filter) {
   }
 
   return audios;
+}
+
+async function getAudioDuration(filePath) {
+  assertExistingFile(filePath, "filePath");
+
+  const { stdout } = await runProgram(
+    "ffprobe",
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    filePath,
+  );
+
+  const duration = Number(stdout.trim());
+
+  if (!Number.isFinite(duration) || duration < 0) {
+    throw new Error(`failed to get audio duration: ${filePath}`);
+  }
+
+  return Number(duration.toFixed(3));
 }
