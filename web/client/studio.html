@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="./css/global.css" />
 
     <link rel="stylesheet" href="./css/studio.css" />
-    
+
     <link rel="stylesheet" href="./component/toast.css" />
     <link rel="stylesheet" href="./component/combobox.css" />
     <link rel="stylesheet" href="./component/slider.css" />
@@ -35,6 +35,9 @@
         </div>
       </div>
 
+      <!-- audios -->
+      <div class="hbox gap-4 p-4 bb audio-list"></div>
+
       <!-- main -->
       <div class="grow hbox">
         <!-- left -->
@@ -47,6 +50,13 @@
           "
         >
           <div class="hbox j-end p-4 gap-4 bb">
+            <button
+              id="toggle-audios"
+              class="icon-button"
+              title="展开/折叠音频"
+            >
+              ≡
+            </button>
             <button id="track-add" class="icon-button" title="添加音轨">
               ＋
             </button>

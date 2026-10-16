@@ -15,8 +15,12 @@ import {
 import { dialog } from "welm-cdp/dialog";
 import { assertExistingFile } from "welm-cdp/infra/assert";
 
-import { getMetaPath,loadMeta, saveMeta } from "./meta.service.js";
-import { getWaveformPath,saveWaveform, getAudioWaveform } from "./waveform.service.js";
+import { getMetaPath, loadMeta, saveMeta } from "./meta.service.js";
+import {
+  getWaveformPath,
+  saveWaveform,
+  getAudioWaveform,
+} from "./waveform.service.js";
 import { get } from "node:http";
 
 const execFileAsync = promisify(execFile);
@@ -235,6 +239,35 @@ export function listAudios(filters = {}) {
   });
 
   return filterAudios(audios, filters);
+}
+
+export function listStudioAudios(audioPaths) {
+  const audios = [];
+
+  for (const audioPath of audioPaths) {
+    assertExistingFile(audioPath, "filePath");
+
+    const filePath = audioPath;
+    const { root, dir, base, name, ext } = nodePath.parse(filePath);
+    const metaPath = getMetaPath(filePath);
+    const meta = loadMeta(filePath);
+    const text = meta.title ? meta.title + ext : base;
+
+    audios.push({
+      text,
+      value: filePath,
+      root,
+      dir,
+      base,
+      name,
+      ext,
+      audioPath: filePath,
+      metaPath,
+      meta,
+    });
+  }
+
+  return audios;
 }
 
 export async function setAudioRoot() {

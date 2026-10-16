@@ -3,12 +3,12 @@ import { toast, safeRun, on, isEqualValue } from "./helper.js";
 import { SoloChipGroup, MultiChipGroup } from "../component/chip-group.js";
 import { ItemList } from "../component/item-list.js";
 import { AudioPlayer } from "../component/audio-player.js";
-import { Range } from "../component/range.js";
 
 import { audioApi } from "../api/audio.api.js";
 import { metaApi } from "../api/meta.api.js";
 import { whisperApi } from "../api/whisper.api.js";
-import { assertNonNegative } from "./assert.js";
+
+const STUDIO_AUDIO_PATHS_KEY = "studioAudioPaths";
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -21,8 +21,6 @@ const metaFields = metaFormFrm.elements;
 const whisperModelEl = document.querySelector("#whisper-model");
 const vadModelEl = document.querySelector("#vad-model");
 const startTranscriptionBtn = document.querySelector("#start-transcription");
-const createdAtEl = document.querySelector("#created-at");
-const updatedAtEl = document.querySelector("#updated-at");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -97,9 +95,10 @@ function bindEvents() {
   on("#set-audio-root", "click", setAudioRoot);
 
   on("#select-all", "change", setAudiosCheckedState);
-  on("#remove-audios", "click", removeAudios);
   on("#import-audios", "click", importAudios);
+  on("#remove-audios", "click", removeAudios);
   on("#order-audios", "click", orderAudiosDescClickHandler);
+  on("#add-audios-to-studio", "click", addAudiosToStudio);
 
   on(audioListElm, "selectedChange", changeAudio);
   on(audioListElm, "checkedChange", updateCheckedStateForSelectAll);
@@ -239,6 +238,18 @@ async function orderAudiosDescClickHandler(event) {
   audioListElm.setItems(audios);
 }
 
+function addAudiosToStudio() {
+  const audioPaths = audioListElm.checkedValue;
+
+  if (audioPaths.length === 0) {
+    toast.show("请先选择要加入Studio的音频文件");
+    return;
+  }
+
+  localStorage.setItem(STUDIO_AUDIO_PATHS_KEY, JSON.stringify(audioPaths));
+  toast.show("已将选中的音频文件加入Studio");
+}
+
 async function changeAudio({ item }) {
   setFormMeta(item?.meta);
   setAudioPlayer(item?.audioPath, item.meta.title);
@@ -256,7 +267,6 @@ async function updateCheckedStateForSelectAll() {
       ? false
       : checkedValues.length === audioListElm.getItems().length;
   selectAllChk.checked = check;
-  console.log(checkedValues, check);
 }
 
 async function setAudiosCheckedState(event) {

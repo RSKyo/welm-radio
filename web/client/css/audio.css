@@ -76,11 +76,3 @@
   background: var(--color-surface-raised);
 }
 
-.audio-player-container {
-  padding: 8px;
-
-  border: 0;
-  border-radius: var(--border-radius-md);
-
-  background: var(--color-surface-raised);
-}

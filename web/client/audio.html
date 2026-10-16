@@ -109,7 +109,8 @@
                 −
               </button>
 
-              <button id="order-audios" class="icon-button">⇅</button>
+              <button id="order-audios" class="icon-button" title="排序音频">⇅</button>
+              <button id="add-audios-to-studio" class="icon-button" title="加入Studio">→</button>
             </div>
 
             <div class="audios-info">
@@ -119,6 +120,9 @@
           </div>
 
           <div id="audio-list" class="grow scroll audio-list"></div>
+          <div class="px-8">
+              <div id="audio-player"></div>
+            </div>
         </div>
 
         <!-- meta -->
@@ -137,9 +141,7 @@
           </div>
 
           <div class="grow vbox scroll px-4 gap-4">
-            <div class="audio-player-container">
-              <div id="audio-player"></div>
-            </div>
+            
             <form id="meta-form" class="form">
               <input name="audioPath" type="hidden" />
               <input name="metaPath" type="hidden" />

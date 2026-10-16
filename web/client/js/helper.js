@@ -76,6 +76,10 @@ export function safeHandler(handler) {
 // -----------------------------------------------------------------------------
 
 export function on(target, eventName, handler) {
+  if(target == window) {
+    return bindDomEvent(window, eventName, handler);
+  }
+  
   if (isNonBlankString(target)) {
     const element = target.startsWith("#")
       ? document.getElementById(target.slice(1))

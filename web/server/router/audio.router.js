@@ -11,6 +11,7 @@ import {
   listAudioCategories,
   listAudioAlternateGroups,
   listAudios,
+  listStudioAudios,
   removeAudios,
   importAudios,
   loadAudioData,
@@ -56,6 +57,11 @@ apiRouter.get("/alternate-groups", () => {
 // POST /audio/api/audios
 apiRouter.post("/audios", ({ data }) => {
   return listAudios(data.filters);
+});
+
+// POST /audio/api/stored-audios
+apiRouter.post("/studio-audios", ({ data }) => {
+  return listStudioAudios(data.audioPaths);
 });
 
 // POST /audio/api/set-audio-root

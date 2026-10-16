@@ -1,6 +1,15 @@
 import { setThemeMode } from "./theme.js";
 
-import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
+import {
+  toast,
+  safeRun,
+  on,
+  resolveElement,
+  xToTime,
+  createElementByHTML,
+} from "./helper.js";
+
+import { audioApi } from "../api/audio.api.js";
 
 import { AudioCache } from "../component/timeline/audio-cache.js";
 import { TimelineRuler } from "../component/timeline/ruler.js";
@@ -13,12 +22,26 @@ import { Tumbler } from "../component/tumbler.js";
 
 setThemeMode("light");
 
+const STUDIO_AUDIO_PATHS_KEY = "studioAudioPaths";
+const audioMap = new Map();
+
+const AUDIO_LIST_ITEM_TEMPLATE = `
+<div class="audio-list-item">
+  <span class="audio-list-item-text"></span>
+  <button class="audio-list-item-remove icon-button" title="移除">×</button>
+</div>
+`;
+
+const audioListItemTemplate = createElementByHTML(AUDIO_LIST_ITEM_TEMPLATE);
+
 let timelineContainerPointerX = 0;
 let timelineContainerPointerSeconds = 0;
+
 // -----------------------------------------------------------------------------
 // Elements
 // -----------------------------------------------------------------------------
 
+const audioListEl = resolveElement(".audio-list");
 const addTrackBtn = resolveElement("#track-add");
 const removeTrackBtn = resolveElement("#track-remove");
 const addClipBtn = resolveElement("#clip-add");
@@ -125,6 +148,8 @@ function bindEvents() {
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
 
+  on(window, "storage", localStorageChange);
+  on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
   on(addClipBtn, "click", addClip);
@@ -143,6 +168,94 @@ function bindEvents() {
 
 async function initData() {
   addTrack();
+
+  await listStoredAudios();
+  if (studioAudios.length > 0) {
+    audioListEl.classList.add("open");
+  } else {
+    audioListEl.classList.remove("open");
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Studio Audios
+// -----------------------------------------------------------------------------
+
+function localStorageChange(event) {
+  if (event.storageArea !== localStorage) {
+    return;
+  }
+
+  if (event.key !== STUDIO_AUDIO_PATHS_KEY) {
+    return;
+  }
+
+  listStoredAudios();
+}
+
+async function listStoredAudios() {
+  const storedAudioPaths =
+    JSON.parse(localStorage.getItem(STUDIO_AUDIO_PATHS_KEY)) || [];
+
+  if (storedAudioPaths.length === 0) {
+    audioMap.clear();
+    renderStudioAudios([]);
+    return;
+  }
+
+  const studioAudios = await audioApi.listStudioAudios(storedAudioPaths);
+
+  audioMap.clear();
+  for (const audio of studioAudios) {
+    audioMap.set(audio.audioPath, audio);
+  }
+
+  renderStudioAudios();
+}
+
+function renderStudioAudios() {
+  audioListEl.innerHTML = "";
+
+  for (const audio of audioMap.values()) {
+    const itemEl = audioListItemTemplate.cloneNode(true);
+    itemEl.dataset.audioPath = audio.audioPath;
+    const textEl = itemEl.querySelector(".audio-list-item-text");
+    textEl.textContent = audio.text;
+    textEl.title = audio.text;
+    audioListEl.append(itemEl);
+  }
+
+  audioListEl.removeEventListener("click", removeStoredAudio);
+  audioListEl.addEventListener("click", removeStoredAudio);
+}
+
+function removeStoredAudio(event) {
+  if (!event.target.classList.contains("audio-list-item-remove")) {
+    return;
+  }
+
+  const itemEl = event.target.closest(".audio-list-item");
+  const audioPath = itemEl.dataset.audioPath;
+
+  const storedAudioPaths =
+    JSON.parse(localStorage.getItem(STUDIO_AUDIO_PATHS_KEY)) || [];
+
+  const newStoredAudioPaths = storedAudioPaths.filter(
+    (item) => item !== audioPath,
+  );
+
+  localStorage.setItem(
+    STUDIO_AUDIO_PATHS_KEY,
+    JSON.stringify(newStoredAudioPaths),
+  );
+
+  audioMap.delete(audioPath);
+
+  itemEl.remove();
+}
+
+function toggleAudios() {
+  audioListEl.classList.toggle("open");
 }
 
 // -----------------------------------------------------------------------------
