@@ -184,12 +184,12 @@ export class ChipGroup extends ItemsElm {
 
   // override
   afterSetItems(items) {
-    this.#selectedValue = filterValue(this.#selectedValue, this.itemValues);
+    this.selectedValue = filterValue(this.#selectedValue, this.itemValues);
   }
 
   // override
   afterRemoveItem(removedItem) {
-    this.#selectedValue = filterValue(this.#selectedValue, this.itemValues);
+    this.selectedValue = filterValue(this.#selectedValue, this.itemValues);
   }
 
   // override

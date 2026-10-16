@@ -277,15 +277,15 @@ export class ItemList extends ItemsElm {
   // override
   afterSetItems() {
     const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#checkedValue = filterValue(this.#checkedValue, itemValues);
+    this.selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.checkedValue = filterValue(this.#checkedValue, itemValues);
   }
 
   // override
   afterRemoveItem() {
     const itemValues = this.itemValues;
-    this.#selectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#checkedValue = filterValue(this.#checkedValue, itemValues);
+    this.selectedValue = filterValue(this.#selectedValue, itemValues);
+    this.checkedValue = filterValue(this.#checkedValue, itemValues);
   }
 
   // override

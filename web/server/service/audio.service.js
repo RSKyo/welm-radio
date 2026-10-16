@@ -13,14 +13,11 @@ import {
   readFileBufferSync,
 } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
-import {
-  assertNonBlankString,
-  assertAbsolutePath,
-  assertExistingFile,
-  assertPlainObject,
-} from "welm-cdp/infra/assert";
+import { assertExistingFile } from "welm-cdp/infra/assert";
 
-import { loadMeta, saveMeta } from "./meta.service.js";
+import { getMetaPath,loadMeta, saveMeta } from "./meta.service.js";
+import { getWaveformPath,saveWaveform, getAudioWaveform } from "./waveform.service.js";
+import { get } from "node:http";
 
 const execFileAsync = promisify(execFile);
 
@@ -219,7 +216,7 @@ export function listAudios(filters = {}) {
   });
 
   let audios = files.map(({ root, dir, base, name, ext, filePath }) => {
-    const metaPath = nodePath.join(dir, `${name}.meta.json`);
+    const metaPath = getMetaPath(filePath);
     const meta = loadMeta(filePath);
     const text = meta.title ? meta.title + ext : base;
 
@@ -266,12 +263,14 @@ export function removeAudios(audioPaths) {
 
     removeFileSync(audioPath);
 
-    const dir = nodePath.dirname(audioPath);
-    const name = nodePath.basename(audioPath, nodePath.extname(audioPath));
-    const metaPath = nodePath.join(dir, `${name}.meta.json`);
-
+    const metaPath = getMetaPath(audioPath);
     if (fs.existsSync(metaPath)) {
       removeFileSync(metaPath);
+    }
+
+    const waveformPath = getWaveformPath(audioPath);
+    if (fs.existsSync(waveformPath)) {
+      removeFileSync(waveformPath);
     }
   }
 }
@@ -308,14 +307,25 @@ export async function importAudios() {
     }
   }
 
-  const durations = await Promise.all(
-    files.map((filePath) => getAudioDuration(filePath)),
+  // get the duration and waveform of each selected audio file
+  const audioInfos = await Promise.all(
+    files.map(async (filePath) => {
+      const [duration, waveform] = await Promise.all([
+        getAudioDuration(filePath),
+        getAudioWaveform(filePath),
+      ]);
+
+      return {
+        duration,
+        waveform,
+      };
+    }),
   );
 
   const destPaths = [];
   for (let i = 0; i < files.length; i++) {
     const filePath = files[i];
-    const duration = durations[i];
+    const { duration, waveform } = audioInfos[i];
 
     // copy the file to the audio root directory with a random UUID as the file name
     const { ext, name } = nodePath.parse(filePath);
@@ -325,23 +335,30 @@ export async function importAudios() {
     try {
       copyFileToSync(filePath, destPath);
 
-      // create meta file for the imported audio
-      const meta = loadMeta(destPath);
-      meta.title = name;
-      meta.extension = ext;
-      meta.duration = duration;
-      meta.start = 0;
-      meta.end = duration;
-      saveMeta(destPath, meta);
+      // save the meta data for the imported audio
+      saveMeta(destPath, {
+        title: name,
+        extension: ext,
+        duration: duration,
+        start: 0,
+        end: duration,
+      });
+
+      // save the waveform data for the imported audio
+      saveWaveform(destPath, waveform);
 
       destPaths.push(destPath);
     } catch (error) {
       if (fs.existsSync(destPath)) {
         removeFileSync(destPath);
       }
-      const metaPath = destPath.replace(/\.[^/.]+$/, ".meta.json");
+      const metaPath = getMetaPath(destPath);
       if (fs.existsSync(metaPath)) {
         removeFileSync(metaPath);
+      }
+      const waveformPath = getWaveformPath(destPath);
+      if (fs.existsSync(waveformPath)) {
+        removeFileSync(waveformPath);
       }
       throw error;
     }
@@ -356,14 +373,7 @@ export async function importAudios() {
 export async function loadAudioData(audioPath) {
   assertExistingFile(audioPath, "audioPath");
 
-  const ext = nodePath.extname(audioPath).toLowerCase();
-  const contentType = audio_mime_types[ext] || "application/octet-stream";
-  const buffer = readFileBufferSync(audioPath);
-
-  return {
-    contentType,
-    buffer,
-  };
+  return readFileBufferSync(audioPath);
 }
 
 export function getAudioContentType(audioPath) {

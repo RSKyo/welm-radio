@@ -8,6 +8,7 @@ import { Range } from "../component/range.js";
 import { audioApi } from "../api/audio.api.js";
 import { metaApi } from "../api/meta.api.js";
 import { whisperApi } from "../api/whisper.api.js";
+import { assertNonNegative } from "./assert.js";
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -20,6 +21,8 @@ const metaFields = metaFormFrm.elements;
 const whisperModelEl = document.querySelector("#whisper-model");
 const vadModelEl = document.querySelector("#vad-model");
 const startTranscriptionBtn = document.querySelector("#start-transcription");
+const createdAtEl = document.querySelector("#created-at");
+const updatedAtEl = document.querySelector("#updated-at");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -197,6 +200,9 @@ async function removeAudios() {
   }
 
   await audioApi.removeAudios(audioPaths);
+  for (const audioPath of audioPaths) {
+    audioListElm.removeItem(audioPath);
+  }
 
   toast.show("已删除选中的音频文件");
 
@@ -243,9 +249,14 @@ async function doubleClickAudio({ item }) {
   audioPlayerElm.play();
 }
 
-async function updateCheckedStateForSelectAll({ value }) {
-  selectAllChk.checked =
-    value == null ? false : value.length === audioListElm.getItems().length;
+async function updateCheckedStateForSelectAll() {
+  const checkedValues = audioListElm.checkedValue;
+  const check =
+    checkedValues == null
+      ? false
+      : checkedValues.length === audioListElm.getItems().length;
+  selectAllChk.checked = check;
+  console.log(checkedValues, check);
 }
 
 async function setAudiosCheckedState(event) {
@@ -264,7 +275,11 @@ async function saveMeta() {
     return;
   }
 
-  const savedMeta = await metaApi.saveMeta(item.audioPath, getFormMeta());
+  const oldMeta = item.meta;
+  const audioPath = item.audioPath;
+  const newMeta = getFormMeta();
+
+  const savedMeta = await metaApi.saveMeta(audioPath, newMeta);
 
   setFormMeta(savedMeta);
 
@@ -426,7 +441,6 @@ function setFormMeta(meta = {}) {
   metaFields.title.value = meta.title ?? "";
   metaFields.extension.value = meta.extension ?? "";
 
-  metaFields.description.value = meta.description ?? "";
   metaFields.alternateGroup.value = meta.alternateGroup ?? "";
 
   metaFields.category.value = Array.isArray(meta.category)
@@ -434,16 +448,16 @@ function setFormMeta(meta = {}) {
     : (meta.category ?? "");
   metaFields.content.value = meta.content ?? "";
 
-  metaFields.duration.value = meta.duration ?? "";
-  metaFields.start.value = meta.start ?? "00:00:00.000";
-  metaFields.end.value = meta.end ?? "";
+  metaFields.start.value = meta.start ?? 0;
+  metaFields.start.min = 0;
+  metaFields.start.max = meta.duration ?? 0;
+  metaFields.end.value = meta.end ?? 0;
+  metaFields.end.min = 0;
+  metaFields.end.max = meta.duration ?? 0;
 
   metaFields.cutPoints.value = Array.isArray(meta.cutPoints)
     ? meta.cutPoints.join("\n")
     : "";
-
-  metaFields.createdAt.value = meta.createdAt ?? "";
-  metaFields.updatedAt.value = meta.updatedAt ?? "";
 
   audioTypeElm.selectedValue = meta.type ?? "";
   audioLanguageElm.selectedValue = meta.language ?? "";
@@ -458,7 +472,6 @@ function getFormMeta() {
     title: metaFields.title.value.trim(),
     extension: metaFields.extension.value.trim(),
 
-    description: metaFields.description.value.trim(),
     alternateGroup: metaFields.alternateGroup.value.trim(),
 
     category: metaFields.category.value
@@ -468,17 +481,13 @@ function getFormMeta() {
 
     content: metaFields.content.value.trim(),
 
-    duration: metaFields.duration.value.trim() || null,
-    start: metaFields.start.value.trim() || "00:00:00.000",
-    end: metaFields.end.value.trim() || null,
+    start: Number(metaFields.start.value.trim()) || 0,
+    end: Number(metaFields.end.value.trim()) || 0,
 
     cutPoints: metaFields.cutPoints.value
       .split(/\r?\n/)
       .map((value) => value.trim())
       .filter(Boolean),
-
-    createdAt: metaFields.createdAt.value.trim() || null,
-    updatedAt: metaFields.updatedAt.value.trim() || null,
 
     type: audioTypeElm.selectedValue,
     language: audioLanguageElm.selectedValue,

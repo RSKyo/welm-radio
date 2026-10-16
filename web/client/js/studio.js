@@ -366,7 +366,6 @@ function createDefaultClip(options = {}) {
         "/Users/zzz/Music/Audio Library/21a7cc07-a75a-48fe-b3c1-bffa27e4db23.meta.json",
       title: "✂️ Independence from You — 너로부터 독립하다",
       extension: ".mp3",
-      description: "",
       language: "zh",
       type: "",
       position: "",

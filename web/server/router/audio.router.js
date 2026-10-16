@@ -75,7 +75,9 @@ apiRouter.post("/import-audios", () => {
 
 // GET /audio/api/load-audio-data
 apiRouter.get("/load-audio-data", async ({ data, res }) => {
-  const { contentType, buffer } = await loadAudioData(data.audioPath);
+  const audioPath = data.audioPath;
+  const contentType = getAudioContentType(audioPath);
+  const buffer = await loadAudioData(audioPath);
 
   res.type(contentType);
   res.send(buffer);

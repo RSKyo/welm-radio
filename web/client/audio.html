@@ -162,18 +162,24 @@
                   />
                 </div>
               </div>
-              <div class="form-field">
-                <label>描述</label>
-                <textarea
-                  name="description"
-                  rows="3"
-                  placeholder="音频描述"
-                ></textarea>
-              </div>
 
               <div class="form-field">
-                <label>语言</label>
-                <div id="audio-language"></div>
+                <label>时间</label>
+                <div class="hbox gap-4 a-center">
+                  <input
+                    class="grow"
+                    name="start"
+                    type="number"
+                    placeholder="开始时间"
+                  />
+                  <label>-</label>
+                  <input
+                    class="grow"
+                    name="end"
+                    type="number"
+                    placeholder="结束时间"
+                  />
+                </div>
               </div>
 
               <div class="form-field">
@@ -189,6 +195,11 @@
               <div class="form-field">
                 <label>日段</label>
                 <div id="audio-day-part"></div>
+              </div>
+
+              <div class="form-field">
+                <label>语言</label>
+                <div id="audio-language"></div>
               </div>
 
               <div class="form-field">
@@ -212,6 +223,15 @@
               </div>
 
               <div class="form-field">
+                <label>备选组</label>
+                <input
+                  name="alternateGroup"
+                  type="text"
+                  placeholder="同组音频唯一标识"
+                />
+              </div>
+
+              <div class="form-field">
                 <label>内容</label>
                 <textarea name="content" rows="8"></textarea>
                 <div>
@@ -231,38 +251,7 @@
                 </div>
               </div>
 
-              <div class="form-field">
-                <label>备选组</label>
-                <input
-                  name="alternateGroup"
-                  type="text"
-                  placeholder="同组音频唯一标识"
-                />
-              </div>
-
-              <div class="form-field">
-                <label>总时长</label>
-                <input name="duration" type="text" />
-              </div>
-
-              <div class="form-field">
-                <label>开始时间</label>
-                <input name="start" type="text" />
-              </div>
-
-              <div class="form-field">
-                <label>结束时间</label>
-                <input name="end" type="text" />
-              </div>
-
-              <div class="form-field">
-                <label>创建时间</label>
-                <input name="createdAt" type="text" readonly />
-              </div>
-
-              <div class="form-field">
-                <label>更新时间</label>
-                <input name="updatedAt" type="text" readonly />
+           
               </div>
             </form>
           </div>

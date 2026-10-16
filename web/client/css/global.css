@@ -189,7 +189,7 @@ button.primary:not(:disabled):active {
 }
 
 .form-field > label {
-  color: var(--color-text-secondary);
+  color: var(--color-primary);
 
   font-weight: 500;
 }
