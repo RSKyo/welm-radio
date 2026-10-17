@@ -11,9 +11,9 @@ import {
   getBySelector,
 } from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
-import { ClipGroup } from "./clip-group.js";
+import { ClipGroup,DEFAULT_CLIP_GROUP_MIN_HEIGHT } from "./clip-group.js";
 
-const DEFAULT_TRACK_MIN_HEIGHT = 132;
+
 const TRACK_TEMPLATE = `
 <div class="track" data-role="track">
   <div data-role="clip-group">
@@ -64,7 +64,7 @@ export class TrackList extends ItemsElm {
 
     this.rootElement.style.setProperty(
       "--track-height",
-      `${DEFAULT_TRACK_MIN_HEIGHT}px`,
+      `${DEFAULT_CLIP_GROUP_MIN_HEIGHT}px`,
     );
   }
 
@@ -181,6 +181,19 @@ export class TrackList extends ItemsElm {
 
   removeTrack(trackValue) {
     return this.removeItem(trackValue);
+  }
+
+  getClipGroupAtPoint(clientX, clientY) {
+    const element = document.elementFromPoint(clientX, clientY);
+    const trackEl = element?.closest('[data-role="track"]');
+
+    if (!trackEl || !this.rootElement.contains(trackEl)) {
+      return null;
+    }
+
+    const trackId = trackEl.dataset.value;
+
+    return this.#clipGroupMap.get(trackId) ?? null;
   }
 
   addClip(clip) {

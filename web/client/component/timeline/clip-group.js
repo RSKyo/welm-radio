@@ -19,8 +19,8 @@ const DEFAULT_CLIP_ROW_GAP = 4;
 const DEFAULT_ROW_HEIGHT = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;
 
-const DEFAULT_CLIP_GROUP_MIN_HEIGHT = 132;
-
+export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = DEFAULT_ROW_HEIGHT*3+DEFAULT_CLIP_ROW_GAP;
+console.log(DEFAULT_ROW_HEIGHT*3+DEFAULT_CLIP_ROW_GAP);
 const EMPTY_TEMPLATE = `
 <div class="empty-placeholder">No Clips</div>
 `;
@@ -205,6 +205,29 @@ export class ClipGroup extends ItemsElm {
     assertPlainObject(clip, "clip");
 
     this.addItem(clip);
+  }
+
+  addClipAtPoint(clip, clientX, clientY) {
+    const rect = this.rootElement.getBoundingClientRect();
+
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    const rowIndex = this.#resolveRowIndexByY(y);
+
+    if (rowIndex == null) {
+      return false;
+    }
+
+    clip.clipStart = Number(
+      (Math.max(0, x) / this.#pixelsPerSecond).toFixed(3),
+    );
+
+    clip.rowIndex = rowIndex;
+
+    this.addClip(clip);
+
+    return true;
   }
 
   splitClip() {
@@ -446,11 +469,11 @@ export class ClipGroup extends ItemsElm {
   }
 
   #pointerDownHandler = (event, { element }) => {
-    if (event.button !== 0) {
+    if (this.#draggingPointerId != null) {
       return;
     }
 
-    if (this.#draggingPointerId != null) {
+    if (event.button !== 0) {
       return;
     }
 
@@ -553,10 +576,6 @@ export class ClipGroup extends ItemsElm {
   };
 
   #pointerCancelHandler = (event) => {
-    if (!this.#draggingClipElm) {
-      return;
-    }
-
     if (event.pointerId !== this.#draggingPointerId) {
       return;
     }

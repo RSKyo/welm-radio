@@ -198,10 +198,17 @@ async function removeAudios() {
     return;
   }
 
+  const studioAudioPaths = getLocalStorage(STUDIO_AUDIO_PATHS_KEY) || [];
+  const studioAudioPathsSet = new Set(studioAudioPaths);
+
   await audioApi.removeAudios(audioPaths);
   for (const audioPath of audioPaths) {
     audioListElm.removeItem(audioPath);
+    studioAudioPathsSet.delete(audioPath);
   }
+
+  const newStudioAudioPaths = Array.from(studioAudioPathsSet);
+  setLocalStorage(STUDIO_AUDIO_PATHS_KEY, newStudioAudioPaths);
 
   toast.show("已删除选中的音频文件");
 
@@ -246,7 +253,15 @@ function addAudiosToStudio() {
     return;
   }
 
-  localStorage.setItem(STUDIO_AUDIO_PATHS_KEY, JSON.stringify(audioPaths));
+  const studioAudioPaths = getLocalStorage(STUDIO_AUDIO_PATHS_KEY) || [];
+  const studioAudioPathsSet = new Set(studioAudioPaths);
+  for (const audioPath of audioPaths) {
+    studioAudioPathsSet.add(audioPath);
+  }
+
+  const newStudioAudioPaths = Array.from(studioAudioPathsSet);
+  setLocalStorage(STUDIO_AUDIO_PATHS_KEY, newStudioAudioPaths);
+
   toast.show("已将选中的音频文件加入Studio");
 }
 
@@ -394,6 +409,15 @@ async function selectVadModel() {
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
+
+/** localstore */
+
+function getLocalStorage(key) {
+  return JSON.parse(localStorage.getItem(key));
+}
+function setLocalStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
 
 /** audio list */
 

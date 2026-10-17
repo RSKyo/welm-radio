@@ -61,17 +61,6 @@
   background: var(--color-clip-selected-hover);
 }
 
-.clip-content:hover {
-  background: var(--color-clip-hover);
-}
-
-.clip.is-selected .clip-content {
-  background: var(--color-clip-selected);
-}
-
-.clip.is-selected .clip-content:hover {
-  background: var(--color-clip-selected-hover);
-}
 
 .clip-trim-start,
 .clip-trim-end {

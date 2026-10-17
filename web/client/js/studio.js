@@ -26,9 +26,9 @@ const STUDIO_AUDIO_PATHS_KEY = "studioAudioPaths";
 const audioMap = new Map();
 
 const AUDIO_LIST_ITEM_TEMPLATE = `
-<div class="audio-list-item">
-  <span class="audio-list-item-text"></span>
-  <button class="audio-list-item-remove icon-button" title="移除">×</button>
+<div class="audio">
+  <div class="audio-content"></div>
+  <button class="audio-remove icon-button" title="移除">×</button>
 </div>
 `;
 
@@ -36,6 +36,13 @@ const audioListItemTemplate = createElementByHTML(AUDIO_LIST_ITEM_TEMPLATE);
 
 let timelineContainerPointerX = 0;
 let timelineContainerPointerSeconds = 0;
+
+// dragging
+let draggingPointerId = null;
+let draggingAudio = null;
+let draggingEl = null;
+let draggingGhostEl = null;
+let draggingOffsetX = 0;
 
 // -----------------------------------------------------------------------------
 // Elements
@@ -138,6 +145,13 @@ function initializePage() {
 }
 
 function bindEvents() {
+  // studio audios events
+  on(window, "storage", localStorageChange);
+  on(audioListEl, "pointerdown", audioListPointerDown);
+  on(audioListEl, "pointermove", audioListPointerMove);
+  on(audioListEl, "pointerup", audioListPointerUp);
+  on(audioListEl, "pointercancel", audioListPointerCancel);
+
   on(zoomElm, "change", zoomChange);
 
   on(timelineEl, "scroll", timelineScroll);
@@ -148,7 +162,6 @@ function bindEvents() {
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
 
-  on(window, "storage", localStorageChange);
   on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
@@ -170,7 +183,7 @@ async function initData() {
   addTrack();
 
   await listStoredAudios();
-  if (studioAudios.length > 0) {
+  if (audioMap.size > 0) {
     audioListEl.classList.add("open");
   } else {
     audioListEl.classList.remove("open");
@@ -178,7 +191,7 @@ async function initData() {
 }
 
 // -----------------------------------------------------------------------------
-// Studio Audios
+// Studio Audios events
 // -----------------------------------------------------------------------------
 
 function localStorageChange(event) {
@@ -194,8 +207,7 @@ function localStorageChange(event) {
 }
 
 async function listStoredAudios() {
-  const storedAudioPaths =
-    JSON.parse(localStorage.getItem(STUDIO_AUDIO_PATHS_KEY)) || [];
+  const storedAudioPaths = getLocalStorage(STUDIO_AUDIO_PATHS_KEY) || [];
 
   if (storedAudioPaths.length === 0) {
     audioMap.clear();
@@ -210,16 +222,17 @@ async function listStoredAudios() {
     audioMap.set(audio.audioPath, audio);
   }
 
-  renderStudioAudios();
+  renderStudioAudios(Array.from(audioMap.values()));
 }
 
-function renderStudioAudios() {
+function renderStudioAudios(studioAudios) {
   audioListEl.innerHTML = "";
 
-  for (const audio of audioMap.values()) {
+  for (const audio of studioAudios) {
     const itemEl = audioListItemTemplate.cloneNode(true);
     itemEl.dataset.audioPath = audio.audioPath;
-    const textEl = itemEl.querySelector(".audio-list-item-text");
+    itemEl.draggable = true;
+    const textEl = itemEl.querySelector(".audio-content");
     textEl.textContent = audio.text;
     textEl.title = audio.text;
     audioListEl.append(itemEl);
@@ -230,32 +243,166 @@ function renderStudioAudios() {
 }
 
 function removeStoredAudio(event) {
-  if (!event.target.classList.contains("audio-list-item-remove")) {
+  if (!event.target.classList.contains("audio-remove")) {
     return;
   }
 
-  const itemEl = event.target.closest(".audio-list-item");
-  const audioPath = itemEl.dataset.audioPath;
+  const audioEl = event.target.closest(".audio");
+  const audioPath = audioEl.dataset.audioPath;
 
-  const storedAudioPaths =
-    JSON.parse(localStorage.getItem(STUDIO_AUDIO_PATHS_KEY)) || [];
+  const storedAudioPaths = getLocalStorage(STUDIO_AUDIO_PATHS_KEY) || [];
 
   const newStoredAudioPaths = storedAudioPaths.filter(
     (item) => item !== audioPath,
   );
 
-  localStorage.setItem(
-    STUDIO_AUDIO_PATHS_KEY,
-    JSON.stringify(newStoredAudioPaths),
-  );
+  setLocalStorage(STUDIO_AUDIO_PATHS_KEY, newStoredAudioPaths);
 
   audioMap.delete(audioPath);
 
-  itemEl.remove();
+  audioEl.remove();
 }
 
 function toggleAudios() {
   audioListEl.classList.toggle("open");
+}
+
+// -----------------------------------------------------------------------------
+// Studio Audios dragging events
+// -----------------------------------------------------------------------------
+
+function audioListPointerDown(event) {
+  if (draggingPointerId != null) {
+    return;
+  }
+
+  // 0: left, 1: middle, 2: right
+  if (event.button !== 0) {
+    return;
+  }
+
+  if (event.target.closest(".audio-remove")) {
+    return;
+  }
+
+  const audioEl = event.target.closest(".audio");
+  if (!audioEl) {
+    return;
+  }
+
+  const rect = audioEl.getBoundingClientRect();
+  draggingOffsetX = event.clientX - rect.left;
+
+  draggingPointerId = event.pointerId;
+  audioEl.setPointerCapture(event.pointerId);
+
+  const audioPath = audioEl.dataset.audioPath;
+  draggingAudio = audioMap.get(audioPath);
+  draggingEl = audioEl;
+
+  event.preventDefault();
+
+  createDraggingGhost();
+}
+
+function audioListPointerMove(event) {
+  if (event.pointerId !== draggingPointerId) {
+    return;
+  }
+
+  if (event.buttons === 0) {
+    commitDragging(event);
+    endDragging(event);
+    return;
+  }
+
+  if (draggingGhostEl) {
+    const rect = draggingGhostEl.getBoundingClientRect();
+    draggingGhostEl.style.left = `${rect.left + event.movementX}px`;
+    draggingGhostEl.style.top = `${rect.top + event.movementY}px`;
+  }
+}
+
+function audioListPointerUp(event) {
+  if (event.pointerId !== draggingPointerId) {
+    return;
+  }
+
+  commitDragging(event);
+  endDragging(event);
+}
+
+function audioListPointerCancel(event) {
+  if (event.pointerId !== draggingPointerId) {
+    return;
+  }
+
+  endDragging(event);
+}
+
+function commitDragging(event) {
+  const clipGroupElm = trackListElm.getClipGroupAtPoint(
+    event.clientX,
+    event.clientY,
+  );
+
+  if (!clipGroupElm) {
+    return;
+  }
+
+  const clip = createClipFromAudio(draggingAudio);
+
+  clipGroupElm.addClipAtPoint(clip, event.clientX - draggingOffsetX, event.clientY);
+}
+
+function endDragging(event) {
+  if (
+    draggingEl &&
+    draggingPointerId === event.pointerId &&
+    draggingEl.hasPointerCapture(event.pointerId)
+  ) {
+    draggingEl.releasePointerCapture(event.pointerId);
+  }
+
+  draggingPointerId = null;
+  draggingAudio = null;
+  draggingEl = null;
+  draggingGhostEl?.remove();
+  draggingGhostEl = null;
+}
+
+function createClipFromAudio(audio) {
+  return {
+    clipId: crypto.randomUUID(),
+    title: "",
+    audioStart: audio.meta.start,
+    audioEnd: audio.meta.end,
+    trimStart: audio.meta.start,
+    trimEnd: audio.meta.end,
+    clipStart: 2,
+    rowIndex: 0,
+    audioMeta: { ...audio.meta },
+  };
+}
+
+function createDraggingGhost() {
+  if (draggingEl == null) {
+    return;
+  }
+
+  draggingGhostEl?.remove();
+
+  const rect = draggingEl.getBoundingClientRect();
+
+  draggingGhostEl = draggingEl.cloneNode(true);
+  draggingGhostEl.classList.add("is-drag-ghost");
+
+  draggingGhostEl.style.position = "fixed";
+  draggingGhostEl.style.left = `${rect.left}px`;
+  draggingGhostEl.style.top = `${rect.top}px`;
+  draggingGhostEl.style.width = `${rect.width}px`;
+
+  document.body.appendChild(draggingGhostEl);
 }
 
 // -----------------------------------------------------------------------------
@@ -451,6 +598,16 @@ function duplicateClip() {
 // -----------------------------------------------------------------------------
 // Page Logic
 // -----------------------------------------------------------------------------
+
+/** localstore */
+
+function getLocalStorage(key) {
+  return JSON.parse(localStorage.getItem(key));
+}
+function setLocalStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 function createDefaultTrack(options = {}) {
   return {
     trackId: crypto.randomUUID(),
