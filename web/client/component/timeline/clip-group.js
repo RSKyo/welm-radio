@@ -19,8 +19,8 @@ const DEFAULT_CLIP_ROW_GAP = 4;
 const DEFAULT_ROW_HEIGHT = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;
 
-export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = DEFAULT_ROW_HEIGHT*3+DEFAULT_CLIP_ROW_GAP;
-console.log(DEFAULT_ROW_HEIGHT*3+DEFAULT_CLIP_ROW_GAP);
+export const DEFAULT_CLIP_GROUP_MIN_HEIGHT =
+  DEFAULT_ROW_HEIGHT * 3 + DEFAULT_CLIP_ROW_GAP;
 const EMPTY_TEMPLATE = `
 <div class="empty-placeholder">No Clips</div>
 `;
@@ -123,6 +123,31 @@ export class ClipGroup extends ItemsElm {
     this.#emitHeightChange(this.#height);
   }
 
+  get snapPoints() {
+    const snapPoints = [];
+
+    for (const clipElm of this.#clipMap.values()) {
+      snapPoints.push(
+        {
+          time: clipElm.clipStart,
+          type: "clip",
+          clipId: clipElm.clipId,
+          rowIndex: clipElm.rowIndex,
+          edge: "start",
+        },
+        {
+          time: clipElm.clipEnd,
+          type: "clip",
+          clipId: clipElm.clipId,
+          rowIndex: clipElm.rowIndex,
+          edge: "end",
+        },
+      );
+    }
+
+    return snapPoints;
+  }
+
   // -----------------------------------------------------------------------------
   // state(read-write)
   // -----------------------------------------------------------------------------
@@ -214,10 +239,6 @@ export class ClipGroup extends ItemsElm {
     const y = clientY - rect.top;
 
     const rowIndex = this.#resolveRowIndexByY(y);
-
-    if (rowIndex == null) {
-      return false;
-    }
 
     clip.clipStart = Number(
       (Math.max(0, x) / this.#pixelsPerSecond).toFixed(3),
@@ -397,17 +418,18 @@ export class ClipGroup extends ItemsElm {
 
   #resolveRowIndexByY(y) {
     if (y < 0) {
-      return null;
+      y = 0;
     }
 
     const rowIndex = Math.floor(y / DEFAULT_ROW_HEIGHT);
     const clipTop = rowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
 
-    if (y < clipTop) {
-      return null;
-    }
-
     return rowIndex;
+  }
+
+  resolveClipTop(y) {
+    const rowIndex = Math.floor(y / DEFAULT_ROW_HEIGHT);
+    return rowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
   }
 
   // -----------------------------------------------------------------------------
@@ -630,9 +652,6 @@ export class ClipGroup extends ItemsElm {
     const { y, deltaX } = dragPosition;
 
     const newRowIndex = this.#resolveRowIndexByY(y);
-    if (newRowIndex == null) {
-      return null;
-    }
 
     const newTop = newRowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
 

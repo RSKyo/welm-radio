@@ -19,8 +19,11 @@ import { TimelinePlayhead } from "../component/timeline/playhead.js";
 import { TimelineCursor } from "../component/timeline/cursor.js";
 import { Timelet } from "../component/timelet.js";
 import { Tumbler } from "../component/tumbler.js";
+import { DragDelegate } from "../component/drag.js";
 
 setThemeMode("light");
+
+const SNAP_THRESHOLD = 5;
 
 const STUDIO_AUDIO_PATHS_KEY = "studioAudioPaths";
 const audioMap = new Map();
@@ -37,13 +40,6 @@ const audioListItemTemplate = createElementByHTML(AUDIO_LIST_ITEM_TEMPLATE);
 let timelineContainerPointerX = 0;
 let timelineContainerPointerSeconds = 0;
 
-// dragging
-let draggingPointerId = null;
-let draggingAudio = null;
-let draggingEl = null;
-let draggingGhostEl = null;
-let draggingOffsetX = 0;
-
 // -----------------------------------------------------------------------------
 // Elements
 // -----------------------------------------------------------------------------
@@ -51,7 +47,6 @@ let draggingOffsetX = 0;
 const audioListEl = resolveElement(".audio-list");
 const addTrackBtn = resolveElement("#track-add");
 const removeTrackBtn = resolveElement("#track-remove");
-const addClipBtn = resolveElement("#clip-add");
 const splitClipBtn = resolveElement("#clip-split");
 const removeClipBtn = resolveElement("#clip-remove");
 const duplicateClipBtn = resolveElement("#clip-duplicate");
@@ -63,6 +58,10 @@ const timelineContentEl = resolveElement(".timeline-content");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
+const audioDrag = new DragDelegate(audioListEl, ".audio", {
+  ignoreSelector: ".audio-remove",
+});
+
 const audioContext = new AudioContext();
 
 const audioCache = new AudioCache({
@@ -145,12 +144,11 @@ function initializePage() {
 }
 
 function bindEvents() {
-  // studio audios events
+  // audios drag events
   on(window, "storage", localStorageChange);
-  on(audioListEl, "pointerdown", audioListPointerDown);
-  on(audioListEl, "pointermove", audioListPointerMove);
-  on(audioListEl, "pointerup", audioListPointerUp);
-  on(audioListEl, "pointercancel", audioListPointerCancel);
+  on(audioDrag, "pointerDown", audioDragPointerDown);
+  on(audioDrag, "pointerMove", audioDragPointerMove);
+  on(audioDrag, "pointerUp", audioDragPointerUp);
 
   on(zoomElm, "change", zoomChange);
 
@@ -165,7 +163,6 @@ function bindEvents() {
   on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
-  on(addClipBtn, "click", addClip);
   on(splitClipBtn, "click", splitClip);
   on(removeClipBtn, "click", removeClip);
   on(duplicateClipBtn, "click", duplicateClip);
@@ -231,7 +228,6 @@ function renderStudioAudios(studioAudios) {
   for (const audio of studioAudios) {
     const itemEl = audioListItemTemplate.cloneNode(true);
     itemEl.dataset.audioPath = audio.audioPath;
-    itemEl.draggable = true;
     const textEl = itemEl.querySelector(".audio-content");
     textEl.textContent = audio.text;
     textEl.title = audio.text;
@@ -268,107 +264,86 @@ function toggleAudios() {
 }
 
 // -----------------------------------------------------------------------------
-// Studio Audios dragging events
+// audio dragging events
 // -----------------------------------------------------------------------------
 
-function audioListPointerDown(event) {
-  if (draggingPointerId != null) {
-    return;
-  }
+function audioDragPointerDown({ draggingEl }) {
+  const audioPath = draggingEl.dataset.audioPath;
+  const audio = audioMap.get(audioPath);
+  audioDrag.setState("audio", audio);
 
-  // 0: left, 1: middle, 2: right
-  if (event.button !== 0) {
-    return;
-  }
-
-  if (event.target.closest(".audio-remove")) {
-    return;
-  }
-
-  const audioEl = event.target.closest(".audio");
-  if (!audioEl) {
-    return;
-  }
-
-  const rect = audioEl.getBoundingClientRect();
-  draggingOffsetX = event.clientX - rect.left;
-
-  draggingPointerId = event.pointerId;
-  audioEl.setPointerCapture(event.pointerId);
-
-  const audioPath = audioEl.dataset.audioPath;
-  draggingAudio = audioMap.get(audioPath);
-  draggingEl = audioEl;
-
-  event.preventDefault();
-
-  createDraggingGhost();
+  const snapPoints = getSnapPoints();
+  audioDrag.setState("snapPoints", snapPoints);
 }
 
-function audioListPointerMove(event) {
-  if (event.pointerId !== draggingPointerId) {
+function audioDragPointerMove({
+  draggingGhostEl,
+  clientX,
+  clientY,
+  offsetX,
+  offsetY,
+  isDragging,
+}) {
+  if (!isDragging) {
     return;
   }
 
-  if (event.buttons === 0) {
-    commitDragging(event);
-    endDragging(event);
-    return;
+  let ghostLeft = clientX - offsetX;
+  let ghostTop = clientY - offsetY;
+
+  const clipGroupElm = trackListElm.getClipGroupAtPoint(clientX, clientY);
+
+  if (clipGroupElm) {
+    const clipGroupRect = clipGroupElm.rootElement.getBoundingClientRect();
+
+    const x = ghostLeft - clipGroupRect.left;
+    const y = ghostTop - clipGroupRect.top;
+
+    let clipStart = x / rulerElm.pixelsPerSecond;
+    clipStart = Math.max(0, clipStart);
+
+    const snapPoints = audioDrag.getState("snapPoints");
+    const snap = trySnapTime(clipStart, snapPoints, rulerElm.pixelsPerSecond);
+    clipStart = snap.time;
+    ghostLeft = clipGroupRect.left + clipStart * rulerElm.pixelsPerSecond;
+
+    const clipTop = clipGroupElm.resolveClipTop(y);
+    if (Math.abs(y - clipTop) < SNAP_THRESHOLD) {
+      ghostTop = clipGroupRect.top + clipTop;
+    }
+    ghostTop = Math.max(clipGroupRect.top, ghostTop);
   }
 
-  if (draggingGhostEl) {
-    const rect = draggingGhostEl.getBoundingClientRect();
-    draggingGhostEl.style.left = `${rect.left + event.movementX}px`;
-    draggingGhostEl.style.top = `${rect.top + event.movementY}px`;
-  }
+  draggingGhostEl.style.left = `${ghostLeft}px`;
+  draggingGhostEl.style.top = `${ghostTop}px`;
 }
 
-function audioListPointerUp(event) {
-  if (event.pointerId !== draggingPointerId) {
+function audioDragPointerUp({
+  isDragging,
+  draggingGhostRect,
+  clientX,
+  clientY,
+}) {
+  if (!isDragging) {
     return;
   }
 
-  commitDragging(event);
-  endDragging(event);
-}
-
-function audioListPointerCancel(event) {
-  if (event.pointerId !== draggingPointerId) {
-    return;
-  }
-
-  endDragging(event);
-}
-
-function commitDragging(event) {
-  const clipGroupElm = trackListElm.getClipGroupAtPoint(
-    event.clientX,
-    event.clientY,
-  );
-
+  const clipGroupElm = trackListElm.getClipGroupAtPoint(clientX, clientY);
   if (!clipGroupElm) {
     return;
   }
 
-  const clip = createClipFromAudio(draggingAudio);
-
-  clipGroupElm.addClipAtPoint(clip, event.clientX - draggingOffsetX, event.clientY);
-}
-
-function endDragging(event) {
-  if (
-    draggingEl &&
-    draggingPointerId === event.pointerId &&
-    draggingEl.hasPointerCapture(event.pointerId)
-  ) {
-    draggingEl.releasePointerCapture(event.pointerId);
+  const audio = audioDrag.getState("audio");
+  if (!audio) {
+    return;
   }
 
-  draggingPointerId = null;
-  draggingAudio = null;
-  draggingEl = null;
-  draggingGhostEl?.remove();
-  draggingGhostEl = null;
+  const clip = createClipFromAudio(audio);
+  clipGroupElm.addClipAtPoint(
+    clip,
+    draggingGhostRect.left,
+    draggingGhostRect.top,
+  );
 }
 
 function createClipFromAudio(audio) {
@@ -383,26 +358,6 @@ function createClipFromAudio(audio) {
     rowIndex: 0,
     audioMeta: { ...audio.meta },
   };
-}
-
-function createDraggingGhost() {
-  if (draggingEl == null) {
-    return;
-  }
-
-  draggingGhostEl?.remove();
-
-  const rect = draggingEl.getBoundingClientRect();
-
-  draggingGhostEl = draggingEl.cloneNode(true);
-  draggingGhostEl.classList.add("is-drag-ghost");
-
-  draggingGhostEl.style.position = "fixed";
-  draggingGhostEl.style.left = `${rect.left}px`;
-  draggingGhostEl.style.top = `${rect.top}px`;
-  draggingGhostEl.style.width = `${rect.width}px`;
-
-  document.body.appendChild(draggingGhostEl);
 }
 
 // -----------------------------------------------------------------------------
@@ -514,25 +469,6 @@ function timelineCursorTimeChange({ time }) {
   cursorTimeletElm.seconds = time;
 }
 
-function addClip() {
-  const newClip = createDefaultClip();
-  const result = trackListElm.addClip(newClip);
-
-  switch (result) {
-    case "success":
-      toast.show("Clip added");
-      break;
-
-    case "track-not-selected":
-      toast.show("No track selected");
-      break;
-
-    case "track-not-found":
-      toast.show("Selected track not found");
-      break;
-  }
-}
-
 function splitClip() {
   const result = trackListElm.splitClip();
 
@@ -608,6 +544,44 @@ function setLocalStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+/** snap points */
+
+function getSnapPoints() {
+  return [
+    ...trackListElm.snapPoints,
+    {
+      time: timelinePlayheadElm.time,
+      type: "playhead",
+    },
+  ];
+}
+
+function trySnapTime(
+  time,
+  snapPoints,
+  pixelsPerSecond,
+  threshold = SNAP_THRESHOLD,
+) {
+  let snappedTime = time;
+  let snappedPoint = null;
+  let minDistance = threshold;
+
+  for (const snapPoint of snapPoints) {
+    const distance = Math.abs(time - snapPoint.time) * pixelsPerSecond;
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      snappedTime = snapPoint.time;
+      snappedPoint = snapPoint;
+    }
+  }
+
+  return {
+    time: snappedTime,
+    snapPoint: snappedPoint,
+  };
+}
+
 function createDefaultTrack(options = {}) {
   return {
     trackId: crypto.randomUUID(),
@@ -616,39 +590,5 @@ function createDefaultTrack(options = {}) {
     pan: 0,
     locked: false,
     muted: false,
-  };
-}
-
-function createDefaultClip(options = {}) {
-  return {
-    clipId: crypto.randomUUID(),
-    title: "",
-    audioStart: 15.5,
-    audioEnd: 100,
-    trimStart: 15.5,
-    trimEnd: 100,
-    clipStart: 2,
-    rowIndex: 0,
-    audioMeta: {
-      audioPath:
-        "/Users/zzz/Music/Audio Library/21a7cc07-a75a-48fe-b3c1-bffa27e4db23.mp3",
-      metaPath:
-        "/Users/zzz/Music/Audio Library/21a7cc07-a75a-48fe-b3c1-bffa27e4db23.meta.json",
-      title: "✂️ Independence from You — 너로부터 독립하다",
-      extension: ".mp3",
-      language: "zh",
-      type: "",
-      position: "",
-      dayPart: [],
-      category: [],
-      cutPoints: [],
-      content: "",
-      alternateGroup: "",
-      duration: 120.532,
-      start: 15.5,
-      end: 100,
-      createdAt: "2026-08-16T05:20:17.956Z",
-      updatedAt: "2026-08-16T05:20:17.956Z",
-    },
   };
 }

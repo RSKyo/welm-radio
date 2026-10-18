@@ -287,7 +287,7 @@ export class Clip extends Elm {
   }
 
   get clipStart() {
-    return this.#clipStart;
+    return Number(this.#clipStart.toFixed(3));
   }
 
   set clipStart(value) {

@@ -76,16 +76,16 @@ export function safeHandler(handler) {
 // -----------------------------------------------------------------------------
 
 export function on(target, eventName, handler) {
-  if(target == window) {
+  if (target == window) {
     return bindDomEvent(window, eventName, handler);
   }
-  
+
   if (isNonBlankString(target)) {
     const element = target.startsWith("#")
       ? document.getElementById(target.slice(1))
       : document.querySelector(target);
-
     assertHtmlElement(element, "target");
+
     return bindDomEvent(element, eventName, handler);
   }
 
@@ -93,11 +93,7 @@ export function on(target, eventName, handler) {
     return bindDomEvent(target, eventName, handler);
   }
 
-  if (isElmObject(target)) {
-    return bindElmEvent(target, eventName, handler);
-  }
-
-  throw new Error(`Invalid target: ${String(target)}`);
+  return bindObjEvent(target, eventName, handler);
 }
 
 function bindDomEvent(element, eventName, handler) {
@@ -118,25 +114,19 @@ function bindDomEvent(element, eventName, handler) {
   };
 }
 
-function bindElmEvent(elm, eventName, handler) {
-  const elmName = elm.rootElement?.dataset?.name ?? "object";
+function bindObjEvent(obj, eventName, handler) {
+  const objName = obj.rootElement?.dataset?.name ?? "object";
   const eventProp = `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
 
-  if (!(eventProp in elm)) {
-    throw new Error(`Elm ${elmName} does not have event: ${eventProp}`);
+  if (!(eventProp in obj)) {
+    throw new Error(`Elm ${objName} does not have event: ${eventProp}`);
   }
 
-  elm[eventProp] = safeHandler(handler);
+  obj[eventProp] = safeHandler(handler);
 
   return () => {
-    elm[eventProp] = null;
+    obj[eventProp] = null;
   };
-}
-
-function assertElmObject(target, assertionSubject = "target") {
-  if (!isElmObject(target)) {
-    throw new Error(`${assertionSubject} must be an Elm object`);
-  }
 }
 
 function isElmObject(target) {
@@ -464,10 +454,7 @@ export function parseTime(value) {
  */
 export function formatTime(
   seconds,
-  {
-    full = false,
-    fixedMilliseconds = false,
-  } = {},
+  { full = false, fixedMilliseconds = false } = {},
 ) {
   if (seconds == null) {
     return null;

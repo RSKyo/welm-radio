@@ -11,8 +11,7 @@ import {
   getBySelector,
 } from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
-import { ClipGroup,DEFAULT_CLIP_GROUP_MIN_HEIGHT } from "./clip-group.js";
-
+import { ClipGroup, DEFAULT_CLIP_GROUP_MIN_HEIGHT } from "./clip-group.js";
 
 const TRACK_TEMPLATE = `
 <div class="track" data-role="track">
@@ -84,6 +83,21 @@ export class TrackList extends ItemsElm {
     this.#duration = value;
 
     this.#emitDurationChange(this.#duration);
+  }
+
+  get snapPoints() {
+    const snapPoints = [];
+
+    for (const [trackId, clipGroupElm] of this.#clipGroupMap.entries()) {
+      for (const clipGroupSnapPoint of clipGroupElm.snapPoints) {
+        snapPoints.push({
+          ...clipGroupSnapPoint,
+          trackId,
+        });
+      }
+    }
+
+    return snapPoints;
   }
 
   // -----------------------------------------------------------------------------
