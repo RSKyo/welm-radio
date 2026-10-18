@@ -13,14 +13,13 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
-const DEFAULT_CLIP_MIN_DURATION = 0.05;
-const DEFAULT_CLIP_HEIGHT = 40;
-const DEFAULT_CLIP_ROW_GAP = 4;
-const DEFAULT_ROW_HEIGHT = DEFAULT_CLIP_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+const CLIP_MIN_DURATION = 0.05;
+const CLIP_HEIGHT = 40;
+const CLIP_ROW_GAP = 4;
+const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;
 
-export const DEFAULT_CLIP_GROUP_MIN_HEIGHT =
-  DEFAULT_ROW_HEIGHT * 3 + DEFAULT_CLIP_ROW_GAP;
+export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = CLIP_ROW_HEIGHT * 3 + CLIP_ROW_GAP;
 const EMPTY_TEMPLATE = `
 <div class="empty-placeholder">No Clips</div>
 `;
@@ -265,11 +264,11 @@ export class ClipGroup extends ItemsElm {
 
     const splitTime = this.#playheadTime;
 
-    if (splitTime <= clipElm.clipStart + DEFAULT_CLIP_MIN_DURATION) {
+    if (splitTime <= clipElm.clipStart + CLIP_MIN_DURATION) {
       return "too-close-to-start";
     }
 
-    if (splitTime >= clipElm.clipEnd - DEFAULT_CLIP_MIN_DURATION) {
+    if (splitTime >= clipElm.clipEnd - CLIP_MIN_DURATION) {
       return "too-close-to-end";
     }
 
@@ -359,8 +358,7 @@ export class ClipGroup extends ItemsElm {
       maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
     }
 
-    const height =
-      (maxRowIndex + 1) * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const height = (maxRowIndex + 1) * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
@@ -421,15 +419,34 @@ export class ClipGroup extends ItemsElm {
       y = 0;
     }
 
-    const rowIndex = Math.floor(y / DEFAULT_ROW_HEIGHT);
-    const clipTop = rowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const rowIndex = Math.floor(y / CLIP_ROW_HEIGHT);
+    const clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
 
     return rowIndex;
   }
 
-  resolveClipTop(y) {
-    const rowIndex = Math.floor(y / DEFAULT_ROW_HEIGHT);
-    return rowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+  resolveClipPosition(x, y) {
+    const clipStart = Math.max(0, x / this.#pixelsPerSecond);
+    const rowIndex = Math.max(0, Math.floor(y / CLIP_ROW_HEIGHT));
+    const clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
+
+    let top;
+    if (Math.abs(y - clipTop) < SNAP_THRESHOLD) {
+      top = clipTop;
+    } else {
+      top = Math.max(0, y);
+    }
+
+    return {
+      clipStart,
+      rowIndex,
+      clipTop,
+      top,
+      clipRowHeight: CLIP_ROW_HEIGHT,
+      clipRowGap: CLIP_ROW_GAP,
+      snapThreshold: SNAP_THRESHOLD,
+      pixelsPerSecond: this.#pixelsPerSecond,
+    };
   }
 
   // -----------------------------------------------------------------------------
@@ -653,7 +670,7 @@ export class ClipGroup extends ItemsElm {
 
     const newRowIndex = this.#resolveRowIndexByY(y);
 
-    const newTop = newRowIndex * DEFAULT_ROW_HEIGHT + DEFAULT_CLIP_ROW_GAP;
+    const newTop = newRowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
 
     let newLeft = clipElm.left + deltaX;
     const newEndLeft = newLeft + clipElm.width;
@@ -763,7 +780,7 @@ export class ClipGroup extends ItemsElm {
       const minAllowedLeft = Math.max(audioStartLeft, prevClipEndLeft);
 
       // Keep at least the minimum clip duration.
-      const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
+      const minWidth = CLIP_MIN_DURATION * this.#pixelsPerSecond;
       const maxAllowedLeft = clipElm.endLeft - minWidth;
 
       // Snap to the previous clip in the same row.
@@ -833,7 +850,7 @@ export class ClipGroup extends ItemsElm {
       const maxAllowedLeft = Math.min(audioEndLeft, nextClipLeft);
 
       // Keep at least the minimum clip duration.
-      const minWidth = DEFAULT_CLIP_MIN_DURATION * this.#pixelsPerSecond;
+      const minWidth = CLIP_MIN_DURATION * this.#pixelsPerSecond;
       const minAllowedLeft = clipElm.left + minWidth;
 
       // Snap to the next clip in the same row.
@@ -1093,8 +1110,8 @@ export class ClipGroup extends ItemsElm {
     const clipOptions = {
       ...item,
       pixelsPerSecond: this.#pixelsPerSecond,
-      height: DEFAULT_CLIP_HEIGHT,
-      rowGap: DEFAULT_CLIP_ROW_GAP,
+      height: CLIP_HEIGHT,
+      rowGap: CLIP_ROW_GAP,
       audioCache: this.#audioCache,
     };
 

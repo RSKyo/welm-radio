@@ -1,5 +1,5 @@
 import { assertHtmlElement, assertNonBlankString } from "./base/assert.js";
-import { resolveElement } from "./base/helper.js";
+import { resolveElement, closestElement } from "./base/helper.js";
 import { ElmHandler } from "./base/elm-handler.js";
 
 export class DragDelegate {
@@ -7,18 +7,26 @@ export class DragDelegate {
   #containerEl = null;
   #selector = null;
   #ignoreSelector = null;
+  #targetSelector = null;
 
   #stateValue = new Map();
   #draggingPointerId = null;
-  #draggingEl = null;
-  #draggingGhostEl = null;
+  #origin = null;
+  #dragging = null;
+  #draggingGhost = null;
 
+  #startClientX = null;
+  #startClientY = null;
   #startX = null;
   #startY = null;
   #offsetX = null;
   #offsetY = null;
 
-  constructor(container, selector, { ignoreSelector = null } = {}) {
+  constructor(
+    container,
+    selector,
+    { ignoreSelector = null, targetSelector = null } = {},
+  ) {
     this.#containerEl = resolveElement(container);
     assertHtmlElement(this.#containerEl);
 
@@ -28,6 +36,11 @@ export class DragDelegate {
     if (ignoreSelector !== null) {
       this.#ignoreSelector = ignoreSelector;
       assertNonBlankString(this.#ignoreSelector);
+    }
+
+    if (targetSelector !== null) {
+      this.#targetSelector = targetSelector;
+      assertNonBlankString(this.#targetSelector);
     }
 
     this.#containerEl.addEventListener("pointerdown", this.#pointerDown);
@@ -54,20 +67,28 @@ export class DragDelegate {
       return;
     }
 
-    if (
-      this.#ignoreSelector &&
-      this.#closestElement(event, this.#ignoreSelector)
-    ) {
+    if (this.#ignoreSelector && closestElement(event, this.#ignoreSelector)) {
       return;
     }
 
-    const draggingEl = this.#closestElement(event, this.#selector);
+    const draggingEl = closestElement(event, this.#selector);
     if (draggingEl == null) {
       return;
     }
 
-    this.#draggingEl = draggingEl;
     this.#draggingPointerId = event.pointerId;
+
+    this.#origin = this.#containerEl;
+    const originRect = this.#containerEl.getBoundingClientRect();
+    this.#dragging = draggingEl;
+    const draggingRect = draggingEl.getBoundingClientRect();
+
+    this.#startClientX = event.clientX;
+    this.#startClientY = event.clientY;
+    this.#startX = event.clientX - originRect.left;
+    this.#startY = event.clientY - originRect.top;
+    this.#offsetX = event.clientX - draggingRect.left;
+    this.#offsetY = event.clientY - draggingRect.top;
 
     event.preventDefault();
 
@@ -78,6 +99,15 @@ export class DragDelegate {
   #pointerMove = (event) => {
     if (event.pointerId !== this.#draggingPointerId) {
       return;
+    }
+
+    if (this.#draggingGhost == null) {
+      const deltaX = event.clientX - this.#startClientX;
+      const deltaY = event.clientY - this.#startClientY;
+
+      if (Math.hypot(deltaX, deltaY) >= 3) {
+        this.#createDraggingGhost();
+      }
     }
 
     const draggingInfo = this.#getDraggingInfo(event);
@@ -114,11 +144,14 @@ export class DragDelegate {
 
   #endDragging() {
     this.#draggingPointerId = null;
-    this.#draggingEl = null;
+    this.#origin = null;
+    this.#dragging = null;
 
-    this.#draggingGhostEl?.remove();
-    this.#draggingGhostEl = null;
+    this.#draggingGhost?.remove();
+    this.#draggingGhost = null;
 
+    this.#startClientX = null;
+    this.#startClientY = null;
     this.#startX = null;
     this.#startY = null;
     this.#offsetX = null;
@@ -128,74 +161,94 @@ export class DragDelegate {
   }
 
   #createDraggingGhost() {
-    if (this.#draggingEl == null) {
+    if (this.#dragging == null) {
       return;
     }
 
-    this.#draggingGhostEl?.remove();
+    this.#draggingGhost?.remove();
+    this.#draggingGhost = this.#dragging.cloneNode(true);
+    const draggingGhost = this.#draggingGhost;
 
-    const rect = this.#draggingEl.getBoundingClientRect();
+    const rect = this.#dragging.getBoundingClientRect();
 
-    this.#draggingGhostEl = this.#draggingEl.cloneNode(true);
-    this.#draggingGhostEl.classList.add("is-drag-ghost");
+    draggingGhost.classList.add("is-drag-ghost");
 
-    this.#draggingGhostEl.style.position = "fixed";
-    this.#draggingGhostEl.style.left = `${rect.left}px`;
-    this.#draggingGhostEl.style.top = `${rect.top}px`;
-    this.#draggingGhostEl.style.width = `${rect.width}px`;
+    draggingGhost.style.position = "fixed";
+    draggingGhost.style.left = `${rect.left}px`;
+    draggingGhost.style.top = `${rect.top}px`;
+    // draggingGhost.style.width = `${rect.width}px`;
 
-    document.body.appendChild(this.#draggingGhostEl);
+    document.body.appendChild(draggingGhost);
   }
 
   #getDraggingInfo(event) {
     const clientX = event.clientX;
     const clientY = event.clientY;
 
-    const containerElRect = this.#containerEl.getBoundingClientRect();
+    const originRect = this.#containerEl.getBoundingClientRect();
+    const originLeft = originRect.left;
+    const originTop = originRect.top;
+    const originLocalX = clientX - originLeft;
+    const originLocalY = clientY - originTop;
 
-    const x = clientX - containerElRect.left;
-    const y = clientY - containerElRect.top;
+    let target = null;
+    let targetRect = null;
+    let targetLeft = null;
+    let targetTop = null;
+    let targetLocalX = null;
+    let targetLocalY = null;
 
-    if (this.#startX == null || this.#startY == null) {
-      this.#startX = x;
-      this.#startY = y;
+    if (this.#targetSelector) {
+      const element = document.elementFromPoint(clientX, clientY);
+      target = element?.closest(this.#targetSelector);
+
+      if (target) {
+        targetRect = target.getBoundingClientRect();
+        targetLeft = targetRect.left;
+        targetTop = targetRect.top;
+        targetLocalX = clientX - targetLeft;
+        targetLocalY = clientY - targetTop;
+      }
     }
-    const deltaX = x - this.#startX;
-    const deltaY = y - this.#startY;
 
-    const draggingElRect = this.#draggingEl.getBoundingClientRect();
+    const isSameOrigin = target === this.#containerEl;
 
-    if (this.#offsetX == null || this.#offsetY == null) {
-      this.#offsetX = clientX - draggingElRect.left;
-      this.#offsetY = clientY - draggingElRect.top;
-    }
-
-    if (this.#draggingGhostEl == null && Math.hypot(deltaX, deltaY) >= 3) {
-      this.#createDraggingGhost();
-    }
-
-    const draggingGhostRect = this.#draggingGhostEl?.getBoundingClientRect();
+    const draggingRect = this.#dragging?.getBoundingClientRect();
+    const draggingGhostRect = this.#draggingGhost?.getBoundingClientRect();
+    const draggingGhostLeft = draggingGhostRect?.left;
+    const draggingGhostTop = draggingGhostRect?.top;
 
     return {
       event,
-      draggingPointerId: this.#draggingPointerId,
-      containerEl: this.#containerEl,
-      containerElRect: containerElRect,
-      draggingEl: this.#draggingEl,
-      draggingElRect: draggingElRect,
-      draggingGhostEl: this.#draggingGhostEl,
-      draggingGhostRect: draggingGhostRect,
       clientX: clientX,
       clientY: clientY,
+      startClientX: this.#startClientX,
+      startClientY: this.#startClientY,
       startX: this.#startX,
       startY: this.#startY,
-      x: x,
-      y: y,
-      deltaX: deltaX,
-      deltaY: deltaY,
       offsetX: this.#offsetX,
       offsetY: this.#offsetY,
-      isDragging: this.#draggingGhostEl != null,
+      draggingPointerId: this.#draggingPointerId,
+      origin: this.#origin,
+      originRect: originRect,
+      originLeft: originLeft,
+      originTop: originTop,
+      originLocalX: originLocalX,
+      originLocalY: originLocalY,
+      target: target,
+      targetRect: targetRect,
+      targetLeft: targetLeft,
+      targetTop: targetTop,
+      targetLocalX: targetLocalX,
+      targetLocalY: targetLocalY,
+      isSameOrigin: isSameOrigin,
+      dragging: this.#dragging,
+      draggingRect: draggingRect,
+      draggingGhost: this.#draggingGhost,
+      draggingGhostRect: draggingGhostRect,
+      draggingGhostLeft: draggingGhostLeft,
+      draggingGhostTop: draggingGhostTop,
+      isDragging: this.#draggingGhost != null,
     };
   }
 
@@ -243,27 +296,5 @@ export class DragDelegate {
 
   #emitPointerCancel(draggingInfo) {
     this.#handler.emit("pointerCancelHandler", draggingInfo);
-  }
-
-  // -----------------------------------------------------------------------------
-  // methods
-  // -----------------------------------------------------------------------------
-
-  #closestElement(event, selector) {
-    assertNonBlankString(selector, "selector");
-
-    const { target, currentTarget } = event;
-
-    if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
-      return null;
-    }
-
-    const element = target.closest(selector);
-
-    if (element == null || !currentTarget.contains(element)) {
-      return null;
-    }
-
-    return element;
   }
 }

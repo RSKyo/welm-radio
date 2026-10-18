@@ -315,6 +315,24 @@ export function getBySelector(target, ...selectors) {
   return selectors.length === 1 ? elements[0] : elements;
 }
 
+  export function closestElement(event, selector) {
+    assertNonBlankString(selector, "selector");
+
+    const { target, currentTarget } = event;
+
+    if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
+      return null;
+    }
+
+    const element = target.closest(selector);
+
+    if (element == null || !currentTarget.contains(element)) {
+      return null;
+    }
+
+    return element;
+  }
+
 // -----------------------------------------------------------------------------
 // Time and Position Helpers
 // -----------------------------------------------------------------------------
@@ -504,3 +522,4 @@ export function formatTime(
 
   return `${second}${fractionText}`;
 }
+

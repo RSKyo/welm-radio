@@ -25,7 +25,7 @@ export const audioApi = {
   listAudios: (filters) => http.post("/audios", { filters }),
 
   // POST /audio/api/studio-audios
-  listStudioAudios: (audioPaths) => http.post("/studio-audios", { audioPaths }),
+  listAudiosByPaths: (audioPaths) => http.post("/audios-by-paths", { audioPaths }),
 
   // POST /audio/api/set-audio-root
   setAudioRoot: () => http.post("/set-audio-root"),

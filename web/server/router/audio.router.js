@@ -11,7 +11,7 @@ import {
   listAudioCategories,
   listAudioAlternateGroups,
   listAudios,
-  listStudioAudios,
+  listAudiosByPaths,
   removeAudios,
   importAudios,
   loadAudioData,
@@ -59,9 +59,9 @@ apiRouter.post("/audios", ({ data }) => {
   return listAudios(data.filters);
 });
 
-// POST /audio/api/stored-audios
-apiRouter.post("/studio-audios", ({ data }) => {
-  return listStudioAudios(data.audioPaths);
+// POST /audio/api/audios-by-paths
+apiRouter.post("/audios-by-paths", ({ data }) => {
+  return listAudiosByPaths(data.audioPaths);
 });
 
 // POST /audio/api/set-audio-root

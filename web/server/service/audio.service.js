@@ -14,6 +14,7 @@ import {
 } from "welm-cdp/fs";
 import { dialog } from "welm-cdp/dialog";
 import { assertExistingFile } from "welm-cdp/infra/assert";
+import { isExistingFile } from "welm-cdp/infra/is";
 
 import { getMetaPath, loadMeta, saveMeta } from "./meta.service.js";
 import {
@@ -241,11 +242,13 @@ export function listAudios(filters = {}) {
   return filterAudios(audios, filters);
 }
 
-export function listStudioAudios(audioPaths) {
+export function listAudiosByPaths(audioPaths) {
   const audios = [];
 
   for (const audioPath of audioPaths) {
-    assertExistingFile(audioPath, "filePath");
+    if(!isExistingFile(audioPath, "filePath")) {
+      continue;
+    }
 
     const filePath = audioPath;
     const { root, dir, base, name, ext } = nodePath.parse(filePath);

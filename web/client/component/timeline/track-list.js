@@ -197,16 +197,7 @@ export class TrackList extends ItemsElm {
     return this.removeItem(trackValue);
   }
 
-  getClipGroupAtPoint(clientX, clientY) {
-    const element = document.elementFromPoint(clientX, clientY);
-    const trackEl = element?.closest('[data-role="track"]');
-
-    if (!trackEl || !this.rootElement.contains(trackEl)) {
-      return null;
-    }
-
-    const trackId = trackEl.dataset.value;
-
+  getClipGroup(trackId) {
     return this.#clipGroupMap.get(trackId) ?? null;
   }
 
@@ -374,6 +365,9 @@ export class TrackList extends ItemsElm {
       pixelsPerSecond: this.#pixelsPerSecond,
       playheadTime: this.#playheadTime,
       audioCache: this.#audioCache,
+      dataset: {
+        trackId: value
+      }
     });
 
     clipGroupElm.onSelectedChange = ({ elm, clip }) => {

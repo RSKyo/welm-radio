@@ -1,7 +1,9 @@
 .clip {
   --clip-height: 40px;
   --clip-trim-width: 4px;
+}
 
+.clip {
   position: absolute;
 
   display: flex;
