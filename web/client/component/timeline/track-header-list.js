@@ -15,8 +15,9 @@ import { ItemsElm } from "../base/items-elm.js";
 import { Combobox } from "../combobox.js";
 import { GainSlider, PanSlider } from "../slider.js";
 import { ToggleButton } from "../toggle-button.js";
+import { ClipGroup, DEFAULT_CLIP_GROUP_MIN_HEIGHT } from "./clip-group.js";
 
-const DEFAULT_TRACK_MIN_HEIGHT = 132;
+
 
 const ITEM_TEMPLATE = `
 <div class="track-header" data-role="track-header">
@@ -56,7 +57,7 @@ export class TrackHeaderList extends ItemsElm {
   #init() {
     this.rootElement.style.setProperty(
       "--track-height",
-      `${DEFAULT_TRACK_MIN_HEIGHT}px`,
+      `${DEFAULT_CLIP_GROUP_MIN_HEIGHT}px`,
     );
   }
 
