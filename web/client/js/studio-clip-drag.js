@@ -142,21 +142,22 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           clipGroupElm.pixelsPerSecond,
           snapThreshold,
         );
-console.log(originLocalGhostLeft);
-         originLocalGhostLeft = snap.time * clipGroupElm.pixelsPerSecond;console.log("clipStart",clipStart,snap.time,originLocalGhostLeft);
+
+         originLocalGhostLeft = snap.time * clipGroupElm.pixelsPerSecond;
         ghostLeft = originLeft + originLocalGhostLeft;
 
         const deltaWidth = ghostLeft - draggingLeft;
-console.log("deltaWidth", deltaWidth);
+
         draggingGhost.style.left = `${ghostLeft}px`;
-        console.log("width", draggingGhost.style.width,dragging.offsetWidth,dragging.clientWidth,draggingGhostRect.width);
+        
         draggingGhost.style.width = `${draggingRect.width - deltaWidth}px`;
       }
 
       if (mode === "trim-end") {
-        const offsetRight = dragging.clientWidth - offsetX;
+        const offsetRight = draggingRect.width - offsetX;
         const originLocalGhostRight = originLocalX + offsetRight;
         const originLocalGhostTop = startY - offsetY;
+        // console.log(originLocalGhostRight);
 
         const {
           time: clipEnd,
@@ -166,6 +167,7 @@ console.log("deltaWidth", deltaWidth);
           originLocalGhostRight,
           originLocalGhostTop,
         );
+        
 
         const snapPoints = clipDrag.getState("snapPoints");
         const snap = trySnapTime(
@@ -173,9 +175,10 @@ console.log("deltaWidth", deltaWidth);
           snapPoints,
           clipGroupElm.pixelsPerSecond,
           snapThreshold,
-        );
+        );console.log(snap.time);
 
-        const ghostWidth = snap.time * clipGroupElm.pixelsPerSecond - draggingLeft
+        const ghostWidth = snap.time * clipGroupElm.pixelsPerSecond - (draggingLeft - targetLeft);
+        console.log(ghostWidth,draggingLeft);
 
         draggingGhost.style.width = `${ghostWidth}px`;
       }
@@ -190,6 +193,12 @@ console.log("deltaWidth", deltaWidth);
     targetTop,
     draggingGhostLeft,
     draggingGhostTop,
+    draggingRect,
+    offsetX,
+    offsetY,
+    draggingGhostRect,
+    originLeft,
+    originTop,
   }) {
     if (!isDragging) {
       return;
@@ -239,7 +248,7 @@ console.log("deltaWidth", deltaWidth);
       const originLocalGhostLeft = draggingGhostLeft - targetLeft;
       const originLocalGhostTop = draggingGhostTop - targetTop;
 
-      const { time: clipStart } = targetClipGroupElm.resolvePosition(
+      const { time: clipStart } = originClipGroupElm.resolvePosition(
         originLocalGhostLeft,
         originLocalGhostTop,
       );
@@ -247,6 +256,28 @@ console.log("deltaWidth", deltaWidth);
       const deltaTime = clipStart - item.clipStart;
       item.clipStart = clipStart;
       item.trimStart += deltaTime;
+      originClipGroupElm.updateItem(item);
+    }
+
+    if (mode === "trim-end") {
+
+      const offsetRight = draggingRect.width - offsetX;
+        const originLocalGhostRight = draggingGhostLeft + draggingGhostRect.width - originLeft;
+        const originLocalGhostTop = draggingGhostTop - originTop;
+
+       const {
+          time: clipEnd,
+          top,
+          snapThreshold,
+        } = originClipGroupElm.resolvePosition(
+          originLocalGhostRight,
+          originLocalGhostTop,
+        );
+
+        const oldClipEnd = item.clipStart + (item.trimEnd - item.trimStart);
+
+      const deltaTime = clipEnd - oldClipEnd;
+      item.trimEnd += deltaTime;
       originClipGroupElm.updateItem(item);
     }
   }

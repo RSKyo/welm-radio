@@ -103,6 +103,15 @@ export class DragDelegate {
       return;
     }
 
+    // if (this.#draggingGhost == null) {
+    //   const deltaX = event.clientX - this.#startClientX;
+    //   const deltaY = event.clientY - this.#startClientY;
+
+    //   if (Math.hypot(deltaX, deltaY) >= 3) {
+    //     this.#createDraggingGhost(deltaX, deltaY);
+    //   }
+    // }
+
     const draggingInfo = this.#getDraggingInfo(event);
     this.#emitPointerMove(draggingInfo);
   };
@@ -169,7 +178,7 @@ export class DragDelegate {
     draggingGhost.style.position = "fixed";
     draggingGhost.style.left = `${rect.left}px`;
     draggingGhost.style.top = `${rect.top}px`;
-    // draggingGhost.style.width = `${rect.width}px`;
+    draggingGhost.style.width = `${rect.width}px`;
 
     document.body.appendChild(draggingGhost);
   }
