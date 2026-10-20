@@ -358,7 +358,7 @@ export class ClipGroup extends ItemsElm {
       maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
     }
 
-    const height = (maxRowIndex + 1) * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
+    const height = (maxRowIndex + 1 + 1) * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
     return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
@@ -425,8 +425,8 @@ export class ClipGroup extends ItemsElm {
     return rowIndex;
   }
 
-  resolveClipPosition(x, y) {
-    const clipStart = Math.max(0, x / this.#pixelsPerSecond);
+  resolvePosition(x, y) {
+    const time = Math.max(0, x / this.#pixelsPerSecond);
     const rowIndex = Math.max(0, Math.floor(y / CLIP_ROW_HEIGHT));
     const clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
 
@@ -438,7 +438,7 @@ export class ClipGroup extends ItemsElm {
     }
 
     return {
-      clipStart,
+      time,
       rowIndex,
       clipTop,
       top,
@@ -492,66 +492,66 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(this.rootElement, "pointerdown", this.#pointerDownHandler, {
-      selector: '[data-role="clip"]',
-    });
+    // this.event.on(this.rootElement, "pointerdown", this.#pointerDownHandler, {
+    //   selector: '[data-role="clip"]',
+    // });
 
-    this.event.on(this.rootElement, "pointermove", this.#pointerMoveHandler);
+    // this.event.on(this.rootElement, "pointermove", this.#pointerMoveHandler);
 
-    this.event.on(this.rootElement, "pointerup", this.#pointerUpHandler);
+    // this.event.on(this.rootElement, "pointerup", this.#pointerUpHandler);
 
-    this.event.on(
-      this.rootElement,
-      "pointercancel",
-      this.#pointerCancelHandler,
-    );
+    // this.event.on(
+    //   this.rootElement,
+    //   "pointercancel",
+    //   this.#pointerCancelHandler,
+    // );
   }
 
-  #pointerDownHandler = (event, { element }) => {
-    if (this.#draggingPointerId != null) {
-      return;
-    }
+  // #pointerDownHandler = (event, { element }) => {
+  //   if (this.#draggingPointerId != null) {
+  //     return;
+  //   }
 
-    if (event.button !== 0) {
-      return;
-    }
+  //   if (event.button !== 0) {
+  //     return;
+  //   }
 
-    const value = element.dataset.value;
-    const clipElm = this.#clipMap.get(value);
-    if (!clipElm) {
-      return;
-    }
+  //   const value = element.dataset.value;
+  //   const clipElm = this.#clipMap.get(value);
+  //   if (!clipElm) {
+  //     return;
+  //   }
 
-    this.#setSelectedValue(value);
+  //   this.#setSelectedValue(value);
 
-    const clipGroupRect = this.rootElement.getBoundingClientRect();
+  //   const clipGroupRect = this.rootElement.getBoundingClientRect();
 
-    const trimStartEl = event.target.closest(".clip-trim-start");
-    const trimEndEl = event.target.closest(".clip-trim-end");
+  //   const trimStartEl = event.target.closest(".clip-trim-start");
+  //   const trimEndEl = event.target.closest(".clip-trim-end");
 
-    if (trimStartEl) {
-      this.#dragMode = "trim-start";
-      clipElm.frontTrim = "start";
-      this.rootElement.classList.add("is-trimming");
-    } else if (trimEndEl) {
-      this.#dragMode = "trim-end";
-      clipElm.frontTrim = "end";
-      this.rootElement.classList.add("is-trimming");
-    } else {
-      this.#dragMode = "move";
-      this.rootElement.classList.add("is-moving");
-    }
+  //   if (trimStartEl) {
+  //     this.#dragMode = "trim-start";
+  //     clipElm.frontTrim = "start";
+  //     this.rootElement.classList.add("is-trimming");
+  //   } else if (trimEndEl) {
+  //     this.#dragMode = "trim-end";
+  //     clipElm.frontTrim = "end";
+  //     this.rootElement.classList.add("is-trimming");
+  //   } else {
+  //     this.#dragMode = "move";
+  //     this.rootElement.classList.add("is-moving");
+  //   }
 
-    this.#draggingClipElm = clipElm;
-    this.#draggingElement = element;
-    this.#draggingPointerId = event.pointerId;
-    this.#dragStartX = event.clientX - clipGroupRect.left;
+  //   this.#draggingClipElm = clipElm;
+  //   this.#draggingElement = element;
+  //   this.#draggingPointerId = event.pointerId;
+  //   this.#dragStartX = event.clientX - clipGroupRect.left;
 
-    this.rootElement.setPointerCapture(event.pointerId);
-    event.preventDefault();
+  //   this.rootElement.setPointerCapture(event.pointerId);
+  //   event.preventDefault();
 
-    this.#createDraggingGhost();
-  };
+  //   this.#createDraggingGhost();
+  // };
 
   #pointerMoveHandler = (event) => {
     if (event.pointerId !== this.#draggingPointerId) {

@@ -23,6 +23,7 @@ import { Tumbler } from "../component/tumbler.js";
 
 import * as studioAudioList from "./studio-audio-list.js";
 import * as studioAudioDrag from "./studio-audio-drag.js";
+import * as studioClipDrag from "./studio-clip-drag.js";
 
 setThemeMode("light");
 
@@ -137,8 +138,14 @@ async function initializePage() {
     audioListEl,
     audioMap,
     trackListElm,
-    timelinePlayheadElm,
-    rulerElm,
+    getSnapPoints: getSnapPoints,
+    trySnapTime: trySnapTime,
+  });
+
+  studioClipDrag.setup({
+    trackListElm,
+    getSnapPoints: getSnapPoints,
+    trySnapTime: trySnapTime,
   });
 
   bindEvents();
@@ -360,6 +367,38 @@ function duplicateClip() {
       break;
   }
 }
+
+
+function getSnapPoints() {
+    return [
+      ...trackListElm.snapPoints,
+      {
+        time: timelinePlayheadElm.time,
+        type: "playhead",
+      },
+    ];
+  }
+
+  function trySnapTime(time, snapPoints, pixelsPerSecond, threshold = 5) {
+    let snappedTime = time;
+    let snappedPoint = null;
+    let minDistance = threshold;
+
+    for (const snapPoint of snapPoints) {
+      const distance = Math.abs(time - snapPoint.time) * pixelsPerSecond;
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        snappedTime = snapPoint.time;
+        snappedPoint = snapPoint;
+      }
+    }
+
+    return {
+      time: snappedTime,
+      snapPoint: snappedPoint,
+    };
+  }
 
 function createDefaultTrack(options = {}) {
   return {

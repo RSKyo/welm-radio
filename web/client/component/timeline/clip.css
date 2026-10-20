@@ -22,7 +22,7 @@
 
   color: var(--color-primary-text);
 
-  cursor: pointer;
+  /* cursor: pointer; */
   user-select: none;
   touch-action: none;
 }
@@ -114,7 +114,7 @@
 
   pointer-events: none;
 
-  z-index: 20;
+  z-index: 21;
 }
 
 .clip.is-drag-ghost > * {

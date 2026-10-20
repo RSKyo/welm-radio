@@ -92,6 +92,8 @@ export class DragDelegate {
 
     event.preventDefault();
 
+    this.#createDraggingGhost();
+
     const draggingInfo = this.#getDraggingInfo(event);
     this.#emitPointerDown(draggingInfo);
   };
@@ -99,15 +101,6 @@ export class DragDelegate {
   #pointerMove = (event) => {
     if (event.pointerId !== this.#draggingPointerId) {
       return;
-    }
-
-    if (this.#draggingGhost == null) {
-      const deltaX = event.clientX - this.#startClientX;
-      const deltaY = event.clientY - this.#startClientY;
-
-      if (Math.hypot(deltaX, deltaY) >= 3) {
-        this.#createDraggingGhost();
-      }
     }
 
     const draggingInfo = this.#getDraggingInfo(event);
@@ -214,9 +207,18 @@ export class DragDelegate {
     const isSameOrigin = target === this.#containerEl;
 
     const draggingRect = this.#dragging?.getBoundingClientRect();
+    const draggingLeft = draggingRect?.left;
+    const draggingTop = draggingRect?.top;
+    const draggingWidth = draggingRect?.width;
+    const draggingHeight = draggingRect?.height;
+
+
     const draggingGhostRect = this.#draggingGhost?.getBoundingClientRect();
     const draggingGhostLeft = draggingGhostRect?.left;
     const draggingGhostTop = draggingGhostRect?.top;
+
+    const deltaX = clientX - this.#startClientX;
+    const deltaY = clientY - this.#startClientY;
 
     return {
       event,
@@ -244,11 +246,21 @@ export class DragDelegate {
       isSameOrigin: isSameOrigin,
       dragging: this.#dragging,
       draggingRect: draggingRect,
+      draggingLeft: draggingLeft,
+      draggingTop: draggingTop,
+      draggingWidth: draggingWidth,
+      draggingHeight: draggingHeight,
       draggingGhost: this.#draggingGhost,
       draggingGhostRect: draggingGhostRect,
       draggingGhostLeft: draggingGhostLeft,
       draggingGhostTop: draggingGhostTop,
       isDragging: this.#draggingGhost != null,
+      deltaX: deltaX,
+      deltaY: deltaY,
+      shiftKey: event.shiftKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      altKey: event.altKey,
     };
   }
 
