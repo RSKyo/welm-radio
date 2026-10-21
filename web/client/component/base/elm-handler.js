@@ -16,7 +16,6 @@ export class ElmHandler {
 
   emit(key, detail = {}) {
     assertNonBlankString(key, "key");
-    assertPlainObject(detail, "detail");
 
     const handler = this.#handlerMap.get(key);
 

@@ -23,7 +23,7 @@ import { Tumbler } from "../component/tumbler.js";
 
 import * as studioAudioList from "./studio-audio-list.js";
 import * as studioAudioDrag from "./studio-audio-drag.js";
-import * as studioClipDrag from "./studio-clip-drag.js";
+// import * as studioClipDrag from "./studio-clip-drag.js";
 
 setThemeMode("light");
 
@@ -142,11 +142,11 @@ async function initializePage() {
     trySnapTime: trySnapTime,
   });
 
-  studioClipDrag.setup({
-    trackListElm,
-    getSnapPoints: getSnapPoints,
-    trySnapTime: trySnapTime,
-  });
+  // studioClipDrag.setup({
+  //   trackListElm,
+  //   getSnapPoints: getSnapPoints,
+  //   trySnapTime: trySnapTime,
+  // });
 
   bindEvents();
   initData();
