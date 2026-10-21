@@ -8,9 +8,8 @@ export function setup({
   getSnapPoints,
   trySnapTime,
 } = {}) {
-  const audioDrag = new DragDelegate(audioListEl, ".audio", {
+  const audioDrag = new DragDelegate(audioListEl, ".audio",".clip-group", {
     ignoreSelector: ".audio-remove",
-    targetSelector: ".clip-group",
   });
 
   on(audioDrag, "pointerDown", pointerDown);
@@ -27,9 +26,10 @@ export function setup({
   }
 
   function pointerMove({
-    draggingGhost,
     clientX,
     clientY,
+    draggingGhost,
+    
     offsetX,
     offsetY,
     isDragging,
@@ -43,12 +43,11 @@ export function setup({
       return;
     }
 
-    let ghostLeft = clientX - offsetX;
-    let ghostTop = clientY - offsetY;
+    let ghostX = clientX - draggingGhost.pointer.left;
+    let ghostY = clientY - draggingGhost.pointer.top;
 
-    // calculate ghost position based on snapping and row alignment
     if (target) {
-      const trackId = target.dataset.trackId;
+      const trackId = target.element.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
         return;
@@ -75,8 +74,8 @@ export function setup({
       ghostTop = targetTop + top;
     }
 
-    draggingGhost.style.left = `${ghostLeft}px`;
-    draggingGhost.style.top = `${ghostTop}px`;
+    draggingGhost.style.left = `${ghostX}px`;
+    draggingGhost.style.top = `${ghostY}px`;
   }
 
   function pointerUp({

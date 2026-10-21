@@ -1,18 +1,28 @@
-import { assertHtmlElement, assertNonBlankString } from "./base/assert.js";
+import {
+  assertHtmlElement,
+  assertNonBlankString,
+  assertNonNegativeInteger,
+} from "./base/assert.js";
 import { resolveElement, closestElement } from "./base/helper.js";
 import { ElmHandler } from "./base/elm-handler.js";
 
 export class DragDelegate {
   #handler = new ElmHandler();
-  #container = null;
+  #containerEl = null;
   #draggingSelector = null;
   #targetSelector = null;
   #ignoreDraggingSelector = null;
+  #draggingZIndex = 11;
+  #draggingStartSelector = "[data-role='dragging-start']";
+  #draggingEndSelector = "[data-role='dragging-end']";
 
   #pointerId = null;
-  #origin = null;
-  #dragging = null;
-  #draggingGhost = null;
+  #originEl = null;
+  #draggingEl = null;
+  #draggingGhostEl = null;
+
+  #mode = null;
+  #initState = null;
 
   #state = new Map();
 
@@ -20,10 +30,15 @@ export class DragDelegate {
     container,
     draggingSelector,
     targetSelector,
-    { ignoreDraggingSelector = null } = {},
+    {
+      ignoreDraggingSelector = null,
+      draggingZIndex = null,
+      draggingStartSelector = null,
+      draggingEndSelector = null,
+    } = {},
   ) {
-    this.#container = resolveElement(container);
-    assertHtmlElement(this.#container);
+    this.#containerEl = resolveElement(container);
+    assertHtmlElement(this.#containerEl);
 
     assertNonBlankString(draggingSelector);
     assertNonBlankString(targetSelector);
@@ -32,11 +47,26 @@ export class DragDelegate {
     this.#targetSelector = targetSelector;
 
     if (ignoreDraggingSelector !== null) {
-      assertNonBlankString(ignoreDraggingSelector);
+      assertNonBlankString(ignoreDraggingSelector, "ignoreDraggingSelector");
       this.#ignoreDraggingSelector = ignoreDraggingSelector;
     }
 
-    this.#container.addEventListener("pointerdown", this.#pointerDown);
+    if (draggingZIndex !== null) {
+      assertNonNegativeInteger(draggingZIndex, "draggingZIndex");
+      this.#draggingZIndex = draggingZIndex;
+    }
+
+    if (draggingStartSelector !== null) {
+      assertNonBlankString(draggingStartSelector, "draggingStartSelector");
+      this.#draggingStartSelector = draggingStartSelector;
+    }
+
+    if (draggingEndSelector !== null) {
+      assertNonBlankString(draggingEndSelector, "draggingEndSelector");
+      this.#draggingEndSelector = draggingEndSelector;
+    }
+
+    this.#containerEl.addEventListener("pointerdown", this.#pointerDown);
     window.addEventListener("pointermove", this.#pointerMove);
     window.addEventListener("pointerup", this.#pointerUp);
     window.addEventListener("pointercancel", this.#pointerCancel);
@@ -67,38 +97,66 @@ export class DragDelegate {
       return;
     }
 
-    const dragging = closestElement(event, this.#draggingSelector);
-    if (dragging == null) {
+    const draggingEl = closestElement(event, this.#draggingSelector);
+    if (draggingEl == null) {
       return;
     }
 
-    event.preventDefault();
+    // initialize dragging mode
 
-    this.#pointerId = event.pointerId;
-    this.#origin = this.#container;
-    this.#dragging = dragging;
-    this.#draggingGhost = this.#createDraggingGhost();
+    let startEl = closestElement(event, this.#draggingStartSelector);
+    if (startEl && !draggingEl.contains(startEl)) {
+      return;
+    }
 
-    const originGeometry = this.#getElementGeometry(event, this.#origin);
+    let endEl = closestElement(event, this.#draggingEndSelector);
+    if (endEl && !draggingEl.contains(endEl)) {
+      return;
+    }
+
+    if (startEl) {
+      this.#mode = "dragging-start";
+      startEl.style.zIndex = this.#draggingZIndex;
+
+      endEl = draggingEl.querySelector(this.#draggingEndSelector);
+      if (endEl) {
+        endEl.style.zIndex = this.#draggingZIndex - 1;
+      }
+    } else if (endEl) {
+      this.#mode = "dragging-end";
+      endEl.style.zIndex = this.#draggingZIndex;
+
+      startEl = draggingEl.querySelector(this.#draggingStartSelector);
+      if (startEl) {
+        startEl.style.zIndex = this.#draggingZIndex - 1;
+      }
+    } else {
+      this.#mode = "move";
+    }
+
+    // initialize origin and dragging
+
+    this.#originEl = this.#containerEl;
+    this.#draggingEl = draggingEl;
+
+    const originGeometry = this.#getElementGeometry(event, this.#originEl);
     const draggingGeometry = this.#getElementGeometry(
       event,
-      this.#dragging,
-      this.#origin,
-    );
-    const draggingGhostGeometry = this.#getElementGeometry(
-      event,
-      this.#draggingGhost,
+      this.#draggingEl,
+      this.#originEl,
     );
 
-    const pointerDownState = {
+    const initState = {
       clientX: event.clientX,
       clientY: event.clientY,
       origin: originGeometry,
       dragging: draggingGeometry,
-      draggingGhost: draggingGhostGeometry,
     };
 
-    this.#state.set("pointerDownState", pointerDownState);
+    this.#initState = initState;
+
+    this.#pointerId = event.pointerId;
+    event.preventDefault();
 
     const draggingInfo = this.#getDraggingInfo(event);
     this.#emitPointerDown(draggingInfo);
@@ -107,6 +165,21 @@ export class DragDelegate {
   #pointerMove = (event) => {
     if (event.pointerId !== this.#pointerId) {
       return;
+    }
+
+    const { clientX, clientY } = this.#initState;
+
+    if (this.#draggingGhostEl == null) {
+      const deltaX = event.clientX - clientX;
+      const deltaY = event.clientY - clientY;
+
+      if (Math.hypot(deltaX, deltaY) >= 3) {
+        this.#draggingGhostEl = this.#createDraggingGhost(
+          this.#mode,
+          deltaX,
+          deltaY,
+        );
+      }
     }
 
     const draggingInfo = this.#getDraggingInfo(event);
@@ -143,30 +216,49 @@ export class DragDelegate {
 
   #endDragging() {
     this.#pointerId = null;
-    this.#origin = null;
-    this.#dragging = null;
+    this.#originEl = null;
+    this.#draggingEl = null;
 
-    this.#draggingGhost?.remove();
-    this.#draggingGhost = null;
+    this.#draggingGhostEl?.remove();
+    this.#draggingGhostEl = null;
+
+    this.#mode = null;
+    this.#initState = null;
 
     this.#state.clear();
   }
 
-  #createDraggingGhost() {
-    this.#draggingGhost?.remove();
-    const ghost = this.#dragging.cloneNode(true);
-    const rect = this.#dragging.getBoundingClientRect();
+  #createDraggingGhost(mode, deltaX = 0, deltaY = 0) {
+    if (this.#draggingEl == null) {
+      return null;
+    }
+
+    this.#draggingGhostEl?.remove();
+    const ghost = this.#draggingEl.cloneNode(true);
+    const rect = this.#draggingEl.getBoundingClientRect();
 
     ghost.style.pointerEvents = "none";
     ghost.classList.add("is-drag-ghost");
 
     ghost.style.position = "fixed";
-    ghost.style.left = `${rect.left}px`;
-    ghost.style.top = `${rect.top}px`;
-    ghost.style.width = `${rect.width}px`;
+
+    if (mode == "move") {
+      ghost.style.left = `${rect.left + deltaX}px`;
+      ghost.style.top = `${rect.top + deltaY}px`;
+      ghost.style.width = `${rect.width}px`;
+    } else if (mode == "dragging-start") {
+      ghost.style.left = `${rect.left + deltaX}px`;
+      ghost.style.top = `${rect.top}px`;
+      ghost.style.width = `${rect.width - deltaX}px`;
+    } else if (mode == "dragging-end") {
+      ghost.style.left = `${rect.left}px`;
+      ghost.style.top = `${rect.top}px`;
+      ghost.style.width = `${rect.width + deltaX}px`;
+    }
 
     document.body.appendChild(ghost);
 
+    this.#draggingGhostEl = ghost;
     return ghost;
   }
 
@@ -174,43 +266,49 @@ export class DragDelegate {
     const clientX = event.clientX;
     const clientY = event.clientY;
 
-    const pointerDownState = this.#state.get("pointerDownState");
+    const initState = this.#initState;
 
-    const deltaX = clientX - pointerDownState.clientX;
-    const deltaY = clientY - pointerDownState.clientY;
+    const deltaX = clientX - initState.clientX;
+    const deltaY = clientY - initState.clientY;
 
-    const originGeometry = this.#getElementGeometry(event, this.#origin);
+    const originGeometry = this.#getElementGeometry(event, this.#originEl);
     const draggingGeometry = this.#getElementGeometry(
       event,
-      this.#dragging,
-      this.#origin,
+      this.#draggingEl,
+      this.#originEl,
     );
 
     const element = document.elementFromPoint(clientX, clientY);
     const target = element?.closest(this.#targetSelector) ?? null;
-
-    const isSameOrigin = target === this.#origin;
-
-    const targetGeometry = target
-      ? this.#getElementGeometry(event, target)
-      : null;
+    const targetGeometry = this.#getElementGeometry(event, target);
     const draggingGhostGeometry = this.#getElementGeometry(
       event,
-      this.#draggingGhost,
+      this.#draggingGhostEl,
       target,
     );
 
+    const isSameOrigin = target === this.#originEl;
+    const isDragging = this.#draggingGhostEl != null;
+
     return {
       event,
+
       clientX,
       clientY,
       deltaX,
       deltaY,
+
+      mode: this.#mode,
+      initState,
+
       origin: originGeometry,
       dragging: draggingGeometry,
       draggingGhost: draggingGhostGeometry,
       target: targetGeometry,
+
       isSameOrigin: isSameOrigin,
+      isDragging: isDragging,
+
       keys: {
         shiftKey: event.shiftKey,
         ctrlKey: event.ctrlKey,
@@ -221,7 +319,7 @@ export class DragDelegate {
   }
 
   destroy() {
-    this.#container.removeEventListener("pointerdown", this.#pointerDown);
+    this.#containerEl.removeEventListener("pointerdown", this.#pointerDown);
 
     window.removeEventListener("pointermove", this.#pointerMove);
     window.removeEventListener("pointerup", this.#pointerUp);
@@ -267,6 +365,10 @@ export class DragDelegate {
   }
 
   #getElementGeometry(event, element, relativeElement = null) {
+    if (element == null) {
+      return null;
+    }
+
     const rect = element.getBoundingClientRect();
 
     const info = {
