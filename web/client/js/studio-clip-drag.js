@@ -2,283 +2,169 @@ import { on, closestElement } from "./helper.js";
 import { DragDelegate } from "../component/drag.js";
 
 export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
-  const clipDrag = new DragDelegate(trackListElm.rootElement, ".clip", {
-    ignoreSelector: ".audio-remove",
-    targetSelector: ".clip-group",
-  });
+  // drag delegate component
+  const drag = new DragDelegate(
+    trackListElm.rootElement,
+    ".clip",
+    ".clip-group",
+  );
 
-  on(clipDrag, "pointerDown", pointerDown);
-  on(clipDrag, "pointerMove", pointerMove);
-  on(clipDrag, "pointerUp", pointerUp);
+  /** bind events */
 
-  function pointerDown({ event, origin,dragging }) {
+  on(drag, "pointerDown", pointerDown);
+  on(drag, "pointerMove", pointerMove);
+  on(drag, "pointerUp", pointerUp);
+
+  /** pointer down handler */
+
+  function pointerDown(event) {
     const clipGroupEl = closestElement(event, ".clip-group");
-    if (!clipGroupEl) {
-      return;
-    }
-
     const trackId = clipGroupEl.dataset.trackId;
-    const clipGroupElm = trackListElm.getClipGroup(trackId);
-    if (!clipGroupElm) {
-      return;
-    }
-    clipDrag.setState("trackId", trackId);
-    clipDrag.setState("clipGroupElm", clipGroupElm);
-
-    const clipId = origin.dataset.value;
-    const clipItem = clipGroupElm.getItemByValue(clipId);
-    clipDrag.setState("clipItem", clipItem);
-
-    let trimStartEl = closestElement(event, ".clip-trim-start");
-    let trimEndEl = closestElement(event, ".clip-trim-end");
-
-    if (trimStartEl) {
-      trimEndEl = origin.querySelector(".clip-trim-end");
-      trimStartEl.style.zIndex = 11;
-      trimEndEl.style.zIndex = 10;
-      // clipGroupEl.classList.add("is-trimming");
-      clipDrag.setState("mode", "trim-start");
-    } else if (trimEndEl) {
-      trimStartEl = origin.querySelector(".clip-trim-start");
-      trimStartEl.style.zIndex = 10;
-      trimEndEl.style.zIndex = 11;
-      // clipGroupEl.classList.add("is-trimming");
-      clipDrag.setState("mode", "trim-end");
-    } else {
-      // clipGroupEl.classList.add("is-moving");
-      clipDrag.setState("mode", "move");
-    }
+    drag.setState("trackId", trackId);
 
     const snapPoints = getSnapPoints();
-    clipDrag.setState("snapPoints", snapPoints);console.log(dragging.style.width);
+    drag.setState("snapPoints", snapPoints);
   }
 
-  function pointerMove({
-    dragging,
-    draggingRect,
-    draggingLeft,
-    draggingGhost,
-    draggingGhostRect,
-    clientX,
-    clientY,
-    offsetX,
-    offsetY,
-    isDragging,
-    target,
-    targetLeft,
-    targetTop,
-    targetLocalX,
-    targetLocalY,
-    deltaX,
-    deltaY,
-    originLocalX,
-    originLocalY,
-    originLeft,
-    startY,
-  }) {
-    if (!isDragging) {
+  /** pointer move handler */
+
+  function pointerMove() {
+    if (!drag.isDragging) {
       return;
     }
 
-    let ghostLeft = clientX - offsetX;
-    let ghostTop = clientY - offsetY;
-
-    // calculate ghost position based on snapping and row alignment
+    const target = drag.target;
     if (target) {
-      const trackId = target.dataset.trackId;
+      const trackId = target.element.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
         return;
       }
 
-      const mode = clipDrag.getState("mode");
+      const draggingGhost = drag.draggingGhost;
+      const snapPoints = drag.getState("snapPoints");
+      const mode = drag.mode;
+
       if (mode === "move") {
-        const targetLocalGhostLeft = targetLocalX - offsetX;
-        const targetLocalGhostTop = targetLocalY - offsetY;
+        const localX = draggingGhost.x1 - target.x1;
+        const localY = draggingGhost.y1 - target.y1;
 
-        const {
-          time: clipStart,
-          top,
-          snapThreshold,
-        } = clipGroupElm.resolvePosition(
-          targetLocalGhostLeft,
-          targetLocalGhostTop,
-        );
+        const time = clipGroupElm.resolveTime(localX);
+        const { rowIndex, top } = clipGroupElm.resolveRowPosition(localY);
 
-        const snapPoints = clipDrag.getState("snapPoints");
         const snap = trySnapTime(
-          clipStart,
+          time,
           snapPoints,
           clipGroupElm.pixelsPerSecond,
-          snapThreshold,
+          clipGroupElm.snapThreshold,
         );
 
-        ghostLeft = targetLeft + snap.time * clipGroupElm.pixelsPerSecond;
-        ghostTop = targetTop + top;
+        const x1 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        const y1 = target.y1 + top;
+        drag.dragTo(x1, y1);
 
-        draggingGhost.style.left = `${ghostLeft}px`;
-        draggingGhost.style.top = `${ghostTop}px`;
+        drag.setState("clipStart", snap.time);
+        drag.setState("rowIndex", rowIndex);
 
         return;
       }
 
-      if (mode === "trim-start") {
-        let originLocalGhostLeft = originLocalX - offsetX;
-        let originLocalGhostTop = startY - offsetY;
-
-        const {
-          time: clipStart,
-          top,
-          snapThreshold,
-        } = clipGroupElm.resolvePosition(
-          originLocalGhostLeft,
-          originLocalGhostTop,
-        );
-
-        const snapPoints = clipDrag.getState("snapPoints");
+      if (mode === "dragging-start") {
+        const localX = draggingGhost.x1 - target.x1;
+        const time = clipGroupElm.resolveTime(localX);
         const snap = trySnapTime(
-          clipStart,
+          time,
           snapPoints,
           clipGroupElm.pixelsPerSecond,
-          snapThreshold,
+          clipGroupElm.snapThreshold,
         );
 
-         originLocalGhostLeft = snap.time * clipGroupElm.pixelsPerSecond;
-        ghostLeft = originLeft + originLocalGhostLeft;
+        const x1 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        drag.dragStartTo(x1);
 
-        const deltaWidth = ghostLeft - draggingLeft;
+        drag.setState("clipStart", snap.time);
 
-        draggingGhost.style.left = `${ghostLeft}px`;
-        
-        draggingGhost.style.width = `${draggingRect.width - deltaWidth}px`;
+        return;
       }
 
-      if (mode === "trim-end") {
-        const offsetRight = draggingRect.width - offsetX;
-        const originLocalGhostRight = originLocalX + offsetRight;
-        const originLocalGhostTop = startY - offsetY;
-        // console.log(originLocalGhostRight);
-
-        const {
-          time: clipEnd,
-          top,
-          snapThreshold,
-        } = clipGroupElm.resolvePosition(
-          originLocalGhostRight,
-          originLocalGhostTop,
-        );
-        
-
-        const snapPoints = clipDrag.getState("snapPoints");
+      if (mode === "dragging-end") {
+        const localX = draggingGhost.x2 - target.x1;
+        const time = clipGroupElm.resolveTime(localX);
         const snap = trySnapTime(
-          clipEnd,
+          time,
           snapPoints,
           clipGroupElm.pixelsPerSecond,
-          snapThreshold,
-        );console.log(snap.time);
+          clipGroupElm.snapThreshold,
+        );
 
-        const ghostWidth = snap.time * clipGroupElm.pixelsPerSecond - (draggingLeft - targetLeft);
-        console.log(ghostWidth,draggingLeft);
+        const x2 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        drag.dragEndTo(x2);
 
-        draggingGhost.style.width = `${ghostWidth}px`;
+        drag.setState("clipEnd", snap.time);
+
+        return;
       }
     }
   }
 
-  function pointerUp({
-    isDragging,
-    dragging,
-    target,
-    targetLeft,
-    targetTop,
-    draggingGhostLeft,
-    draggingGhostTop,
-    draggingRect,
-    offsetX,
-    offsetY,
-    draggingGhostRect,
-    originLeft,
-    originTop,
-  }) {
-    if (!isDragging) {
+  /** pointer up handler */
+
+  function pointerUp() {
+    if (!drag.isDragging) {
       return;
     }
 
+    const target = drag.target;
     if (!target) {
       return;
     }
 
-    const originTrackId = clipDrag.getState("trackId");
+    const originTrackId = drag.getState("trackId");
     const originClipGroupElm = trackListElm.getClipGroup(originTrackId);
     if (!originClipGroupElm) {
       return;
     }
 
-    const targetTrackId = target.dataset.trackId;
+    const targetTrackId = target.element.dataset.trackId;
     const targetClipGroupElm = trackListElm.getClipGroup(targetTrackId);
     if (!targetClipGroupElm) {
       return;
     }
 
-    const clipId = dragging.dataset.value;
-    const item = originClipGroupElm.getItemByValue(clipId);
+    const clipId = drag.dragging.element.dataset.value;
+    const clipItem = originClipGroupElm.getItemByValue(clipId);
 
-    const mode = clipDrag.getState("mode");
+    const mode = drag.mode;
     if (mode === "move") {
-      const targetLocalGhostLeft = draggingGhostLeft - targetLeft;
-      const targetLocalGhostTop = draggingGhostTop - targetTop;
-
-      const { time: clipStart, rowIndex } = targetClipGroupElm.resolvePosition(
-        targetLocalGhostLeft,
-        targetLocalGhostTop,
-      );
-
-      item.clipStart = clipStart;
-      item.rowIndex = rowIndex;
+      clipItem.clipStart = drag.getState("clipStart");
+      clipItem.rowIndex = drag.getState("rowIndex");
 
       if (originTrackId === targetTrackId) {
-        originClipGroupElm.updateItem(item);
+        originClipGroupElm.updateItem(clipItem);
       } else {
         originClipGroupElm.removeItem(clipId);
-        targetClipGroupElm.addItem(item);
+        targetClipGroupElm.addItem(clipItem);
       }
     }
 
-    if (mode === "trim-start") {
-      const originLocalGhostLeft = draggingGhostLeft - targetLeft;
-      const originLocalGhostTop = draggingGhostTop - targetTop;
+    if (mode === "dragging-start") {
+      const clipStart = drag.getState("clipStart");
+      const deltaTime = clipStart - clipItem.clipStart;
 
-      const { time: clipStart } = originClipGroupElm.resolvePosition(
-        originLocalGhostLeft,
-        originLocalGhostTop,
-      );
+      clipItem.clipStart = clipStart;
+      clipItem.trimStart += deltaTime;
 
-      const deltaTime = clipStart - item.clipStart;
-      item.clipStart = clipStart;
-      item.trimStart += deltaTime;
-      originClipGroupElm.updateItem(item);
+      originClipGroupElm.updateItem(clipItem);
     }
 
-    if (mode === "trim-end") {
-
-      const offsetRight = draggingRect.width - offsetX;
-        const originLocalGhostRight = draggingGhostLeft + draggingGhostRect.width - originLeft;
-        const originLocalGhostTop = draggingGhostTop - originTop;
-
-       const {
-          time: clipEnd,
-          top,
-          snapThreshold,
-        } = originClipGroupElm.resolvePosition(
-          originLocalGhostRight,
-          originLocalGhostTop,
-        );
-
-        const oldClipEnd = item.clipStart + (item.trimEnd - item.trimStart);
-
+    if (mode === "dragging-end") {
+      const oldClipEnd =
+        clipItem.clipStart + (clipItem.trimEnd - clipItem.trimStart);
+      const clipEnd = drag.getState("clipEnd");
       const deltaTime = clipEnd - oldClipEnd;
-      item.trimEnd += deltaTime;
-      originClipGroupElm.updateItem(item);
+
+      clipItem.trimEnd += deltaTime;
+      originClipGroupElm.updateItem(clipItem);
     }
   }
 }

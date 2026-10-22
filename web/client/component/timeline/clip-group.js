@@ -122,6 +122,10 @@ export class ClipGroup extends ItemsElm {
     this.#emitHeightChange(this.#height);
   }
 
+  get snapThreshold() {
+    return SNAP_THRESHOLD;
+  }
+
   get snapPoints() {
     const snapPoints = [];
 
@@ -425,27 +429,28 @@ export class ClipGroup extends ItemsElm {
     return rowIndex;
   }
 
-  resolvePosition(x, y) {
-    const time = Math.max(0, x / this.#pixelsPerSecond);
-    const rowIndex = Math.max(0, Math.floor(y / CLIP_ROW_HEIGHT));
+  resolveTime(localX) {
+    return Math.max(0, localX / this.#pixelsPerSecond);
+  }
+
+  resolveRowPosition(localY) {
+    const rowIndex = Math.max(0, Math.floor(localY / CLIP_ROW_HEIGHT));
     const clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
 
     let top;
-    if (Math.abs(y - clipTop) < SNAP_THRESHOLD) {
+    if (Math.abs(localY - clipTop) < SNAP_THRESHOLD) {
       top = clipTop;
     } else {
-      top = Math.max(0, y);
+      top = Math.max(0, localY);
     }
 
     return {
-      time,
       rowIndex,
       clipTop,
       top,
       clipRowHeight: CLIP_ROW_HEIGHT,
       clipRowGap: CLIP_ROW_GAP,
       snapThreshold: SNAP_THRESHOLD,
-      pixelsPerSecond: this.#pixelsPerSecond,
     };
   }
 
@@ -495,11 +500,8 @@ export class ClipGroup extends ItemsElm {
     // this.event.on(this.rootElement, "pointerdown", this.#pointerDownHandler, {
     //   selector: '[data-role="clip"]',
     // });
-
     // this.event.on(this.rootElement, "pointermove", this.#pointerMoveHandler);
-
     // this.event.on(this.rootElement, "pointerup", this.#pointerUpHandler);
-
     // this.event.on(
     //   this.rootElement,
     //   "pointercancel",
@@ -1170,7 +1172,10 @@ export class ClipGroup extends ItemsElm {
       updatedItem.clipStart,
     );
     clipElm.trimEnd = updatedItem.trimEnd;
-    clipElm.rowIndex = updatedItem.rowIndex;
+
+    const clipRowIndex = this.#findAvailableRowIndex(updatedItem);
+
+    clipElm.rowIndex = clipRowIndex;
   }
 
   // override

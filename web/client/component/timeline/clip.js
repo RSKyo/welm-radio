@@ -11,10 +11,10 @@ const DEFAULT_CLIP_ROW_GAP = 4;
 const CLIP_TRIM_HANDLE_WIDTH = 4;
 
 const TRIM_START_TEMPLATE = `
-<div class="clip-trim-start"></div>
+<div class="clip-trim-start" data-role="dragging-start"></div>
 `;
 const TRIM_END_TEMPLATE = `
-<div class="clip-trim-end"></div>
+<div class="clip-trim-end" data-role="dragging-end"></div>
 `;
 const CONTENT_TEMPLATE = `
 <div class="clip-content"></div>

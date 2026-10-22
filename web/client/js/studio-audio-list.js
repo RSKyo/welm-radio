@@ -11,7 +11,9 @@ const STUDIO_AUDIO_PATHS_KEY = "studioAudioPaths";
 
 const AUDIO_TEMPLATE = `
 <div class="audio">
-  <div class="audio-content"></div>
+  <div class="audio-content">
+    <span class="audio-text"></span>
+  </div>
   <button class="audio-remove" title="移除">×</button>
 </div>
 `;
@@ -65,7 +67,7 @@ export async function setup({ audioMap, audioListEl } = {}) {
     for (const audio of audioMap.values()) {
       const audioEl = audioTemplate.cloneNode(true);
       audioEl.dataset.audioPath = audio.audioPath;
-      const textEl = audioEl.querySelector(".audio-content");
+      const textEl = audioEl.querySelector(".audio-text");
       textEl.textContent = audio.text;
       textEl.title = audio.text;
       audioListEl.append(audioEl);

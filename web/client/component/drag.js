@@ -134,6 +134,8 @@ export class DragDelegate {
       this.#draggingStartEl = startEl;
       this.#originalZIndex = startEl.style.zIndex;
 
+      // Read the computed z-index because the value may come from a CSS class,
+      // not from the element's inline style.
       const zIndex = Number(getComputedStyle(startEl).zIndex) || 0;
       startEl.style.zIndex = zIndex + 1;
     } else if (endEl) {
@@ -275,13 +277,16 @@ export class DragDelegate {
     this.#state.clear();
   }
 
-  #createDraggingGhost() {
+  #createDraggingGhost(event) {
     if (this.#dragging == null) {
       return null;
     }
 
-    const ghost = this.#dragging.element.cloneNode(true);
-    const rect = this.#dragging.element.getBoundingClientRect();
+    const dragging = this.#dragging;
+    const pointerRatioX = dragging.pointer.left / dragging.width;
+    const pointerRatioY = dragging.pointer.top / dragging.height;
+
+    const ghost = dragging.element.cloneNode(true);
 
     // Let hit testing pass through the ghost so elementFromPoint()
     // can find the actual drop target underneath it.
@@ -289,10 +294,19 @@ export class DragDelegate {
     ghost.classList.add("is-drag-ghost");
 
     ghost.style.position = "fixed";
-    ghost.style.left = `${rect.left}px`;
-    ghost.style.top = `${rect.top}px`;
+    ghost.style.visibility = "hidden";
 
     document.body.appendChild(ghost);
+
+    const ghostRect = ghost.getBoundingClientRect();
+
+    const pointerLeft = ghostRect.width * pointerRatioX;
+    const pointerTop = ghostRect.height * pointerRatioY;
+
+    ghost.style.left = `${this.#initClientX - pointerLeft}px`;
+    ghost.style.top = `${this.#initClientY - pointerTop}px`;
+
+    ghost.style.visibility = "";
 
     return ghost;
   }

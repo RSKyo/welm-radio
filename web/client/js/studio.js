@@ -1,12 +1,6 @@
 import { setThemeMode } from "./theme.js";
 
-import {
-  toast,
-  safeRun,
-  on,
-  resolveElement,
-  xToTime,
-} from "./helper.js";
+import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
 
 import { audioApi } from "../api/audio.api.js";
 
@@ -19,11 +13,9 @@ import { TimelineCursor } from "../component/timeline/cursor.js";
 import { Timelet } from "../component/timelet.js";
 import { Tumbler } from "../component/tumbler.js";
 
-
-
 import * as studioAudioList from "./studio-audio-list.js";
 import * as studioAudioDrag from "./studio-audio-drag.js";
-// import * as studioClipDrag from "./studio-clip-drag.js";
+import * as studioClipDrag from "./studio-clip-drag.js";
 
 setThemeMode("light");
 
@@ -50,7 +42,6 @@ const timelineContentEl = resolveElement(".timeline-content");
 // -----------------------------------------------------------------------------
 // Components
 // -----------------------------------------------------------------------------
-
 
 const audioContext = new AudioContext();
 
@@ -142,11 +133,11 @@ async function initializePage() {
     trySnapTime: trySnapTime,
   });
 
-  // studioClipDrag.setup({
-  //   trackListElm,
-  //   getSnapPoints: getSnapPoints,
-  //   trySnapTime: trySnapTime,
-  // });
+  studioClipDrag.setup({
+    trackListElm,
+    getSnapPoints: getSnapPoints,
+    trySnapTime: trySnapTime,
+  });
 
   bindEvents();
   initData();
@@ -154,8 +145,6 @@ async function initializePage() {
 
 function bindEvents() {
   // audios drag events
-
-  
 
   on(zoomElm, "change", zoomChange);
 
@@ -368,37 +357,36 @@ function duplicateClip() {
   }
 }
 
-
 function getSnapPoints() {
-    return [
-      ...trackListElm.snapPoints,
-      {
-        time: timelinePlayheadElm.time,
-        type: "playhead",
-      },
-    ];
-  }
+  return [
+    ...trackListElm.snapPoints,
+    {
+      time: timelinePlayheadElm.time,
+      type: "playhead",
+    },
+  ];
+}
 
-  function trySnapTime(time, snapPoints, pixelsPerSecond, threshold = 5) {
-    let snappedTime = time;
-    let snappedPoint = null;
-    let minDistance = threshold;
+function trySnapTime(time, snapPoints, pixelsPerSecond, threshold = 5) {
+  let snappedTime = time;
+  let snappedPoint = null;
+  let minDistance = threshold;
 
-    for (const snapPoint of snapPoints) {
-      const distance = Math.abs(time - snapPoint.time) * pixelsPerSecond;
+  for (const snapPoint of snapPoints) {
+    const distance = Math.abs(time - snapPoint.time) * pixelsPerSecond;
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        snappedTime = snapPoint.time;
-        snappedPoint = snapPoint;
-      }
+    if (distance < minDistance) {
+      minDistance = distance;
+      snappedTime = snapPoint.time;
+      snappedPoint = snapPoint;
     }
-
-    return {
-      time: snappedTime,
-      snapPoint: snappedPoint,
-    };
   }
+
+  return {
+    time: snappedTime,
+    snapPoint: snappedPoint,
+  };
+}
 
 function createDefaultTrack(options = {}) {
   return {

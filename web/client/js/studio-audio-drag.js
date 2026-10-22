@@ -8,34 +8,41 @@ export function setup({
   getSnapPoints,
   trySnapTime,
 } = {}) {
-  const audioDrag = new DragDelegate(audioListEl, ".audio", ".clip-group", {
+  // drag delegate component
+  const drag = new DragDelegate(audioListEl, ".audio", ".clip-group", {
     ignoreDraggingSelector: ".audio-remove",
   });
 
-  on(audioDrag, "pointerDown", pointerDown);
-  on(audioDrag, "pointerMove", pointerMove);
-  on(audioDrag, "pointerUp", pointerUp);
+  /** bind events */
+
+  on(drag, "pointerDown", pointerDown);
+  on(drag, "pointerMove", pointerMove);
+  on(drag, "pointerUp", pointerUp);
+
+  /** pointer down handler */
 
   function pointerDown() {
-    const draggingEl = audioDrag.dragging.element;
+    const draggingEl = drag.dragging.element;
     const audioPath = draggingEl.dataset.audioPath;
     const audio = audioMap.get(audioPath);
-    audioDrag.setState("audio", audio);
+    drag.setState("audio", audio);
 
     const snapPoints = getSnapPoints();
-    audioDrag.setState("snapPoints", snapPoints);
+    drag.setState("snapPoints", snapPoints);
   }
 
+  /** pointer move handler */
+
   function pointerMove() {
-    if (!audioDrag.isDragging) {
+    if (!drag.isDragging) {
       return;
     }
 
-    const draggingGhost = audioDrag.draggingGhost;
+    const draggingGhost = drag.draggingGhost;
     let x = draggingGhost.x1;
     let y = draggingGhost.y1;
 
-    const target = audioDrag.target;
+    const target = drag.target;
     if (target) {
       const trackId = target.element.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
@@ -46,10 +53,11 @@ export function setup({
       const ghostLeft = x - target.x1;
       const ghostTop = y - target.y1;
 
-      const { time, rowIndex, top, snapThreshold } =
-        clipGroupElm.resolvePosition(ghostLeft, ghostTop);
+      const time = clipGroupElm.resolveTime(ghostLeft);
+      const { rowIndex, top, snapThreshold } =
+        clipGroupElm.resolveRowPosition(ghostTop);
 
-      const snapPoints = audioDrag.getState("snapPoints");
+      const snapPoints = drag.getState("snapPoints");
       const snap = trySnapTime(
         time,
         snapPoints,
@@ -60,19 +68,21 @@ export function setup({
       x = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
       y = target.y1 + top;
 
-      audioDrag.setState("clipStart", snap.time);
-      audioDrag.setState("rowIndex", rowIndex);
+      drag.setState("clipStart", snap.time);
+      drag.setState("rowIndex", rowIndex);
     }
 
-    audioDrag.dragTo(x, y);
+    drag.dragTo(x, y);
   }
 
+  /** pointer up handler */
+
   function pointerUp() {
-    if (!audioDrag.isDragging) {
+    if (!drag.isDragging) {
       return;
     }
 
-    const target = audioDrag.target;
+    const target = drag.target;
     if (!target) {
       return;
     }
@@ -83,13 +93,13 @@ export function setup({
       return;
     }
 
-    const audio = audioDrag.getState("audio");
+    const audio = drag.getState("audio");
     if (!audio) {
       return;
     }
 
-    const clipStart = audioDrag.getState("clipStart");
-    const rowIndex = audioDrag.getState("rowIndex");
+    const clipStart = drag.getState("clipStart");
+    const rowIndex = drag.getState("rowIndex");
 
     const item = createClipItemFromAudio(audio);
     item.clipStart = clipStart;
@@ -97,6 +107,8 @@ export function setup({
 
     clipGroupElm.addItem(item);
   }
+
+  /** methods */
 
   function createClipItemFromAudio(audio) {
     return {
