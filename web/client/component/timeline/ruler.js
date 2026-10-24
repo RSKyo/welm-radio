@@ -16,9 +16,9 @@ export class TimelineRuler extends Elm {
   #basePixelsPerInterval = 100;
   #baseTimeUnit = 0.005;
   #baseZoom = 100;
-  #minZoom = 10;
-  #maxZoom = 500;
-  #basePixelsPerSecond = 50;
+  #minZoom = 100;
+  #maxZoom = 1000;
+  #basePixelsPerSecond = 5;
   #minPixelsPerSecond;
   #maxPixelsPerSecond;
   #width = 0;
@@ -282,7 +282,7 @@ export class TimelineRuler extends Elm {
       tickEl.classList.add("is-major");
 
       const textElement = tickEl.querySelector(".timeline-ruler-tick-text");
-      textElement.textContent = formatTime(seconds);
+      textElement.textContent = formatTime(seconds, { minimumUnit: "minute" });
 
       this.rootElement.append(tickEl);
 

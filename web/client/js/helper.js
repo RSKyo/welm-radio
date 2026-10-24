@@ -472,7 +472,7 @@ export function parseTime(value) {
  */
 export function formatTime(
   seconds,
-  { full = false, fixedMilliseconds = false } = {},
+  { minimumUnit = "second", milliseconds = false } = {},
 ) {
   if (seconds == null) {
     return null;
@@ -482,42 +482,36 @@ export function formatTime(
     throw new Error(`invalid time value: ${seconds}`);
   }
 
+  if (!["second", "minute", "hour"].includes(minimumUnit)) {
+    throw new Error(`invalid minimumUnit: ${minimumUnit}`);
+  }
+
   const totalMilliseconds = Math.round(seconds * 1000);
 
-  const milliseconds = totalMilliseconds % 1000;
+  const millisecond = totalMilliseconds % 1000;
   const totalSeconds = Math.floor(totalMilliseconds / 1000);
   const second = totalSeconds % 60;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const minute = totalMinutes % 60;
   const hour = Math.floor(totalMinutes / 60);
 
-  const millisecondText = String(milliseconds).padStart(3, "0");
+  const secondText = String(second).padStart(2, "0");
 
-  if (full) {
-    const hourText = String(hour).padStart(2, "0");
-    const minuteText = String(minute).padStart(2, "0");
-    const secondText = String(second).padStart(2, "0");
+  const fractionText = milliseconds
+    ? `.${String(millisecond).padStart(3, "0")}`
+    : "";
 
-    return `${hourText}:${minuteText}:${secondText}.${millisecondText}`;
-  }
-
-  const fractionText = fixedMilliseconds
-    ? `.${millisecondText}`
-    : milliseconds > 0
-      ? `.${millisecondText.replace(/0+$/, "")}`
-      : "";
-
-  if (hour > 0) {
+  if (hour > 0 || minimumUnit === "hour") {
     return (
       `${hour}:` +
       `${String(minute).padStart(2, "0")}:` +
-      `${String(second).padStart(2, "0")}` +
+      `${secondText}` +
       fractionText
     );
   }
 
-  if (minute > 0) {
-    return `${minute}:` + `${String(second).padStart(2, "0")}` + fractionText;
+  if (minute > 0 || minimumUnit === "minute") {
+    return `${minute}:${secondText}${fractionText}`;
   }
 
   return `${second}${fractionText}`;

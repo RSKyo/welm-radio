@@ -40,17 +40,12 @@
 
       <!-- main -->
       <div class="grow hbox">
-        <!-- left -->
-        <div
-          class="vbox"
-          style="
-            width: 200px;
-            min-width: 120px;
-            background: var(--color-surface);
-          "
-        >
-          <div class="hbox j-end p-4 gap-4 bb">
-            <button
+       
+        <!-- right -->
+        <div class="grow vbox" style="background: var(--color-surface)">
+          <div class="hbox p-4 bb">
+            <div class="grow hbox gap-4">
+               <button
               id="toggle-audios"
               class="icon-button"
               title="展开/折叠音频"
@@ -63,23 +58,6 @@
             <button id="track-remove" class="icon-button" title="删除音轨">
               −
             </button>
-          </div>
-          <div class="grow vbox" style="position: relative">
-            <div class="timeline-header">
-              <div class="timeline-header-content vbox gap-8">
-                <div class="hbox j-center a-middle px-4 gap-8 bb pointer-info">
-                  <span id="cursor-timelet"></span>
-                  <span id="playhead-timelet"></span>
-                </div>
-                <div id="track-header-list" class="mx-4"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- right -->
-        <div class="grow vbox" style="background: var(--color-surface)">
-          <div class="hbox p-4 bb">
-            <div class="grow hbox gap-4">
               <button id="clip-duplicate" class="icon-button" title="复制片段">
                 ⧉
               </button>
@@ -90,13 +68,19 @@
                 −
               </button>
             </div>
+            <div>
+               <span id="cursor-timelet"></span>
+                  <span id="playhead-timelet"></span>
+                  
+            </div>
             <div id="zoom" style="width: 60px" title="滚动缩放"></div>
+            
           </div>
           <div class="grow vbox" style="position: relative">
-            <div class="timeline">
-              <div class="timeline-content vbox gap-8">
+            <div class="timeline mx-8">
+              <div class="timeline-content vbox">
                 <div id="ruler"></div>
-                <div id="track-list" class="mx-4"></div>
+                <div id="track-list"></div>
                 <div id="playhead"></div>
                 <div id="timeline-cursor"></div>
               </div>

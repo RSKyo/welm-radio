@@ -8,7 +8,7 @@ import { formatTime } from "./base/helper.js";
 
 export class Timelet extends Elm {
   // state
-  #full = false;
+  #minimumUnit = "hour";
   #prefix = "";
   #suffix = "";
 
@@ -37,9 +37,9 @@ export class Timelet extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("full", (value, assertionSubject) => {
-      assertBoolean(value, assertionSubject);
-      this.#full = value;
+    this.resolveOption("minimumUnit", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#minimumUnit = value;
     });
 
     this.resolveOption("prefix", (value, assertionSubject) => {
@@ -113,7 +113,7 @@ export class Timelet extends Elm {
   }
 
   #resolvePaddingAndTime() {
-    const text = formatTime(this.#seconds, { full: this.#full });
+    const text = formatTime(this.#seconds, { minimumUnit: this.#minimumUnit });
 
     let startIndex = text.search(/[1-9]/);
 
