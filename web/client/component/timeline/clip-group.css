@@ -8,8 +8,16 @@
   margin: 0 !important;
 
   border: 0 !important;
-  border-radius: var(--border-radius-md);
+
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--clip-row-height) - 1px),
+    var(--color-divider) calc(var(--clip-row-height) - 1px),
+    var(--color-divider) var(--clip-row-height)
+  );
 }
+
 
 .clip-group.is-trimming,
 .clip-group.is-trimming * {

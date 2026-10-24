@@ -1,6 +1,6 @@
 import { Elm } from "../base/elm.js";
-import { assertPositive, assertNonNegative } from "../base/assert.js";
-import { createElementByHTML, formatTime } from "../base/helper.js";
+import { assertPositive, assertNonNegative, assertHtmlElement } from "../base/assert.js";
+import { on,createElementByHTML, formatTime } from "../base/helper.js";
 
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">
@@ -25,9 +25,8 @@ export class TimelineRuler extends Elm {
   // state(read-write)
   #pixelsPerSecond = 0;
   #duration = 0;
-  #containerWidth = 0;
-  #paddingLeft = 0;
-  #paddingRight = 0;
+  // ui
+  #containerEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -37,6 +36,7 @@ export class TimelineRuler extends Elm {
 
     this.#init();
     this.#render();
+    this.#bindEvents();
   }
 
   // -----------------------------------------------------------------------------
@@ -81,20 +81,10 @@ export class TimelineRuler extends Elm {
 
     this.#pixelsPerSecond = this.#basePixelsPerSecond;
 
-    this.resolveOption("containerWidth", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
-      this.#containerWidth = value;
-    });
-
-    this.resolveOption("paddingLeft", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
-      this.#paddingLeft = value;
-    });
-
-    this.resolveOption("paddingRight", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
-      this.#paddingRight = value;
-    });
+    this.#containerEl = this.rootElement.parentElement;
+    assertHtmlElement(this.#containerEl, "container");
+    // this.#containerEl.style.width = "max-content";
+    // this.#containerEl.style.height = "max-content";
 
     this.#width = this.#calculateWidth();
   }
@@ -107,12 +97,8 @@ export class TimelineRuler extends Elm {
     return this.#width;
   }
 
-  get scaleWidth() {
-    return Math.max(this.#width - this.#paddingLeft - this.#paddingRight, 0);
-  }
-
   get seconds() {
-    return Number((this.scaleWidth / this.#pixelsPerSecond).toFixed(3));
+    return Number((this.#width / this.#pixelsPerSecond).toFixed(3));
   }
 
   // -----------------------------------------------------------------------------
@@ -183,34 +169,17 @@ export class TimelineRuler extends Elm {
     }
   }
 
-  /** container width */
-
-  get containerWidth() {
-    return this.#containerWidth;
-  }
-
-  set containerWidth(value) {
-    assertNonNegative(value, "containerWidth");
-
-    if (value === this.#containerWidth) {
-      return;
-    }
-
-    this.#containerWidth = value;
-
-    const newWidth = this.#calculateWidth();
-    if (newWidth !== this.#width) {
-      this.#width = newWidth;
-      this.#render();
-      this.#emitWidthChange();
-    }
-  }
-
   #calculateWidth() {
-    const durationScaleWidth = this.#duration * this.#pixelsPerSecond;
-    const rulerWidth =
-      durationScaleWidth + this.#paddingLeft + this.#paddingRight;
-    return Number(Math.max(rulerWidth, this.#containerWidth).toFixed(2));
+    const durationWidth = this.#duration * this.#pixelsPerSecond;
+
+    const containerEl = this.#containerEl;
+    const containerStyle = getComputedStyle(containerEl);
+    const containerWidth =
+      containerEl.clientWidth -
+      parseFloat(containerStyle.paddingLeft) -
+      parseFloat(containerStyle.paddingRight);
+
+    return Number(Math.max(durationWidth, containerWidth).toFixed(2));
   }
 
   // -----------------------------------------------------------------------------
@@ -247,7 +216,6 @@ export class TimelineRuler extends Elm {
       duration: this.#duration,
       pixelsPerSecond: this.#pixelsPerSecond,
       width: this.#width,
-      scaleWidth: this.scaleWidth,
       seconds: this.seconds,
     };
   }
@@ -260,13 +228,13 @@ export class TimelineRuler extends Elm {
     this.rootElement.replaceChildren();
     this.rootElement.style.width = `${this.#width}px`;
 
-    this.#renderTicks(this.scaleWidth);
+    this.#renderTicks(this.#width);
   }
 
-  #renderTicks(scaleWidth) {
+  #renderTicks(width) {
     const { intervalSeconds, intervalPixels } = this.#getRulerInterval();
 
-    const tickCount = Math.floor(scaleWidth / intervalPixels);
+    const tickCount = Math.floor(width / intervalPixels);
 
     const subdivisionCount = 10;
     const minorIntervalPixels = intervalPixels / subdivisionCount;
@@ -278,7 +246,7 @@ export class TimelineRuler extends Elm {
       // major tick
       const tickEl = tickTemplate.cloneNode(true);
 
-      tickEl.style.left = `${this.#paddingLeft + x}px`;
+      tickEl.style.left = `${x}px`;
       tickEl.classList.add("is-major");
 
       const textElement = tickEl.querySelector(".timeline-ruler-tick-text");
@@ -290,13 +258,13 @@ export class TimelineRuler extends Elm {
       for (let minorIndex = 1; minorIndex < subdivisionCount; minorIndex++) {
         const minorX = x + minorIndex * minorIntervalPixels;
 
-        if (minorX > scaleWidth) {
+        if (minorX > width) {
           break;
         }
 
         const minorTickEl = tickTemplate.cloneNode(true);
 
-        minorTickEl.style.left = `${this.#paddingLeft + minorX}px`;
+        minorTickEl.style.left = `${minorX}px`;
 
         if (minorIndex === subdivisionCount / 2) {
           minorTickEl.classList.add("is-middle");
@@ -336,5 +304,20 @@ export class TimelineRuler extends Elm {
       intervalSeconds: Number(intervalSeconds.toFixed(3)),
       intervalPixels: Number(intervalPixels.toFixed(2)),
     };
+  }
+
+  // -----------------------------------------------------------------------------
+  // bind events
+  // -----------------------------------------------------------------------------
+
+  #bindEvents() {
+    on(this.#containerEl, "resizeElement", () => {
+      const newWidth = this.#calculateWidth();
+      if (newWidth !== this.#width) {
+        this.#width = newWidth;
+        this.#render();
+        this.#emitWidthChange();
+      }
+    });
   }
 }

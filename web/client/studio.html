@@ -40,24 +40,23 @@
 
       <!-- main -->
       <div class="grow hbox">
-       
         <!-- right -->
         <div class="grow vbox" style="background: var(--color-surface)">
           <div class="hbox p-4 bb">
             <div class="grow hbox gap-4">
-               <button
-              id="toggle-audios"
-              class="icon-button"
-              title="展开/折叠音频"
-            >
-              ≡
-            </button>
-            <button id="track-add" class="icon-button" title="添加音轨">
-              ＋
-            </button>
-            <button id="track-remove" class="icon-button" title="删除音轨">
-              −
-            </button>
+              <button
+                id="toggle-audios"
+                class="icon-button"
+                title="展开/折叠音频"
+              >
+                ≡
+              </button>
+              <button id="track-add" class="icon-button" title="添加音轨">
+                ＋
+              </button>
+              <button id="track-remove" class="icon-button" title="删除音轨">
+                −
+              </button>
               <button id="clip-duplicate" class="icon-button" title="复制片段">
                 ⧉
               </button>
@@ -69,21 +68,22 @@
               </button>
             </div>
             <div>
-               <span id="cursor-timelet"></span>
-                  <span id="playhead-timelet"></span>
-                  
+              <span id="cursor-timelet"></span>
+              <span id="playhead-timelet"></span>
             </div>
             <div id="zoom" style="width: 60px" title="滚动缩放"></div>
-            
           </div>
           <div class="grow vbox" style="position: relative">
-            <div class="timeline mx-8">
-              <div class="timeline-content vbox">
+            <div class="timeline vbox">
+              <div class="timeline-header px-8">
                 <div id="ruler"></div>
-                <div id="track-list"></div>
-                <div id="playhead"></div>
-                <div id="timeline-cursor"></div>
+                <div class="line" style="margin: 0 -8px"></div>
               </div>
+              <div class="timeline-content px-8">
+                <div id="track-list"></div>
+              </div>
+              <div id="playhead"></div>
+              <div id="timeline-cursor"></div>
             </div>
           </div>
         </div>

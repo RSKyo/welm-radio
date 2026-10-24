@@ -308,6 +308,26 @@ button.primary:not(:disabled):active {
   user-select: none;
 }
 
+.line {
+  position: relative;
+  min-height: 1px;
+}
+
+.line::after {
+content: "";
+
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+
+  height: 1px;
+
+  background: var(--color-divider);
+
+  transform: translateY(-50%);
+}
+
 /* Utility classes for common layout and visibility */
 
 .h-100 {

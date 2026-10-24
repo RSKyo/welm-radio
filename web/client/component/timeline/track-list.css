@@ -1,11 +1,9 @@
 .track-list {
-  --track-height: 0;
 
   position: relative;
 
   display: flex;
   flex-direction: column;
-  gap: 4px;
 
   padding: 0 !important;
 
@@ -14,15 +12,26 @@
 
 .track {
   position: relative;
-  height: var(--track-height, 100px);
+
+  height: max-content;
+
   padding: 0 !important;
   margin: 0 !important;
-  border: 0 !important;
-  border-radius: var(--border-radius-md);
 
-  background: var(--color-surface-raised);
+  border: 1px solid var(--color-track-border);
+  border-bottom: 0;
+
+  background: var(--color-track);
+}
+
+.track:hover {
+  background: var(--color-track-hover);
 }
 
 .track.is-selected {
-  box-shadow: 0 1px 4px -2px var(--color-primary);
+  background: var(--color-track-selected);
+}
+
+.track.is-selected:hover {
+  background: var(--color-track-selected-hover);
 }

@@ -483,7 +483,8 @@ export class Clip extends Elm {
   }
 
   #updatePositionUIState() {
-    this.rootElement.style.top = `${this.top}px`;
+    const offsetTop = this.#rowGap === 0 ? 0 : (1 + (this.#rowGap - 1) / 2);
+    this.rootElement.style.top = `${this.top - offsetTop}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;
   }

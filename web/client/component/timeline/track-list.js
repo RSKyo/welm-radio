@@ -28,6 +28,7 @@ export class TrackList extends ItemsElm {
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #duration = 0;
+    #width = 0;
   #playheadTime = 0;
   // ClipGroup component map
   #clipGroupMap = new Map();
@@ -57,14 +58,14 @@ export class TrackList extends ItemsElm {
       this.#pixelsPerSecond = value;
     });
 
+    this.resolveOption("width", (value, assertionSubject) => {
+      assertPositive(value, assertionSubject);
+      this.#width = value;
+    });
+
     this.resolveOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
-
-    this.rootElement.style.setProperty(
-      "--track-height",
-      `${DEFAULT_CLIP_GROUP_MIN_HEIGHT}px`,
-    );
   }
 
   // -----------------------------------------------------------------------------
@@ -173,6 +174,18 @@ export class TrackList extends ItemsElm {
     for (const clipGroupElm of this.#clipGroupMap.values()) {
       clipGroupElm.playheadTime = value;
     }
+  }
+
+  /** width (read-write) */
+
+  get width() {
+    return this.#width;
+  }
+
+  set width(value) {
+    assertPositive(value, "width");
+    this.#width = value;
+    this.rootElement.style.width = `${value}px`;
   }
 
   // -----------------------------------------------------------------------------

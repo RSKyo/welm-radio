@@ -181,6 +181,12 @@
   --color-clip-selected: #bfd7e9;
   --color-clip-selected-hover: #b3cee3;
   --color-clip-border: #9fbfd8;
+
+--color-track: #f0f0f0;
+--color-track-hover: #eaeaea;
+--color-track-selected: #fafafa;
+--color-track-selected-hover: #f6f6f6;
+--color-track-border: #e2e2e2;
 }
 
 [data-theme="dark"] {

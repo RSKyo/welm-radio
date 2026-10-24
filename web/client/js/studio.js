@@ -34,7 +34,8 @@ const splitClipBtn = resolveElement("#clip-split");
 const removeClipBtn = resolveElement("#clip-remove");
 const duplicateClipBtn = resolveElement("#clip-duplicate");
 
-const timelineEl = resolveElement(".timeline");
+// const timelineEl = resolveElement(".timeline");
+const timelineHeaderEl = resolveElement(".timeline-header");
 const timelineContentEl = resolveElement(".timeline-content");
 
 // -----------------------------------------------------------------------------
@@ -62,7 +63,6 @@ const zoomElm = new Tumbler("#zoom", {
 });
 
 const rulerElm = new TimelineRuler("#ruler", {
-  timelineElement: timelineEl,
   basePixelsPerInterval: 100,
   baseTimeUnit: 0.005,
   baseZoom: 100,
@@ -79,7 +79,7 @@ const trackListElm = new TrackList("#track-list", {
 });
 
 const timelinePlayheadElm = new TimelinePlayhead("#playhead", {
-  timelineElement: timelineEl,
+  // timelineElement: timelineEl,
   pixelsPerSecond: rulerElm.pixelsPerSecond,
   time: 0,
 });
@@ -142,9 +142,8 @@ function bindEvents() {
 
   on(zoomElm, "change", zoomChange);
 
-  on(timelineEl, "resizeElement", timelineResize);
-  on(timelineContentEl, "dblclick", timelineContentDoubleClick);
-  on(timelineContentEl, "pointermove", timelineContentPointerMove);
+    // on(timelineContentEl, "dblclick", timelineContentDoubleClick);
+    // on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
@@ -155,6 +154,8 @@ function bindEvents() {
   on(splitClipBtn, "click", splitClip);
   on(removeClipBtn, "click", removeClip);
   on(duplicateClipBtn, "click", duplicateClip);
+
+  on(timelineContentEl, "scroll", timelineContentScroll);
 
   on(trackListElm, "durationChange", trackListDurationChange);
 
@@ -184,24 +185,24 @@ function zoomChange({ value }) {
   rulerElm.pixelsPerSecond = value;
 }
 
-function timelineResize() {
-  const rect = timelineEl.getBoundingClientRect();
-  rulerElm.containerWidth = rect.width;
-}
+// function timelineContentDoubleClick(event) {
+//   timelinePlayheadElm.time = timelineContainerPointerSeconds;
+// // }
 
-function timelineContentDoubleClick(event) {
-  timelinePlayheadElm.time = timelineContainerPointerSeconds;
-}
+// function timelineContentPointerMove(event) {
+//   const rect = timelineContentEl.getBoundingClientRect();
+//   timelineContainerPointerX = event.clientX - rect.left;
 
-function timelineContentPointerMove(event) {
-  const rect = timelineContentEl.getBoundingClientRect();
-  timelineContainerPointerX = event.clientX - rect.left;
+//   timelineContainerPointerSeconds = xToTime(
+//     timelineContainerPointerX,
+//     rulerElm.pixelsPerSecond,
+//   );
+//   timelineCursorElm.time = timelineContainerPointerSeconds;
+// }
 
-  timelineContainerPointerSeconds = xToTime(
-    timelineContainerPointerX,
-    rulerElm.pixelsPerSecond,
-  );
-  timelineCursorElm.time = timelineContainerPointerSeconds;
+function timelineContentScroll(event) {
+  const scrollLeft = timelineContentEl.scrollLeft;
+  timelineHeaderEl.scrollLeft = scrollLeft;
 }
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
@@ -211,8 +212,7 @@ function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
 }
 
 function rulerWidthChange({ width, seconds }) {
-  timelineContentEl.style.width = `${width}px`;
-  trackListElm.trackWidth = width;
+  trackListElm.width = width;
 
   if (timelinePlayheadElm.time > seconds) {
     timelinePlayheadElm.time = seconds;
@@ -259,13 +259,9 @@ function trackHeaderListSelectedChange({ value }) {
   trackListElm.selectedValue = value;
 }
 
-
-
 function trackListDurationChange({ duration }) {
   rulerElm.duration = duration;
 }
-
-
 
 function timelinePlayheadTimeChange({ time }) {
   playheadTimeletElm.seconds = time;

@@ -15,11 +15,11 @@ import { Clip } from "./clip.js";
 
 const CLIP_MIN_DURATION = 0.05;
 const CLIP_HEIGHT = 40;
-const CLIP_ROW_GAP = 4;
+const CLIP_ROW_GAP = 3;
 const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;
 
-export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = CLIP_ROW_HEIGHT * 3 + CLIP_ROW_GAP;
+export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = CLIP_ROW_HEIGHT * 3;
 const EMPTY_TEMPLATE = `
 <div class="empty-placeholder">No Clips</div>
 `;
@@ -37,7 +37,7 @@ export class ClipGroup extends ItemsElm {
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #duration = 0;
-  #height = DEFAULT_CLIP_GROUP_MIN_HEIGHT;
+  #height = 0;
   #playheadTime = 0;
   // clip component map
   #clipMap = new Map();
@@ -84,6 +84,18 @@ export class ClipGroup extends ItemsElm {
       assertNonNegative(value, assertionSubject);
       this.#playheadTime = value;
     });
+
+    this.#height = this.#calculateHeight();
+
+    this.rootElement.style.setProperty(
+      "--clip-row-height",
+      `${CLIP_ROW_HEIGHT}px`,
+    );
+
+    this.rootElement.style.setProperty(
+      "--clip-row-gap",
+      `${CLIP_ROW_GAP}px`,
+    );
 
     this.setItems(null);
   }
@@ -235,7 +247,6 @@ export class ClipGroup extends ItemsElm {
     this.addItem(clip);
   }
 
-
   splitClip() {
     if (this.#selectedValue == null) {
       return "clip-not-selected";
@@ -344,8 +355,8 @@ export class ClipGroup extends ItemsElm {
       maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
     }
 
-    const height = (maxRowIndex + 1 + 1) * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
-    return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
+    return (maxRowIndex + 1) * CLIP_ROW_HEIGHT;
+    // return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
   }
 
   #isPlacementAvailable(clipId, clipStart, clipEnd, rowIndex) {
@@ -400,14 +411,15 @@ export class ClipGroup extends ItemsElm {
     return rowIndex;
   }
 
-
   resolveTime(localX) {
     return Math.max(0, localX / this.#pixelsPerSecond);
   }
 
   resolveRowPosition(localY) {
     const rowIndex = Math.max(0, Math.floor(localY / CLIP_ROW_HEIGHT));
-    const clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
+    let clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
+    const offsetTop = CLIP_ROW_GAP === 0 ? 0 : (1 + (CLIP_ROW_GAP - 1) / 2);
+    clipTop = clipTop - offsetTop;
 
     let top;
     if (Math.abs(localY - clipTop) < SNAP_THRESHOLD) {
@@ -468,11 +480,7 @@ export class ClipGroup extends ItemsElm {
   // bind events
   // -----------------------------------------------------------------------------
 
-  #bindEvents() {
- 
-  }
-
-
+  #bindEvents() {}
 
   // ---------------------------------------------------------------------------
   // overrides
