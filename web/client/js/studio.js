@@ -61,13 +61,13 @@ const zoomElm = new Tumbler("#zoom", {
   suffix: "%",
 });
 
-const rulerElm = new TimelineRuler("#ruler", {
-  basePixelsPerInterval: 100,
+const rulerElm = new TimelineRuler("[data-role='timeline-ruler']", {
+  basePixelsPerInterval: 120,
   baseTimeUnit: 0.005,
   baseZoom: 100,
   minZoom: 100,
   maxZoom: 1000,
-  basePixelsPerSecond: 5,
+  basePixelsPerSecond: 2,
 });
 
 const trackListElm = new TrackList("#track-list", {
@@ -77,15 +77,12 @@ const trackListElm = new TrackList("#track-list", {
   audioCache: audioCache,
 });
 
-const timelinePlayheadElm = new TimelinePlayhead("#playhead", {
-  // timelineElement: timelineEl,
-  pixelsPerSecond: rulerElm.pixelsPerSecond,
-  time: 0,
+const timelinePlayheadElm = new TimelinePlayhead("[data-role='timeline-playhead']", {
+  timelineRuler: rulerElm,
 });
 
-const timelineCursorElm = new TimelineCursor("#timeline-cursor", {
-  pixelsPerSecond: rulerElm.pixelsPerSecond,
-  time: 0,
+const timelineCursorElm = new TimelineCursor("[data-role='timeline-cursor']", {
+  timelineRuler: rulerElm,
 });
 
 const cursorTimeletElm = new Timelet("#cursor-timelet", {

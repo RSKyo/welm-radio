@@ -6,6 +6,9 @@
   z-index: 20;
   user-select: none;
   background: var(--color-surface);
+
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .timeline-ruler-tick {

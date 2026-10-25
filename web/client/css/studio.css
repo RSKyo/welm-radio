@@ -7,7 +7,9 @@
   color: var(--color-primary-text);
 }
 
-.timeline {
+[data-role="timeline-viewport"] {
+  display: flex;
+  flex-direction: column;
   flex: 1;
 
   position: relative;
@@ -17,7 +19,11 @@
   min-height: 0;
 }
 
-.timeline-content {
+[data-role="timeline-canvas"]{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
   position: relative;
 
   width: max-content;

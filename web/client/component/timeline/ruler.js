@@ -3,6 +3,7 @@ import {
   assertPositive,
   assertNonNegative,
   assertHtmlElement,
+  assertNumber,
 } from "../base/assert.js";
 import { on, createElementByHTML, formatTime } from "../base/helper.js";
 
@@ -28,12 +29,10 @@ export class TimelineRuler extends Elm {
   #maxPixelsPerSecond;
   #width = 0;
   #tickSeconds = [];
+  #timelineInfo = null;
   // state(read-write)
   #pixelsPerSecond = 0;
   #duration = 0;
-  // ui
-  #timelineViewportEl = null;
-  #timelineCanvasEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -88,17 +87,69 @@ export class TimelineRuler extends Elm {
 
     this.#pixelsPerSecond = this.#basePixelsPerSecond;
 
-    this.#timelineViewportEl = this.rootElement.closest(
-      "[data-role='timeline-viewport']",
-    );
-    assertHtmlElement(this.#timelineViewportEl, "timeline viewport");
-
-    this.#timelineCanvasEl = this.rootElement.closest(
-      "[data-role='timeline-canvas']",
-    );
-    assertHtmlElement(this.#timelineCanvasEl, "timeline canvas");
+    this.#initTimelineInfo();
 
     this.#width = this.#calculateWidth();
+  }
+
+  #initTimelineInfo() {
+    const timelineViewportEl = this.rootElement.closest(
+      "[data-role='timeline-viewport']",
+    );
+    assertHtmlElement(timelineViewportEl, "timeline viewport");
+
+    const timelineCanvasEl = this.rootElement.closest(
+      "[data-role='timeline-canvas']",
+    );
+    assertHtmlElement(timelineCanvasEl, "timeline canvas");
+
+    const viewportStyle = getComputedStyle(timelineViewportEl);
+    const canvasStyle = getComputedStyle(timelineCanvasEl);
+
+    this.#timelineInfo = {
+      timelineViewport: {
+        element: timelineViewportEl,
+        margin: {
+          top: parseFloat(viewportStyle.marginTop),
+          right: parseFloat(viewportStyle.marginRight),
+          bottom: parseFloat(viewportStyle.marginBottom),
+          left: parseFloat(viewportStyle.marginLeft),
+        },
+        border: {
+          topWidth: parseFloat(viewportStyle.borderTopWidth),
+          rightWidth: parseFloat(viewportStyle.borderRightWidth),
+          bottomWidth: parseFloat(viewportStyle.borderBottomWidth),
+          leftWidth: parseFloat(viewportStyle.borderLeftWidth),
+        },
+        padding: {
+          top: parseFloat(viewportStyle.paddingTop),
+          right: parseFloat(viewportStyle.paddingRight),
+          bottom: parseFloat(viewportStyle.paddingBottom),
+          left: parseFloat(viewportStyle.paddingLeft),
+        },
+      },
+      timelineCanvas: {
+        element: timelineCanvasEl,
+        margin: {
+          top: parseFloat(canvasStyle.marginTop),
+          right: parseFloat(canvasStyle.marginRight),
+          bottom: parseFloat(canvasStyle.marginBottom),
+          left: parseFloat(canvasStyle.marginLeft),
+        },
+        border: {
+          topWidth: parseFloat(canvasStyle.borderTopWidth),
+          rightWidth: parseFloat(canvasStyle.borderRightWidth),
+          bottomWidth: parseFloat(canvasStyle.borderBottomWidth),
+          leftWidth: parseFloat(canvasStyle.borderLeftWidth),
+        },
+        padding: {
+          top: parseFloat(canvasStyle.paddingTop),
+          right: parseFloat(canvasStyle.paddingRight),
+          bottom: parseFloat(canvasStyle.paddingBottom),
+          left: parseFloat(canvasStyle.paddingLeft),
+        },
+      },
+    };
   }
 
   // -----------------------------------------------------------------------------
@@ -122,6 +173,28 @@ export class TimelineRuler extends Elm {
       time: seconds,
       type: "tick",
     }));
+  }
+
+  get timelineViewport() {
+    const viewport = this.#timelineInfo.timelineViewport;
+
+    return {
+      ...viewport,
+      margin: { ...viewport.margin },
+      border: { ...viewport.border },
+      padding: { ...viewport.padding },
+    };
+  }
+
+  get timelineCanvas() {
+    const canvas = this.#timelineInfo.timelineCanvas;
+
+    return {
+      ...canvas,
+      margin: { ...canvas.margin },
+      border: { ...canvas.border },
+      padding: { ...canvas.padding },
+    };
   }
 
   // -----------------------------------------------------------------------------
@@ -196,33 +269,86 @@ export class TimelineRuler extends Elm {
     const durationWidth = this.#duration * this.#pixelsPerSecond;
     const trailingWidth = TRAILING_DURATION * this.#pixelsPerSecond;
 
-    const viewportStyle = getComputedStyle(this.#timelineViewportEl);
-    const viewportClientWidth = this.#timelineViewportEl.clientWidth;
-    const viewportPaddingLeft = parseFloat(viewportStyle.paddingLeft);
-    const viewportPaddingRight = parseFloat(viewportStyle.paddingRight);
-
-    const canvasStyle = getComputedStyle(this.#timelineCanvasEl);
-    const canvasMarginLeft = parseFloat(canvasStyle.marginLeft);
-    const canvasMarginRight = parseFloat(canvasStyle.marginRight);
-    const canvasBorderLeft = parseFloat(canvasStyle.borderLeftWidth);
-    const canvasBorderRight = parseFloat(canvasStyle.borderRightWidth);
-    const canvasPaddingLeft = parseFloat(canvasStyle.paddingLeft);
-    const canvasPaddingRight = parseFloat(canvasStyle.paddingRight);
+    const viewport = this.#timelineInfo.timelineViewport;
+    const canvas = this.#timelineInfo.timelineCanvas;
 
     const availableRulerWidth =
-      viewportClientWidth -
-      viewportPaddingLeft -
-      viewportPaddingRight -
-      canvasMarginLeft -
-      canvasMarginRight -
-      canvasBorderLeft -
-      canvasBorderRight -
-      canvasPaddingLeft -
-      canvasPaddingRight;
+      viewport.element.clientWidth -
+      viewport.padding.left -
+      viewport.padding.right -
+      canvas.margin.left -
+      canvas.margin.right -
+      canvas.border.leftWidth -
+      canvas.border.rightWidth -
+      canvas.padding.left -
+      canvas.padding.right;
 
     return Number(
       Math.max(durationWidth + trailingWidth, availableRulerWidth).toFixed(2),
     );
+  }
+
+  // -----------------------------------------------------------------------------
+  // time and position conversion
+  // -----------------------------------------------------------------------------
+
+  timeToPixels(seconds) {
+    assertNonNegative(seconds, "seconds");
+    return Number((seconds * this.#pixelsPerSecond).toFixed(2));
+  }
+
+  pixelsToTime(pixels) {
+    assertNumber(pixels, "pixels");
+    pixels = pixels < 0 ? 0 : pixels;
+    return Number((pixels / this.#pixelsPerSecond).toFixed(3));
+  }
+
+  timeToLeft(seconds) {
+    assertNonNegative(seconds, "seconds");
+
+    seconds = Math.min(Math.max(seconds, 0), this.seconds);
+
+    const pixels = this.timeToPixels(seconds);
+    const canvas = this.#timelineInfo.timelineCanvas;
+    return canvas.padding.left + pixels;
+  }
+
+  leftToTime(left) {
+    assertNumber(left, "left");
+
+    const canvas = this.#timelineInfo.timelineCanvas;
+    left = this.#normalizeLeftInTimelineCanvas(left);
+
+    const pixels = left - canvas.padding.left;
+    return this.pixelsToTime(pixels);
+  }
+
+  clientXToPosition(clientX) {
+    assertNumber(clientX, "clientX");
+
+    const canvas = this.#timelineInfo.timelineCanvas;
+    let left = clientX - canvas.element.getBoundingClientRect().left;
+    left = this.#normalizeLeftInTimelineCanvas(left);
+
+    const time = this.leftToTime(left);
+    return { left, time };
+  }
+
+  #normalizeLeftInTimelineCanvas(left) {
+    assertNumber(left, "left");
+
+    const canvas = this.#timelineInfo.timelineCanvas;
+    const clientWidth = canvas.element.clientWidth;
+
+    if (left < canvas.padding.left) {
+      left = canvas.padding.left;
+    }
+
+    if (left > clientWidth - canvas.padding.right) {
+      left = clientWidth - canvas.padding.right;
+    }
+
+    return left;
   }
 
   // -----------------------------------------------------------------------------
@@ -256,9 +382,9 @@ export class TimelineRuler extends Elm {
   #getEventObject() {
     return {
       elm: this,
-      duration: this.#duration,
-      pixelsPerSecond: this.#pixelsPerSecond,
-      width: this.#width,
+      duration: this.duration,
+      pixelsPerSecond: this.pixelsPerSecond,
+      width: this.width,
       seconds: this.seconds,
     };
   }
@@ -349,7 +475,7 @@ export class TimelineRuler extends Elm {
       }
     }
 
-    let intervalPixels = intervalSeconds * this.#pixelsPerSecond;
+    const intervalPixels = intervalSeconds * this.#pixelsPerSecond;
 
     return {
       intervalSeconds: Number(intervalSeconds.toFixed(3)),
@@ -362,7 +488,7 @@ export class TimelineRuler extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    on(this.#timelineViewportEl, "resizeElement", () => {
+    on(this.timelineViewport.element, "resizeElement", () => {
       const newWidth = this.#calculateWidth();
       if (newWidth !== this.#width) {
         this.#width = newWidth;
