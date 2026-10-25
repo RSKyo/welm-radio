@@ -35,8 +35,7 @@ const removeClipBtn = resolveElement("#clip-remove");
 const duplicateClipBtn = resolveElement("#clip-duplicate");
 
 // const timelineEl = resolveElement(".timeline");
-const timelineHeaderEl = resolveElement(".timeline-header");
-const timelineContentEl = resolveElement(".timeline-content");
+// const timelineContentEl = resolveElement(".timeline-content");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -142,8 +141,8 @@ function bindEvents() {
 
   on(zoomElm, "change", zoomChange);
 
-    // on(timelineContentEl, "dblclick", timelineContentDoubleClick);
-    // on(timelineContentEl, "pointermove", timelineContentPointerMove);
+  // on(timelineContentEl, "dblclick", timelineContentDoubleClick);
+  // on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
   on(rulerElm, "widthChange", rulerWidthChange);
@@ -154,8 +153,6 @@ function bindEvents() {
   on(splitClipBtn, "click", splitClip);
   on(removeClipBtn, "click", removeClip);
   on(duplicateClipBtn, "click", duplicateClip);
-
-  on(timelineContentEl, "scroll", timelineContentScroll);
 
   on(trackListElm, "durationChange", trackListDurationChange);
 
@@ -199,11 +196,6 @@ function zoomChange({ value }) {
 //   );
 //   timelineCursorElm.time = timelineContainerPointerSeconds;
 // }
-
-function timelineContentScroll(event) {
-  const scrollLeft = timelineContentEl.scrollLeft;
-  timelineHeaderEl.scrollLeft = scrollLeft;
-}
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   trackListElm.pixelsPerSecond = pixelsPerSecond;
@@ -336,6 +328,7 @@ function duplicateClip() {
 
 function getSnapPoints() {
   return [
+    ...rulerElm.snapPoints,
     ...trackListElm.snapPoints,
     {
       time: timelinePlayheadElm.time,

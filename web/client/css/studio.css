@@ -11,24 +11,18 @@
   flex: 1;
 
   position: relative;
-  overflow: hidden;
+  overflow: auto;
 
   min-width: 0;
   min-height: 0;
-
-  cursor: default;
-}
-
-.timeline-header {
-  position: relative;
-  overflow: hidden;
 }
 
 .timeline-content {
-  flex: 1;
-
   position: relative;
-  overflow: auto;
+
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
 }
 
 

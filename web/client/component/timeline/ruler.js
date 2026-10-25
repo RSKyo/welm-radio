@@ -1,7 +1,12 @@
 import { Elm } from "../base/elm.js";
-import { assertPositive, assertNonNegative, assertHtmlElement } from "../base/assert.js";
-import { on,createElementByHTML, formatTime } from "../base/helper.js";
+import {
+  assertPositive,
+  assertNonNegative,
+  assertHtmlElement,
+} from "../base/assert.js";
+import { on, createElementByHTML, formatTime } from "../base/helper.js";
 
+const TRAILING_DURATION = 30;
 const TICK_TEMPLATE = `
 <div class="timeline-ruler-tick">
   <div class="timeline-ruler-tick-mark"></div>
@@ -22,11 +27,13 @@ export class TimelineRuler extends Elm {
   #minPixelsPerSecond;
   #maxPixelsPerSecond;
   #width = 0;
+  #tickSeconds = [];
   // state(read-write)
   #pixelsPerSecond = 0;
   #duration = 0;
   // ui
-  #containerEl = null;
+  #timelineViewportEl = null;
+  #timelineCanvasEl = null;
 
   constructor(root, options = {}) {
     super(root, {
@@ -81,10 +88,15 @@ export class TimelineRuler extends Elm {
 
     this.#pixelsPerSecond = this.#basePixelsPerSecond;
 
-    this.#containerEl = this.rootElement.parentElement;
-    assertHtmlElement(this.#containerEl, "container");
-    // this.#containerEl.style.width = "max-content";
-    // this.#containerEl.style.height = "max-content";
+    this.#timelineViewportEl = this.rootElement.closest(
+      "[data-role='timeline-viewport']",
+    );
+    assertHtmlElement(this.#timelineViewportEl, "timeline viewport");
+
+    this.#timelineCanvasEl = this.rootElement.closest(
+      "[data-role='timeline-canvas']",
+    );
+    assertHtmlElement(this.#timelineCanvasEl, "timeline canvas");
 
     this.#width = this.#calculateWidth();
   }
@@ -99,6 +111,17 @@ export class TimelineRuler extends Elm {
 
   get seconds() {
     return Number((this.#width / this.#pixelsPerSecond).toFixed(3));
+  }
+
+  get tickSeconds() {
+    return [...this.#tickSeconds];
+  }
+
+  get snapPoints() {
+    return this.#tickSeconds.map((seconds) => ({
+      time: seconds,
+      type: "tick",
+    }));
   }
 
   // -----------------------------------------------------------------------------
@@ -171,15 +194,35 @@ export class TimelineRuler extends Elm {
 
   #calculateWidth() {
     const durationWidth = this.#duration * this.#pixelsPerSecond;
+    const trailingWidth = TRAILING_DURATION * this.#pixelsPerSecond;
 
-    const containerEl = this.#containerEl;
-    const containerStyle = getComputedStyle(containerEl);
-    const containerWidth =
-      containerEl.clientWidth -
-      parseFloat(containerStyle.paddingLeft) -
-      parseFloat(containerStyle.paddingRight);
+    const viewportStyle = getComputedStyle(this.#timelineViewportEl);
+    const viewportClientWidth = this.#timelineViewportEl.clientWidth;
+    const viewportPaddingLeft = parseFloat(viewportStyle.paddingLeft);
+    const viewportPaddingRight = parseFloat(viewportStyle.paddingRight);
 
-    return Number(Math.max(durationWidth, containerWidth).toFixed(2));
+    const canvasStyle = getComputedStyle(this.#timelineCanvasEl);
+    const canvasMarginLeft = parseFloat(canvasStyle.marginLeft);
+    const canvasMarginRight = parseFloat(canvasStyle.marginRight);
+    const canvasBorderLeft = parseFloat(canvasStyle.borderLeftWidth);
+    const canvasBorderRight = parseFloat(canvasStyle.borderRightWidth);
+    const canvasPaddingLeft = parseFloat(canvasStyle.paddingLeft);
+    const canvasPaddingRight = parseFloat(canvasStyle.paddingRight);
+
+    const availableRulerWidth =
+      viewportClientWidth -
+      viewportPaddingLeft -
+      viewportPaddingRight -
+      canvasMarginLeft -
+      canvasMarginRight -
+      canvasBorderLeft -
+      canvasBorderRight -
+      canvasPaddingLeft -
+      canvasPaddingRight;
+
+    return Number(
+      Math.max(durationWidth + trailingWidth, availableRulerWidth).toFixed(2),
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -232,12 +275,15 @@ export class TimelineRuler extends Elm {
   }
 
   #renderTicks(width) {
+    this.#tickSeconds = [];
+
     const { intervalSeconds, intervalPixels } = this.#getRulerInterval();
 
     const tickCount = Math.floor(width / intervalPixels);
 
     const subdivisionCount = 10;
     const minorIntervalPixels = intervalPixels / subdivisionCount;
+    const minorIntervalSeconds = intervalSeconds / subdivisionCount;
 
     for (let index = 0; index <= tickCount; index++) {
       const seconds = index * intervalSeconds;
@@ -254,8 +300,11 @@ export class TimelineRuler extends Elm {
 
       this.rootElement.append(tickEl);
 
+      this.#tickSeconds.push(Number(seconds.toFixed(3)));
+
       // minor ticks
       for (let minorIndex = 1; minorIndex < subdivisionCount; minorIndex++) {
+        const minorSeconds = seconds + minorIndex * minorIntervalSeconds;
         const minorX = x + minorIndex * minorIntervalPixels;
 
         if (minorX > width) {
@@ -279,6 +328,8 @@ export class TimelineRuler extends Elm {
         minorTextElement.remove();
 
         this.rootElement.append(minorTickEl);
+
+        this.#tickSeconds.push(Number(minorSeconds.toFixed(3)));
       }
     }
   }
@@ -311,7 +362,7 @@ export class TimelineRuler extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    on(this.#containerEl, "resizeElement", () => {
+    on(this.#timelineViewportEl, "resizeElement", () => {
       const newWidth = this.#calculateWidth();
       if (newWidth !== this.#width) {
         this.#width = newWidth;

@@ -33,7 +33,7 @@ export function setup({
 
   /** pointer move handler */
 
-  function pointerMove() {
+  function pointerMove(event) {
     if (!drag.isDragging) {
       return;
     }
@@ -53,22 +53,24 @@ export function setup({
       const ghostLeft = x - target.x1;
       const ghostTop = y - target.y1;
 
-      const time = clipGroupElm.resolveTime(ghostLeft);
-      const { rowIndex, top, snapThreshold } =
-        clipGroupElm.resolveRowPosition(ghostTop);
+      let time = clipGroupElm.resolveTime(ghostLeft);
+      const { rowIndex, top } = clipGroupElm.resolveRowPosition(ghostTop);
 
-      const snapPoints = drag.getState("snapPoints");
-      const snap = trySnapTime(
-        time,
-        snapPoints,
-        clipGroupElm.pixelsPerSecond,
-        snapThreshold,
-      );
+      if (!event.shiftKey) {
+        const snapPoints = drag.getState("snapPoints");
+        const snap = trySnapTime(
+          time,
+          snapPoints,
+          clipGroupElm.pixelsPerSecond,
+          clipGroupElm.snapThreshold,
+        );
+        time = snap.time;
+      }
 
-      x = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+      x = target.x1 + time * clipGroupElm.pixelsPerSecond;
       y = target.y1 + top;
 
-      drag.setState("clipStart", snap.time);
+      drag.setState("clipStart", time);
       drag.setState("rowIndex", rowIndex);
     }
 

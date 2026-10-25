@@ -28,7 +28,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
   /** pointer move handler */
 
-  function pointerMove() {
+  function pointerMove(event) {
     if (!drag.isDragging) {
       return;
     }
@@ -49,21 +49,24 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
         const localX = draggingGhost.x1 - target.x1;
         const localY = draggingGhost.y1 - target.y1;
 
-        const time = clipGroupElm.resolveTime(localX);
+        let time = clipGroupElm.resolveTime(localX);
         const { rowIndex, top } = clipGroupElm.resolveRowPosition(localY);
 
-        const snap = trySnapTime(
-          time,
-          snapPoints,
-          clipGroupElm.pixelsPerSecond,
-          clipGroupElm.snapThreshold,
-        );
+        if (!event.shiftKey) {
+          const snap = trySnapTime(
+            time,
+            snapPoints,
+            clipGroupElm.pixelsPerSecond,
+            clipGroupElm.snapThreshold,
+          );
+          time = snap.time;
+        }
 
-        const x1 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        const x1 = target.x1 + time * clipGroupElm.pixelsPerSecond;
         const y1 = target.y1 + top;
         drag.dragTo(x1, y1);
 
-        drag.setState("clipStart", snap.time);
+        drag.setState("clipStart", time);
         drag.setState("rowIndex", rowIndex);
 
         return;
@@ -71,36 +74,44 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
       if (mode === "dragging-start") {
         const localX = draggingGhost.x1 - target.x1;
-        const time = clipGroupElm.resolveTime(localX);
-        const snap = trySnapTime(
-          time,
-          snapPoints,
-          clipGroupElm.pixelsPerSecond,
-          clipGroupElm.snapThreshold,
-        );
+        let time = clipGroupElm.resolveTime(localX);
 
-        const x1 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        if (!event.shiftKey) {
+          const snap = trySnapTime(
+            time,
+            snapPoints,
+            clipGroupElm.pixelsPerSecond,
+            clipGroupElm.snapThreshold,
+          );
+          time = snap.time;
+        }
+
+        const x1 = target.x1 + time * clipGroupElm.pixelsPerSecond;
         drag.dragStartTo(x1);
 
-        drag.setState("clipStart", snap.time);
+        drag.setState("clipStart", time);
 
         return;
       }
 
       if (mode === "dragging-end") {
         const localX = draggingGhost.x2 - target.x1;
-        const time = clipGroupElm.resolveTime(localX);
-        const snap = trySnapTime(
-          time,
-          snapPoints,
-          clipGroupElm.pixelsPerSecond,
-          clipGroupElm.snapThreshold,
-        );
+        let time = clipGroupElm.resolveTime(localX);
 
-        const x2 = target.x1 + snap.time * clipGroupElm.pixelsPerSecond;
+        if (!event.shiftKey) {
+          const snap = trySnapTime(
+            time,
+            snapPoints,
+            clipGroupElm.pixelsPerSecond,
+            clipGroupElm.snapThreshold,
+          );
+          time = snap.time;
+        }
+
+        const x2 = target.x1 + time * clipGroupElm.pixelsPerSecond;
         drag.dragEndTo(x2);
 
-        drag.setState("clipEnd", snap.time);
+        drag.setState("clipEnd", time);
 
         return;
       }
