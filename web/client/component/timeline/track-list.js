@@ -1,11 +1,9 @@
 import {
+  assertNonBlankString,
   assertNonNegative,
-  assertPositive,
-  assertValueForMode,
 } from "../base/assert.js";
 import {
   createElementByHTML,
-  normalizeValue,
   isEqualValue,
   filterValue,
   getBySelector,
@@ -24,12 +22,10 @@ const trackTemplate = createElementByHTML(TRACK_TEMPLATE);
 
 export class TrackList extends ItemsElm {
   // state
-  #selectedValue = null;
-  #selectedValueMode = 1;
-  #pixelsPerSecond = 0;
-  #duration = 0;
-    #width = 0;
+  #selectedTrackId = null;
   #playheadTime = 0;
+  // ruler
+  #timelineRuler = null;
   // ClipGroup component map
   #clipGroupMap = new Map();
   #selectedClipGroup = null;
@@ -46,6 +42,7 @@ export class TrackList extends ItemsElm {
 
     this.#init();
     this.#bindEvents();
+    this.#updateWidthUIState();
   }
 
   // -----------------------------------------------------------------------------
@@ -53,15 +50,13 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#pixelsPerSecond = value;
+    this.resolveOption("timelineRuler", (value, assertionSubject) => {
+      this.#timelineRuler = value;
     });
 
-    this.resolveOption("width", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#width = value;
-    });
+    if (this.#timelineRuler == null) {
+      throw new Error("Timeline ruler not found");
+    }
 
     this.resolveOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
@@ -71,20 +66,6 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
   // state(read-only)
   // -----------------------------------------------------------------------------
-
-  get duration() {
-    return this.#duration;
-  }
-
-  #setDuration(value) {
-    if (value === this.#duration) {
-      return;
-    }
-
-    this.#duration = value;
-
-    this.#emitDurationChange(this.#duration);
-  }
 
   get snapPoints() {
     const snapPoints = [];
@@ -105,54 +86,30 @@ export class TrackList extends ItemsElm {
   // state(read-write)
   // -----------------------------------------------------------------------------
 
-  /** selected value (read-write) */
+  /** selected trackId (read-write) */
 
-  get selectedValue() {
-    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
+  get selectedTrackId() {
+    return this.#selectedTrackId;
   }
 
-  set selectedValue(value) {
-    assertValueForMode(value, this.#selectedValueMode);
-    this.#setSelectedValue(value);
+  set selectedTrackId(trackId) {
+    assertNonBlankString(trackId, "selectedTrackId");
+    this.#setSelectedTrackId(trackId);
   }
 
-  #setSelectedValue(value, { updateUI = true } = {}) {
-    const oldValue = this.#selectedValue;
-    const newValue = normalizeValue(value, this.#selectedValueMode);
-
-    if (isEqualValue(newValue, oldValue)) {
+  #setSelectedTrackId(trackId, { updateUI = true, emitEvent = true } = {}) {
+    if (isEqualValue(trackId, this.#selectedTrackId)) {
       return;
     }
 
-    this.#selectedValue = newValue;
+    this.#selectedTrackId = trackId;
 
     if (updateUI) {
       this.#updateSelectedUIState();
     }
 
-    this.#emitSelectedChange(newValue);
-  }
-
-  /** pixels per second (read-write) */
-
-  get pixelsPerSecond() {
-    return this.#pixelsPerSecond;
-  }
-
-  set pixelsPerSecond(value) {
-    assertPositive(value, "pixelsPerSecond");
-    this.#setPixelsPerSecond(value);
-  }
-
-  #setPixelsPerSecond(value) {
-    if (value === this.#pixelsPerSecond) {
-      return;
-    }
-
-    this.#pixelsPerSecond = value;
-
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      clipGroupElm.pixelsPerSecond = this.#pixelsPerSecond;
+    if (emitEvent) {
+      this.#emitSelectedChange(trackId);
     }
   }
 
@@ -176,30 +133,18 @@ export class TrackList extends ItemsElm {
     }
   }
 
-  /** width (read-write) */
-
-  get width() {
-    return this.#width;
-  }
-
-  set width(value) {
-    assertPositive(value, "width");
-    this.#width = value;
-    this.rootElement.style.width = `${value}px`;
-  }
-
   // -----------------------------------------------------------------------------
   // methods
   // -----------------------------------------------------------------------------
 
-  #getMaxDuration() {
+  #updateTimelineDuration() {
     let maxDuration = 0;
 
     for (const clipGroupElm of this.#clipGroupMap.values()) {
       maxDuration = Math.max(maxDuration, clipGroupElm.duration);
     }
 
-    return maxDuration;
+    this.#timelineRuler.duration = maxDuration;
   }
 
   addTrack(track) {
@@ -215,11 +160,11 @@ export class TrackList extends ItemsElm {
   }
 
   addClip(clip) {
-    if (this.#selectedValue == null) {
+    if (this.#selectedTrackId == null) {
       return "track-not-selected";
     }
 
-    const trackId = this.#selectedValue;
+    const trackId = this.#selectedTrackId;
     const clipGroupElm = this.#clipGroupMap.get(trackId);
 
     if (!clipGroupElm) {
@@ -259,7 +204,7 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedChange(handler) {
-    this.handler.set("selectedChangeHandler", handler);
+    this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange(value) {
@@ -269,19 +214,8 @@ export class TrackList extends ItemsElm {
     });
   }
 
-  set onDurationChange(handler) {
-    this.handler.set("durationChangeHandler", handler);
-  }
-
-  #emitDurationChange(duration) {
-    this.handler.emit("durationChangeHandler", {
-      elm: this,
-      duration,
-    });
-  }
-
   set onTrackHeightChange(handler) {
-    this.handler.set("trackHeightChangeHandler", handler);
+    this.handler.on("trackHeightChangeHandler", handler);
   }
 
   #emitTrackHeightChange(value, height) {
@@ -297,73 +231,23 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(this.rootElement, "click", this.#itemClickHandler, {
+    this.event.on(this.rootElement, "click", this.#trackClickHandler, {
       selector: '[data-role="track"]',
     });
+
+    this.#timelineRuler.onWidthChange = () => {
+      this.#updateWidthUIState();
+    };
   }
 
-  #itemClickHandler = (event, { element }) => {
-    const value = element.dataset.value;
-
-    if (this.#selectedValueMode === 1) {
-      this.selectedValue = value;
-      return;
-    }
-
-    const oldValue = this.#selectedValue ?? [];
-    const newValue = oldValue.includes(value)
-      ? oldValue.filter((v) => v !== value)
-      : [...oldValue, value];
-
-    this.selectedValue = newValue;
+  #trackClickHandler = (event, { element }) => {
+    const trackId = element.dataset.value;
+    this.#setSelectedTrackId(trackId);
   };
 
   // ---------------------------------------------------------------------------
   // overrides
   // ---------------------------------------------------------------------------
-
-  // override
-  afterSetItems(items) {
-    const itemValues = this.itemValues;
-    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#setSelectedValue(newSelectedValue, { updateUI: false });
-
-    // clear all clipGroupElm
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      clipGroupElm.destroy();
-    }
-    this.#clipGroupMap.clear();
-
-    this.#selectedClip = null;
-    this.#selectedClipGroup = null;
-  }
-
-  // override
-  afterRemoveItem(removedItem) {
-    const itemValues = this.itemValues;
-    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#setSelectedValue(newSelectedValue, { updateUI: false });
-
-    const value = removedItem[this.valueField];
-    const clipGroupElm = this.#clipGroupMap.get(value);
-
-    if (clipGroupElm === this.#selectedClipGroup) {
-      this.#selectedClip = null;
-      this.#selectedClipGroup = null;
-    }
-
-    clipGroupElm?.destroy();
-    this.#clipGroupMap.delete(value);
-  }
-
-  // override
-  afterUpdateItem(updatedItem) {
-    const value = updatedItem[this.valueField];
-    const clipGroupElm = this.#clipGroupMap.get(value);
-
-    clipGroupElm?.destroy();
-    this.#clipGroupMap.delete(value);
-  }
 
   // override
   createItemElement(item) {
@@ -375,12 +259,13 @@ export class TrackList extends ItemsElm {
     const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
 
     const clipGroupElm = new ClipGroup(clipGroupEl, {
-      pixelsPerSecond: this.#pixelsPerSecond,
+      trackId: item[this.valueField],
+      timelineRuler: this.#timelineRuler,
       playheadTime: this.#playheadTime,
       audioCache: this.#audioCache,
       dataset: {
-        trackId: value
-      }
+        trackId: value,
+      },
     });
 
     clipGroupElm.onSelectedChange = ({ elm, clip }) => {
@@ -389,8 +274,7 @@ export class TrackList extends ItemsElm {
     };
 
     clipGroupElm.onDurationChange = () => {
-      const newDuration = this.#getMaxDuration();
-      this.#setDuration(newDuration);
+      this.#updateTimelineDuration();
     };
 
     clipGroupElm.onHeightChange = ({ height }) => {
@@ -405,29 +289,74 @@ export class TrackList extends ItemsElm {
   }
 
   // override
-  afterRenderItems(items) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
+  afterSetItems(items) {
+    const selectedTrackId = filterValue(this.#selectedTrackId, this.itemValues);
+    this.#setSelectedTrackId(selectedTrackId, { updateUI: false });
 
+    // clear all clipGroupElm
+    for (const clipGroupElm of this.#clipGroupMap.values()) {
+      clipGroupElm.destroy();
+    }
+    this.#clipGroupMap.clear();
+
+    this.#selectedClip = null;
+    this.#selectedClipGroup = null;
+  }
+
+  afterAddItem(addedItem) {}
+
+  // override
+  afterUpdateItem(updatedItem) {
+    const trackId = updatedItem[this.valueField];
+
+    const clipGroupMap = this.#clipGroupMap;
+    const clipGroupElm = clipGroupMap.get(trackId);
+    clipGroupElm.destroy();
+    clipGroupMap.delete(trackId);
+
+    if (clipGroupElm === this.#selectedClipGroup) {
+      this.#selectedClip = null;
+      this.#selectedClipGroup = null;
+    }
+  }
+
+  // override
+  afterRemoveItem(removedItem) {
+    const selectedTrackId = filterValue(this.#selectedTrackId, this.itemValues);
+    this.#setSelectedTrackId(selectedTrackId, { updateUI: false });
+
+    const trackId = removedItem[this.valueField];
+
+    const clipGroupMap = this.#clipGroupMap;
+    const clipGroupElm = clipGroupMap.get(trackId);
+    clipGroupElm.destroy();
+    clipGroupMap.delete(trackId);
+
+    if (clipGroupElm === this.#selectedClipGroup) {
+      this.#selectedClip = null;
+      this.#selectedClipGroup = null;
+    }
+  }
+
+  // override
+  afterRenderItems(items) {
     this.#updateSelectedUIState();
   }
 
   // override
   afterRenderItem(addedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
+    this.#updateTimelineDuration();
   }
 
   // override
   afterRenderUpdatedItem(updatedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
+    this.#updateTimelineDuration();
   }
 
   // override
   afterRenderRemovedItem(removedItem) {
-    const newDuration = this.#getMaxDuration();
-    this.#setDuration(newDuration);
+    this.#updateTimelineDuration();
+    this.#updateSelectedUIState();
   }
 
   // ---------------------------------------------------------------------------
@@ -437,15 +366,12 @@ export class TrackList extends ItemsElm {
   #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
-
-      let selected = false;
-      if (this.#selectedValueMode === 1) {
-        selected = this.#selectedValue === value;
-      } else {
-        selected = this.#selectedValue?.includes(value) ?? false;
-      }
-
+      const selected = this.#selectedTrackId === value;
       element.classList.toggle("is-selected", selected);
     });
+  }
+
+  #updateWidthUIState() {
+    this.rootElement.style.width = `${this.#timelineRuler.width}px`;
   }
 }

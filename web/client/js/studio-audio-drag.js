@@ -54,14 +54,13 @@ export function setup({
       const ghostTop = y - target.y1;
 
       let time = clipGroupElm.resolveTime(ghostLeft);
-      const { rowIndex, top } = clipGroupElm.resolveRowPosition(ghostTop);
+      const { rowIndex, top,snapThreshold } = clipGroupElm.resolveRowPosition(ghostTop);
 
       if (!event.shiftKey) {
         const snapPoints = drag.getState("snapPoints");
         const snap = trySnapTime(
           time,
           snapPoints,
-          clipGroupElm.pixelsPerSecond,
           clipGroupElm.snapThreshold,
         );
         time = snap.time;

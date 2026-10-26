@@ -50,11 +50,11 @@ const audioCache = new AudioCache({
 
 const zoomElm = new Tumbler("#zoom", {
   rootClass: "tumbler xs",
-  percentBase: 5,
-  min: 5,
-  max: 50,
+  percentBase: 2,
+  min: 2,
+  max: 20,
   step: 1,
-  value: 5,
+  value: 2,
   wheelReverse: true,
   pixelsPerStep: 10,
   wheelPixelsPerStep: 30,
@@ -72,8 +72,7 @@ const rulerElm = new TimelineRuler("[data-role='timeline-ruler']", {
 
 const trackListElm = new TrackList("#track-list", {
   valueField: "trackId",
-  pixelsPerSecond: rulerElm.pixelsPerSecond,
-  trackWidth: rulerElm.width,
+  timelineRuler: rulerElm,
   audioCache: audioCache,
 });
 
@@ -142,7 +141,6 @@ function bindEvents() {
   // on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
   on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
-  on(rulerElm, "widthChange", rulerWidthChange);
 
   on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
@@ -150,8 +148,6 @@ function bindEvents() {
   on(splitClipBtn, "click", splitClip);
   on(removeClipBtn, "click", removeClip);
   on(duplicateClipBtn, "click", duplicateClip);
-
-  on(trackListElm, "durationChange", trackListDurationChange);
 
   on(timelinePlayheadElm, "timeChange", timelinePlayheadTimeChange);
   on(timelineCursorElm, "timeChange", timelineCursorTimeChange);
@@ -200,13 +196,6 @@ function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   timelineCursorElm.pixelsPerSecond = pixelsPerSecond;
 }
 
-function rulerWidthChange({ width, seconds }) {
-  trackListElm.width = width;
-
-  if (timelinePlayheadElm.time > seconds) {
-    timelinePlayheadElm.time = seconds;
-  }
-}
 
 function addTrack() {
   const newTrack = createDefaultTrack();
@@ -242,14 +231,6 @@ function removeTrack() {
   trackListElm.selectedValue = newSelectedValue;
 
   toast.show("Track removed");
-}
-
-function trackHeaderListSelectedChange({ value }) {
-  trackListElm.selectedValue = value;
-}
-
-function trackListDurationChange({ duration }) {
-  rulerElm.duration = duration;
 }
 
 function timelinePlayheadTimeChange({ time }) {
@@ -334,10 +315,11 @@ function getSnapPoints() {
   ];
 }
 
-function trySnapTime(time, snapPoints, pixelsPerSecond, threshold = 5) {
+function trySnapTime(time, snapPoints, threshold = 5) {
   let snappedTime = time;
   let snappedPoint = null;
   let minDistance = threshold;
+  const pixelsPerSecond = rulerElm.pixelsPerSecond;
 
   for (const snapPoint of snapPoints) {
     const distance = Math.abs(time - snapPoint.time) * pixelsPerSecond;

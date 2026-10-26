@@ -356,7 +356,7 @@ export class TimelineRuler extends Elm {
   // -----------------------------------------------------------------------------
 
   set onPixelsPerSecondChange(handler) {
-    this.handler.set("pixelsPerSecondChangeHandler", handler);
+    this.handler.on("pixelsPerSecondChangeHandler", handler);
   }
 
   #emitPixelsPerSecondChange() {
@@ -364,7 +364,7 @@ export class TimelineRuler extends Elm {
   }
 
   set onDurationChange(handler) {
-    this.handler.set("durationChangeHandler", handler);
+    this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange() {
@@ -372,7 +372,7 @@ export class TimelineRuler extends Elm {
   }
 
   set onWidthChange(handler) {
-    this.handler.set("widthChangeHandler", handler);
+    this.handler.on("widthChangeHandler", handler);
   }
 
   #emitWidthChange() {

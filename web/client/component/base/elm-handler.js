@@ -1,37 +1,60 @@
-import {
-  assertNonBlankString,
-  assertFunction,
-  assertPlainObject,
-} from "./assert.js";
-
+import { assertNonBlankString, assertFunction } from "./assert.js";
 export class ElmHandler {
   #handlerMap = new Map();
 
-  set(key, handler) {
+  on(key, handler) {
     assertNonBlankString(key, "key");
     assertFunction(handler, "handler");
 
-    this.#handlerMap.set(key, handler);
+    let handlers = this.#handlerMap.get(key);
+
+    if (!handlers) {
+      handlers = new Set();
+      this.#handlerMap.set(key, handlers);
+    }
+
+    handlers.add(handler);
   }
 
   emit(key, detail = {}) {
     assertNonBlankString(key, "key");
 
-    const handler = this.#handlerMap.get(key);
+    const handlers = this.#handlerMap.get(key);
 
-    if (!handler) {
+    if (!handlers) {
       return;
     }
 
-    handler(detail);
+    for (const handler of handlers) {
+      handler(detail);
+    }
   }
 
-  delete(key = null) {
-    if (key != null) {
-      assertNonBlankString(key, "key");
-      return this.#handlerMap.delete(key);
+  off(key = null, handler = null) {
+    if (key == null) {
+      this.#handlerMap.clear();
+      return;
     }
 
-    this.#handlerMap.clear();
+    assertNonBlankString(key, "key");
+
+    if (handler == null) {
+      this.#handlerMap.delete(key);
+      return;
+    }
+
+    assertFunction(handler, "handler");
+
+    const handlers = this.#handlerMap.get(key);
+
+    if (!handlers) {
+      return;
+    }
+
+    handlers.delete(handler);
+
+    if (handlers.size === 0) {
+      this.#handlerMap.delete(key);
+    }
   }
 }

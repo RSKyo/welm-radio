@@ -56,7 +56,6 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           const snap = trySnapTime(
             time,
             snapPoints,
-            clipGroupElm.pixelsPerSecond,
             clipGroupElm.snapThreshold,
           );
           time = snap.time;
@@ -80,7 +79,6 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           const snap = trySnapTime(
             time,
             snapPoints,
-            clipGroupElm.pixelsPerSecond,
             clipGroupElm.snapThreshold,
           );
           time = snap.time;
@@ -102,7 +100,6 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           const snap = trySnapTime(
             time,
             snapPoints,
-            clipGroupElm.pixelsPerSecond,
             clipGroupElm.snapThreshold,
           );
           time = snap.time;

@@ -306,7 +306,7 @@ export class Range extends Elm {
   // -----------------------------------------------------------------------------
 
   set onChange(handler) {
-    this.handler.set("changeHandler", handler);
+    this.handler.on("changeHandler", handler);
   }
 
   #emitChange(value) {
@@ -317,7 +317,7 @@ export class Range extends Elm {
   }
 
   set onEndChange(handler) {
-    this.handler.set("endChangeHandler", handler);
+    this.handler.on("endChangeHandler", handler);
   }
 
   #emitEndChange(value) {

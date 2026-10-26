@@ -3,6 +3,7 @@ import {
   assertNonNegative,
   assertValueForMode,
   assertPlainObject,
+  assertNonBlankString,
 } from "../base/assert.js";
 import {
   createElementByHTML,
@@ -33,14 +34,20 @@ const clipTemplate = createElementByHTML(CLIP_TEMPLATE);
 
 export class ClipGroup extends ItemsElm {
   // state
+  #trackId = null;
   #selectedValue = null;
   #selectedValueMode = 1;
   #pixelsPerSecond = 0;
   #duration = 0;
   #height = 0;
+
+  #timelineRuler = null;
   #playheadTime = 0;
   // clip component map
   #clipMap = new Map();
+
+  
+
   // dragging
   #dragMode = null;
   #draggingClipElm = null;
@@ -71,6 +78,23 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
+    this.resolveOption("trackId", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
+      this.#trackId = value;
+    });
+
+    if(this.#trackId == null) {
+      throw new Error("clip group trackId is required");
+    }
+
+    this.resolveOption("timelineRuler", (value) => {
+      this.#timelineRuler = value;
+    });
+
+    if (this.#timelineRuler == null) {
+      throw new Error("Timeline ruler not found");
+    }
+
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
@@ -104,6 +128,10 @@ export class ClipGroup extends ItemsElm {
   // state(read-only)
   // -----------------------------------------------------------------------------
 
+  get trackId() {
+    return this.#trackId;
+  }
+  
   get duration() {
     return this.#duration;
   }
@@ -198,7 +226,7 @@ export class ClipGroup extends ItemsElm {
   /** pixelsPerSecond value (read-write) */
 
   get pixelsPerSecond() {
-    return this.#pixelsPerSecond;
+    return this.#timelineRuler.pixelsPerSecond;
   }
 
   set pixelsPerSecond(value) {
@@ -207,15 +235,15 @@ export class ClipGroup extends ItemsElm {
   }
 
   #setPixelsPerSecond(value) {
-    if (value === this.#pixelsPerSecond) {
-      return;
-    }
+    // if (value === this.#pixelsPerSecond) {
+    //   return;
+    // }
 
-    this.#pixelsPerSecond = value;
+    // this.#pixelsPerSecond = value;
 
-    for (const clipElm of this.#clipMap.values()) {
-      clipElm.pixelsPerSecond = value;
-    }
+    // for (const clipElm of this.#clipMap.values()) {
+    //   clipElm.pixelsPerSecond = value;
+    // }
   }
 
   /** playhead time (read-write) */
@@ -412,7 +440,7 @@ export class ClipGroup extends ItemsElm {
   }
 
   resolveTime(localX) {
-    return Math.max(0, localX / this.#pixelsPerSecond);
+    return Math.max(0, localX / this.pixelsPerSecond);
   }
 
   resolveRowPosition(localY) {
@@ -443,7 +471,7 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedChange(handler) {
-    this.handler.set("selectedChangeHandler", handler);
+    this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange(value) {
@@ -455,7 +483,7 @@ export class ClipGroup extends ItemsElm {
   }
 
   set onDurationChange(handler) {
-    this.handler.set("durationChangeHandler", handler);
+    this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange(duration) {
@@ -466,7 +494,7 @@ export class ClipGroup extends ItemsElm {
   }
 
   set onHeightChange(handler) {
-    this.handler.set("heightChangeHandler", handler);
+    this.handler.on("heightChangeHandler", handler);
   }
 
   #emitHeightChange(height) {
@@ -525,7 +553,7 @@ export class ClipGroup extends ItemsElm {
 
     const clipOptions = {
       ...item,
-      pixelsPerSecond: this.#pixelsPerSecond,
+      pixelsPerSecond: this.pixelsPerSecond,
       height: CLIP_HEIGHT,
       rowGap: CLIP_ROW_GAP,
       audioCache: this.#audioCache,

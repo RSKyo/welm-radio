@@ -429,7 +429,7 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
 
   set onClipEndChange(handler) {
-    this.handler.set("clipEndChangeHandler", handler);
+    this.handler.on("clipEndChangeHandler", handler);
   }
 
   #emitClipEndChange() {
@@ -437,7 +437,7 @@ export class Clip extends Elm {
   }
 
   set onRowIndexChange(handler) {
-    this.handler.set("rowIndexChangeHandler", handler);
+    this.handler.on("rowIndexChangeHandler", handler);
   }
 
   #emitRowIndexChange() {

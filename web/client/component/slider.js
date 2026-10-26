@@ -231,7 +231,7 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   set onChange(handler) {
-    this.handler.set("changeHandler", handler);
+    this.handler.on("changeHandler", handler);
   }
 
   #emitChange(value) {

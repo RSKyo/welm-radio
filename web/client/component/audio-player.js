@@ -294,7 +294,7 @@ export class AudioPlayer extends Elm {
   // -----------------------------------------------------------------------------
 
   set onLoadedMetadata(handler) {
-    this.handler.set("loadedMetadataHandler", handler);
+    this.handler.on("loadedMetadataHandler", handler);
   }
 
   #emitLoadedMetadata(value) {
@@ -305,7 +305,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onDurationChange(handler) {
-    this.handler.set("durationChangeHandler", handler);
+    this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange(value) {
@@ -316,7 +316,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onTimeUpdate(handler) {
-    this.handler.set("timeUpdateHandler", handler);
+    this.handler.on("timeUpdateHandler", handler);
   }
 
   #emitTimeUpdate(value) {
@@ -327,7 +327,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onPlay(handler) {
-    this.handler.set("playHandler", handler);
+    this.handler.on("playHandler", handler);
   }
 
   #emitPlay(value) {
@@ -338,7 +338,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onPause(handler) {
-    this.handler.set("pauseHandler", handler);
+    this.handler.on("pauseHandler", handler);
   }
 
   #emitPause(value) {
@@ -349,7 +349,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onEnded(handler) {
-    this.handler.set("endedHandler", handler);
+    this.handler.on("endedHandler", handler);
   }
 
   #emitEnded(value) {
@@ -360,7 +360,7 @@ export class AudioPlayer extends Elm {
   }
 
   set onEmptied(handler) {
-    this.handler.set("emptiedHandler", handler);
+    this.handler.on("emptiedHandler", handler);
   }
 
   #emitEmptied(value) {

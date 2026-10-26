@@ -31,14 +31,16 @@ export class TimelinePlayhead extends Elm {
       this.#timelineRuler = value;
     });
 
+    if (this.#timelineRuler == null) {
+      throw new Error("Timeline ruler not found");
+    }
+
     this.resolveOption("time", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#time = value;
     });
 
-    if (this.#timelineRuler == null) {
-      throw new Error("Timeline ruler not found");
-    }
+    
   }
 
   // -----------------------------------------------------------------------------
@@ -52,7 +54,7 @@ export class TimelinePlayhead extends Elm {
   set time(value) {
     assertNonNegative(value, "time");
 
-    const time = Math.min(value, this.#timelineRuler.seconds);
+    const time = Math.min(Math.max(0, value), this.#timelineRuler.seconds);
 
     this.#setTime(time);
   }
@@ -73,7 +75,7 @@ export class TimelinePlayhead extends Elm {
   // -----------------------------------------------------------------------------
 
   set onTimeChange(handler) {
-    this.handler.set("timeChangeHandler", handler);
+    this.handler.on("timeChangeHandler", handler);
   }
 
   #emitTimeChange(time) {
@@ -99,6 +101,10 @@ export class TimelinePlayhead extends Elm {
       "dblclick",
       this.#pointerDoubleClickHandler,
     );
+
+    this.#timelineRuler.onWidthChange = () => {
+      this.time = this.#time;
+    };
   }
 
   #pointerDownHandler = (event) => {

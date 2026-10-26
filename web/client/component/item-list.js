@@ -136,7 +136,7 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   set onSelectedChange(handler) {
-    this.handler.set("selectedChangeHandler", handler);
+    this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange(value) {
@@ -148,7 +148,7 @@ export class ItemList extends ItemsElm {
   }
 
   set onCheckedChange(handler) {
-    this.handler.set("checkedChangeHandler", handler);
+    this.handler.on("checkedChangeHandler", handler);
   }
 
   #emitCheckedChange(value) {
@@ -160,7 +160,7 @@ export class ItemList extends ItemsElm {
   }
 
   set onDoubleClick(handler) {
-    this.handler.set("doubleClickHandler", handler);
+    this.handler.on("doubleClickHandler", handler);
   }
 
   #emitDoubleClick(value) {

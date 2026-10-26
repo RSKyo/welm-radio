@@ -104,7 +104,7 @@ export class Elm {
     }
 
     assertFunction(handler, "handler");
-    this.#handler.set("resize", handler);
+    this.#handler.on("resize", handler);
 
     this.#rootElementResizeObserver = new ResizeObserver(() => {
       this.#handler.emit("resize", {});

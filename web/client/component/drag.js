@@ -326,7 +326,7 @@ export class DragDelegate {
   // -----------------------------------------------------------------------------
 
   set onPointerDown(handler) {
-    this.#handler.set("pointerDownHandler", handler);
+    this.#handler.on("pointerDownHandler", handler);
   }
 
   #emitPointerDown(event) {
@@ -334,7 +334,7 @@ export class DragDelegate {
   }
 
   set onPointerMove(handler) {
-    this.#handler.set("pointerMoveHandler", handler);
+    this.#handler.on("pointerMoveHandler", handler);
   }
 
   #emitPointerMove(event) {
@@ -342,7 +342,7 @@ export class DragDelegate {
   }
 
   set onPointerUp(handler) {
-    this.#handler.set("pointerUpHandler", handler);
+    this.#handler.on("pointerUpHandler", handler);
   }
 
   #emitPointerUp(event) {
@@ -350,7 +350,7 @@ export class DragDelegate {
   }
 
   set onPointerCancel(handler) {
-    this.#handler.set("pointerCancelHandler", handler);
+    this.#handler.on("pointerCancelHandler", handler);
   }
 
   #emitPointerCancel(event) {
