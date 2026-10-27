@@ -1,7 +1,4 @@
-import {
-  assertNonBlankString,
-  assertNonNegative,
-} from "../base/assert.js";
+import { assertNonBlankString, assertNonNegative } from "../base/assert.js";
 import {
   createElementByHTML,
   isEqualValue,
@@ -21,13 +18,12 @@ const TRACK_TEMPLATE = `
 const trackTemplate = createElementByHTML(TRACK_TEMPLATE);
 
 export class TrackList extends ItemsElm {
-  // state
   #selectedTrackId = null;
-  #playheadTime = 0;
+  #clipGroupMap = new Map();
   // ruler
   #timelineRuler = null;
-  // ClipGroup component map
-  #clipGroupMap = new Map();
+  // playhead
+  #timelinePlayhead = null;
 
   // audio cache
   #audioCache = null;
@@ -49,7 +45,7 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("timelineRuler", (value, assertionSubject) => {
+    this.resolveOption("timelineRuler", (value) => {
       this.#timelineRuler = value;
     });
 
@@ -57,28 +53,17 @@ export class TrackList extends ItemsElm {
       throw new Error("Timeline ruler not found");
     }
 
-    this.resolveOption("audioCache", (value, assertionSubject) => {
-      this.#audioCache = value;
+    this.resolveOption("timelinePlayhead", (value) => {
+      this.#timelinePlayhead = value;
     });
-  }
 
-  // -----------------------------------------------------------------------------
-  // state(read-only)
-  // -----------------------------------------------------------------------------
-
-  get snapPoints() {
-    const snapPoints = [];
-
-    for (const [trackId, clipGroupElm] of this.#clipGroupMap.entries()) {
-      for (const clipGroupSnapPoint of clipGroupElm.snapPoints) {
-        snapPoints.push({
-          ...clipGroupSnapPoint,
-          trackId,
-        });
-      }
+    if (this.#timelinePlayhead == null) {
+      throw new Error("Timeline playhead not found");
     }
 
-    return snapPoints;
+    this.resolveOption("audioCache", (value) => {
+      this.#audioCache = value;
+    });
   }
 
   // -----------------------------------------------------------------------------
@@ -112,26 +97,6 @@ export class TrackList extends ItemsElm {
     }
   }
 
-  /** playhead time (read-write) */
-
-  get playheadTime() {
-    return this.#playheadTime;
-  }
-
-  set playheadTime(value) {
-    assertNonNegative(value, "playheadTime");
-
-    if (value === this.#playheadTime) {
-      return;
-    }
-
-    this.#playheadTime = value;
-
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      clipGroupElm.playheadTime = value;
-    }
-  }
-
   // -----------------------------------------------------------------------------
   // methods
   // -----------------------------------------------------------------------------
@@ -146,6 +111,10 @@ export class TrackList extends ItemsElm {
     this.#timelineRuler.duration = maxDuration;
   }
 
+  // -----------------------------------------------------------------------------
+  // track operations
+  // -----------------------------------------------------------------------------
+
   addTrack(track) {
     return this.addItem(track);
   }
@@ -154,20 +123,39 @@ export class TrackList extends ItemsElm {
     return this.removeItem(trackValue);
   }
 
-  getClipGroup(trackId) {
-    if(trackId == null) {
+  // -----------------------------------------------------------------------------
+  // clip group operations
+  // -----------------------------------------------------------------------------
+
+  findClipGroup(trackId) {
+    if (trackId == null) {
       return null;
     }
 
     return this.#clipGroupMap.get(trackId) ?? null;
   }
 
-  getSelectedClipGroup() {
-    return this.getClipGroup(this.#selectedTrackId);
+  findSelectedClipGroup() {
+    return this.findClipGroup(this.#selectedTrackId);
+  }
+
+  // -----------------------------------------------------------------------------
+  // clip operations
+  // -----------------------------------------------------------------------------
+
+  findClip(clipId) {
+    for (const clipGroupElm of this.#clipGroupMap.values()) {
+      const clipElm = clipGroupElm.findClip(clipId);
+      if (clipElm != null) {
+        return clipElm;
+      }
+    }
+
+    return null;
   }
 
   addClip(clip) {
-    const clipGroupElm = this.getSelectedClipGroup();
+    const clipGroupElm = this.findSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
@@ -177,12 +165,12 @@ export class TrackList extends ItemsElm {
   }
 
   splitClip() {
-    const clipGroupElm = this.getSelectedClipGroup();
+    const clipGroupElm = this.findSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.getSelectedClip();
+    const clipElm = clipGroupElm.findSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
@@ -191,12 +179,12 @@ export class TrackList extends ItemsElm {
   }
 
   removeClip() {
-    const clipGroupElm = this.getSelectedClipGroup();
+    const clipGroupElm = this.findSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.getSelectedClip();
+    const clipElm = clipGroupElm.findSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
@@ -205,17 +193,32 @@ export class TrackList extends ItemsElm {
   }
 
   duplicateClip() {
-    const clipGroupElm = this.getSelectedClipGroup();
+    const clipGroupElm = this.findSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.getSelectedClip();
+    const clipElm = clipGroupElm.findSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
 
     return clipGroupElm.duplicateClip();
+  }
+
+  getSnapPoints() {
+    const snapPoints = [];
+
+    for (const [trackId, clipGroupElm] of this.#clipGroupMap.entries()) {
+      for (const clipGroupSnapPoint of clipGroupElm.getSnapPoints()) {
+        snapPoints.push({
+          ...clipGroupSnapPoint,
+          trackId,
+        });
+      }
+    }
+
+    return snapPoints;
   }
 
   // -----------------------------------------------------------------------------
@@ -270,22 +273,30 @@ export class TrackList extends ItemsElm {
 
   // override
   createItemElement(item) {
-    const value = item[this.valueField];
+    const trackId = item[this.valueField];
 
     const itemEl = trackTemplate.cloneNode(true);
-    itemEl.dataset.value = value;
+    itemEl.dataset.value = trackId;
 
     const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
 
     const clipGroupElm = new ClipGroup(clipGroupEl, {
       trackId: item[this.valueField],
       timelineRuler: this.#timelineRuler,
-      playheadTime: this.#playheadTime,
+      timelinePlayhead: this.#timelinePlayhead,
       audioCache: this.#audioCache,
       dataset: {
-        trackId: value,
+        trackId: trackId,
       },
     });
+
+    clipGroupElm.onSelectedChange = ({ trackId }) => {
+      for (const clipGroupElm of this.#clipGroupMap.values()) {
+        if (clipGroupElm.trackId !== trackId) {
+          clipGroupElm.unselect();
+        }
+      }
+    };
 
     clipGroupElm.onDurationChange = () => {
       this.#updateTimelineDuration();
@@ -294,10 +305,10 @@ export class TrackList extends ItemsElm {
     clipGroupElm.onHeightChange = ({ height }) => {
       itemEl.style.height = `${height}px`;
 
-      this.#emitTrackHeightChange(value, height);
+      this.#emitTrackHeightChange(trackId, height);
     };
 
-    this.#clipGroupMap.set(value, clipGroupElm);
+    this.#clipGroupMap.set(trackId, clipGroupElm);
 
     return itemEl;
   }

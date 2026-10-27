@@ -168,12 +168,7 @@ export class TimelineRuler extends Elm {
     return [...this.#tickSeconds];
   }
 
-  get snapPoints() {
-    return this.#tickSeconds.map((seconds) => ({
-      time: seconds,
-      type: "tick",
-    }));
-  }
+  
 
   get timelineViewport() {
     const viewport = this.#timelineInfo.timelineViewport;
@@ -349,6 +344,17 @@ export class TimelineRuler extends Elm {
     }
 
     return left;
+  }
+
+  // -----------------------------------------------------------------------------
+  // methods
+  // -----------------------------------------------------------------------------
+
+  getSnapPoints() {
+    return this.#tickSeconds.map((seconds) => ({
+      time: seconds,
+      type: "tick",
+    }));
   }
 
   // -----------------------------------------------------------------------------

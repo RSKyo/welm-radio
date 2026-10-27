@@ -40,8 +40,11 @@ export class ClipGroup extends ItemsElm {
   #duration = 0;
   #height = 0;
 
+  // ruler
   #timelineRuler = null;
-  #playheadTime = 0;
+  // playhead
+  #timelinePlayhead = null;
+
   // clip component map
   #clipMap = new Map();
 
@@ -92,6 +95,14 @@ export class ClipGroup extends ItemsElm {
       throw new Error("Timeline ruler not found");
     }
 
+    this.resolveOption("timelinePlayhead", (value, assertionSubject) => {
+      this.#timelinePlayhead = value;
+    });
+
+    if (this.#timelinePlayhead == null) {
+      throw new Error("Timeline playhead not found");
+    }
+
     this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerSecond = value;
@@ -99,11 +110,6 @@ export class ClipGroup extends ItemsElm {
 
     this.resolveOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
-    });
-
-    this.resolveOption("playheadTime", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
-      this.#playheadTime = value;
     });
 
     this.#height = this.#calculateHeight();
@@ -137,7 +143,7 @@ export class ClipGroup extends ItemsElm {
 
     this.#duration = value;
 
-    this.#emitDurationChange(this.#duration);
+    this.#emitDurationChange();
   }
 
   get height() {
@@ -153,36 +159,11 @@ export class ClipGroup extends ItemsElm {
 
     this.#updateHeightUIState();
 
-    this.#emitHeightChange(this.#height);
+    this.#emitHeightChange();
   }
 
   get snapThreshold() {
     return SNAP_THRESHOLD;
-  }
-
-  get snapPoints() {
-    const snapPoints = [];
-
-    for (const clipElm of this.#clipMap.values()) {
-      snapPoints.push(
-        {
-          time: clipElm.clipStart,
-          type: "clip",
-          clipId: clipElm.clipId,
-          rowIndex: clipElm.rowIndex,
-          edge: "start",
-        },
-        {
-          time: clipElm.clipEnd,
-          type: "clip",
-          clipId: clipElm.clipId,
-          rowIndex: clipElm.rowIndex,
-          edge: "end",
-        },
-      );
-    }
-
-    return snapPoints;
   }
 
   // -----------------------------------------------------------------------------
@@ -214,7 +195,7 @@ export class ClipGroup extends ItemsElm {
     }
 
     if (emitEvent) {
-      this.#emitSelectedChange(clipId);
+      this.#emitSelectedChange();
     }
   }
 
@@ -239,30 +220,15 @@ export class ClipGroup extends ItemsElm {
     // }
   }
 
-  /** playhead time (read-write) */
-
-  get playheadTime() {
-    return this.#playheadTime;
-  }
-
-  set playheadTime(value) {
-    assertNonNegative(value, "playheadTime");
-    this.#setPlayheadTime(value);
-  }
-
-  #setPlayheadTime(value) {
-    if (value === this.#playheadTime) {
-      return;
-    }
-
-    this.#playheadTime = value;
-  }
-
   // ---------------------------------------------------------------------------
   // clip methods
   // ---------------------------------------------------------------------------
 
-  getClip(clipId) {
+  unselect() {
+    this.#setSelectedClipId(null, { emitEvent: false });
+  }
+
+  findClip(clipId) {
     if (clipId == null) {
       return null;
     }
@@ -270,8 +236,8 @@ export class ClipGroup extends ItemsElm {
     return this.#clipMap.get(clipId) ?? null;
   }
 
-  getSelectedClip() {
-    return this.getClip(this.#selectedClipId);
+  findSelectedClip() {
+    return this.findClip(this.#selectedClipId);
   }
 
   addClip(clip) {
@@ -292,7 +258,7 @@ export class ClipGroup extends ItemsElm {
       return "clip-not-found";
     }
 
-    const splitTime = this.#playheadTime;
+    const splitTime = this.#timelinePlayhead.time;
 
     if (splitTime <= clipElm.clipStart + CLIP_MIN_DURATION) {
       return "too-close-to-start";
@@ -367,6 +333,31 @@ export class ClipGroup extends ItemsElm {
     return "success";
   }
 
+  getSnapPoints() {
+    const snapPoints = [];
+
+    for (const clipElm of this.#clipMap.values()) {
+      snapPoints.push(
+        {
+          time: clipElm.clipStart,
+          type: "clip",
+          clipId: clipElm.clipId,
+          rowIndex: clipElm.rowIndex,
+          edge: "start",
+        },
+        {
+          time: clipElm.clipEnd,
+          type: "clip",
+          clipId: clipElm.clipId,
+          rowIndex: clipElm.rowIndex,
+          edge: "end",
+        },
+      );
+    }
+
+    return snapPoints;
+  }
+
   // -----------------------------------------------------------------------------
   // layout
   // -----------------------------------------------------------------------------
@@ -390,6 +381,7 @@ export class ClipGroup extends ItemsElm {
 
     this.#setHeight((maxRowIndex + 1) * CLIP_ROW_HEIGHT);
   }
+
 
   #getMaxClipEnd() {
     let maxClipEnd = 0;
@@ -499,11 +491,11 @@ export class ClipGroup extends ItemsElm {
     this.handler.on("selectedChangeHandler", handler);
   }
 
-  #emitSelectedChange(value) {
+  #emitSelectedChange() {
     this.handler.emit("selectedChangeHandler", {
       elm: this,
-      value,
-      clip: this.#clipMap.get(value) ?? null,
+      trackId: this.#trackId,
+      clipId: this.#selectedClipId
     });
   }
 
@@ -511,10 +503,10 @@ export class ClipGroup extends ItemsElm {
     this.handler.on("durationChangeHandler", handler);
   }
 
-  #emitDurationChange(duration) {
+  #emitDurationChange() {
     this.handler.emit("durationChangeHandler", {
       elm: this,
-      duration,
+      duration: this.#duration,
     });
   }
 
@@ -522,10 +514,10 @@ export class ClipGroup extends ItemsElm {
     this.handler.on("heightChangeHandler", handler);
   }
 
-  #emitHeightChange(height) {
+  #emitHeightChange() {
     this.handler.emit("heightChangeHandler", {
       elm: this,
-      height,
+      height: this.#height,
     });
   }
 
@@ -533,7 +525,16 @@ export class ClipGroup extends ItemsElm {
   // bind events
   // -----------------------------------------------------------------------------
 
-  #bindEvents() {}
+  #bindEvents() {
+    this.event.on(this.rootElement, "click", this.#clipClickHandler, {
+      selector: '[data-role="clip"]',
+    });
+  }
+
+  #clipClickHandler = (event, { element }) => {
+    const clipId = element.dataset.value;
+    this.#setSelectedClipId(clipId);
+  };
 
   // ---------------------------------------------------------------------------
   // overrides
@@ -552,6 +553,8 @@ export class ClipGroup extends ItemsElm {
 
     const clipOptions = {
       ...item,
+      timelineRuler: this.#timelineRuler,
+      timelinePlayhead: this.#timelinePlayhead,
       pixelsPerSecond: this.pixelsPerSecond,
       height: CLIP_HEIGHT,
       rowGap: CLIP_ROW_GAP,

@@ -45,7 +45,7 @@ export function setup({
     const target = drag.target;
     if (target) {
       const trackId = target.element.dataset.trackId;
-      const clipGroupElm = trackListElm.getClipGroup(trackId);
+      const clipGroupElm = trackListElm.findClipGroup(trackId);
       if (!clipGroupElm) {
         return;
       }
@@ -89,7 +89,7 @@ export function setup({
     }
 
     const trackId = target.element.dataset.trackId;
-    const clipGroupElm = trackListElm.getClipGroup(trackId);
+    const clipGroupElm = trackListElm.findClipGroup(trackId);
     if (!clipGroupElm) {
       return;
     }

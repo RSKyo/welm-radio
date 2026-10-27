@@ -70,19 +70,22 @@ const rulerElm = new TimelineRuler("[data-role='timeline-ruler']", {
   basePixelsPerSecond: 2,
 });
 
+const playheadElm = new TimelinePlayhead("[data-role='timeline-playhead']", {
+  timelineRuler: rulerElm,
+});
+
+const cursorElm = new TimelineCursor("[data-role='timeline-cursor']", {
+  timelineRuler: rulerElm,
+});
+
 const trackListElm = new TrackList("#track-list", {
   valueField: "trackId",
   timelineRuler: rulerElm,
+  timelinePlayhead: playheadElm,
   audioCache: audioCache,
 });
 
-const timelinePlayheadElm = new TimelinePlayhead("[data-role='timeline-playhead']", {
-  timelineRuler: rulerElm,
-});
 
-const timelineCursorElm = new TimelineCursor("[data-role='timeline-cursor']", {
-  timelineRuler: rulerElm,
-});
 
 const cursorTimeletElm = new Timelet("#cursor-timelet", {
   rootClassExtra: "xs",
@@ -149,8 +152,8 @@ function bindEvents() {
   on(removeClipBtn, "click", removeClip);
   on(duplicateClipBtn, "click", duplicateClip);
 
-  on(timelinePlayheadElm, "timeChange", timelinePlayheadTimeChange);
-  on(timelineCursorElm, "timeChange", timelineCursorTimeChange);
+  on(playheadElm, "timeChange", timelinePlayheadTimeChange);
+  on(cursorElm, "timeChange", timelineCursorTimeChange);
 }
 
 async function initData() {
@@ -176,7 +179,7 @@ function zoomChange({ value }) {
 }
 
 // function timelineContentDoubleClick(event) {
-//   timelinePlayheadElm.time = timelineContainerPointerSeconds;
+//   playheadElm.time = timelineContainerPointerSeconds;
 // // }
 
 // function timelineContentPointerMove(event) {
@@ -187,13 +190,13 @@ function zoomChange({ value }) {
 //     timelineContainerPointerX,
 //     rulerElm.pixelsPerSecond,
 //   );
-//   timelineCursorElm.time = timelineContainerPointerSeconds;
+//   cursorElm.time = timelineContainerPointerSeconds;
 // }
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   trackListElm.pixelsPerSecond = pixelsPerSecond;
-  timelinePlayheadElm.pixelsPerSecond = pixelsPerSecond;
-  timelineCursorElm.pixelsPerSecond = pixelsPerSecond;
+  playheadElm.pixelsPerSecond = pixelsPerSecond;
+  cursorElm.pixelsPerSecond = pixelsPerSecond;
 }
 
 
@@ -306,10 +309,10 @@ function duplicateClip() {
 
 function getSnapPoints() {
   return [
-    ...rulerElm.snapPoints,
-    ...trackListElm.snapPoints,
+    ...rulerElm.getSnapPoints(),
+    ...trackListElm.getSnapPoints(),
     {
-      time: timelinePlayheadElm.time,
+      time: playheadElm.time,
       type: "playhead",
     },
   ];

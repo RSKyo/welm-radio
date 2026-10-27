@@ -36,7 +36,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     const target = drag.target;
     if (target) {
       const trackId = target.element.dataset.trackId;
-      const clipGroupElm = trackListElm.getClipGroup(trackId);
+      const clipGroupElm = trackListElm.findClipGroup(trackId);
       if (!clipGroupElm) {
         return;
       }
@@ -128,13 +128,13 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     }
 
     const originTrackId = drag.getState("trackId");
-    const originClipGroupElm = trackListElm.getClipGroup(originTrackId);
+    const originClipGroupElm = trackListElm.findClipGroup(originTrackId);
     if (!originClipGroupElm) {
       return;
     }
 
     const targetTrackId = target.element.dataset.trackId;
-    const targetClipGroupElm = trackListElm.getClipGroup(targetTrackId);
+    const targetClipGroupElm = trackListElm.findClipGroup(targetTrackId);
     if (!targetClipGroupElm) {
       return;
     }
