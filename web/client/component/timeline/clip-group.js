@@ -35,8 +35,7 @@ const clipTemplate = createElementByHTML(CLIP_TEMPLATE);
 export class ClipGroup extends ItemsElm {
   // state
   #trackId = null;
-  #selectedValue = null;
-  #selectedValueMode = 1;
+  #selectedClipId = null;
   #pixelsPerSecond = 0;
   #duration = 0;
   #height = 0;
@@ -45,8 +44,6 @@ export class ClipGroup extends ItemsElm {
   #playheadTime = 0;
   // clip component map
   #clipMap = new Map();
-
-  
 
   // dragging
   #dragMode = null;
@@ -83,7 +80,7 @@ export class ClipGroup extends ItemsElm {
       this.#trackId = value;
     });
 
-    if(this.#trackId == null) {
+    if (this.#trackId == null) {
       throw new Error("clip group trackId is required");
     }
 
@@ -116,10 +113,7 @@ export class ClipGroup extends ItemsElm {
       `${CLIP_ROW_HEIGHT}px`,
     );
 
-    this.rootElement.style.setProperty(
-      "--clip-row-gap",
-      `${CLIP_ROW_GAP}px`,
-    );
+    this.rootElement.style.setProperty("--clip-row-gap", `${CLIP_ROW_GAP}px`);
 
     this.setItems(null);
   }
@@ -131,7 +125,7 @@ export class ClipGroup extends ItemsElm {
   get trackId() {
     return this.#trackId;
   }
-  
+
   get duration() {
     return this.#duration;
   }
@@ -197,30 +191,31 @@ export class ClipGroup extends ItemsElm {
 
   /** selected value (read-write) */
 
-  get selectedValue() {
-    return normalizeValue(this.#selectedValue, this.#selectedValueMode);
+  /** selected trackId (read-write) */
+
+  get selectedClipId() {
+    return this.#selectedClipId;
   }
 
-  set selectedValue(value) {
-    assertValueForMode(value, this.#selectedValueMode);
-    this.#setSelectedValue(value);
+  set selectedClipId(clipId) {
+    assertNonBlankString(clipId, "selectedClipId");
+    this.#setSelectedClipId(clipId);
   }
 
-  #setSelectedValue(value, { updateUI = true } = {}) {
-    const oldValue = this.#selectedValue;
-    const newValue = normalizeValue(value, this.#selectedValueMode);
-
-    if (isEqualValue(newValue, oldValue)) {
+  #setSelectedClipId(clipId, { updateUI = true, emitEvent = true } = {}) {
+    if (isEqualValue(clipId, this.#selectedClipId)) {
       return;
     }
 
-    this.#selectedValue = newValue;
+    this.#selectedClipId = clipId;
 
     if (updateUI) {
       this.#updateSelectedUIState();
     }
 
-    this.#emitSelectedChange(newValue);
+    if (emitEvent) {
+      this.#emitSelectedChange(clipId);
+    }
   }
 
   /** pixelsPerSecond value (read-write) */
@@ -238,9 +233,7 @@ export class ClipGroup extends ItemsElm {
     // if (value === this.#pixelsPerSecond) {
     //   return;
     // }
-
     // this.#pixelsPerSecond = value;
-
     // for (const clipElm of this.#clipMap.values()) {
     //   clipElm.pixelsPerSecond = value;
     // }
@@ -269,6 +262,18 @@ export class ClipGroup extends ItemsElm {
   // clip methods
   // ---------------------------------------------------------------------------
 
+  getClip(clipId) {
+    if (clipId == null) {
+      return null;
+    }
+
+    return this.#clipMap.get(clipId) ?? null;
+  }
+
+  getSelectedClip() {
+    return this.getClip(this.#selectedClipId);
+  }
+
   addClip(clip) {
     assertPlainObject(clip, "clip");
 
@@ -276,11 +281,11 @@ export class ClipGroup extends ItemsElm {
   }
 
   splitClip() {
-    if (this.#selectedValue == null) {
+    if (this.#selectedClipId == null) {
       return "clip-not-selected";
     }
 
-    const clipId = this.#selectedValue;
+    const clipId = this.#selectedClipId;
     const clipElm = this.#clipMap.get(clipId);
 
     if (!clipElm) {
@@ -314,17 +319,17 @@ export class ClipGroup extends ItemsElm {
     this.updateItem(originalClipItem, "update item for splitting clip");
     this.addItem(newClip);
 
-    this.selectedValue = newClip.clipId;
+    this.selectedClipId = newClip.clipId;
 
     return "success";
   }
 
   duplicateClip() {
-    if (this.#selectedValue == null) {
+    if (this.#selectedClipId == null) {
       return "clip-not-selected";
     }
 
-    const clipId = this.#selectedValue;
+    const clipId = this.#selectedClipId;
     const clipElm = this.#clipMap.get(clipId);
 
     if (!clipElm) {
@@ -339,17 +344,17 @@ export class ClipGroup extends ItemsElm {
     };
 
     this.addItem(newClip);
-    this.selectedValue = newClip.clipId;
+    this.selectedClipId = newClip.clipId;
 
     return "success";
   }
 
   removeClip() {
-    if (this.#selectedValue == null) {
+    if (this.#selectedClipId == null) {
       return "clip-not-selected";
     }
 
-    const clipId = this.#selectedValue;
+    const clipId = this.#selectedClipId;
     const clipElm = this.#clipMap.get(clipId);
 
     if (!clipElm) {
@@ -357,7 +362,7 @@ export class ClipGroup extends ItemsElm {
     }
 
     this.removeItem(clipId);
-    this.selectedValue = null;
+    this.selectedClipId = null;
 
     return "success";
   }
@@ -365,6 +370,26 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
   // layout
   // -----------------------------------------------------------------------------
+
+  #updateClipGroupDuration() {
+    let maxClipEnd = 0;
+
+    for (const clipElm of this.#clipMap.values()) {
+      maxClipEnd = Math.max(maxClipEnd, clipElm.clipEnd);
+    }
+
+    this.#setDuration(maxClipEnd);
+  }
+
+  #updateClipGroupHeight() {
+    let maxRowIndex = 0;
+
+    for (const clipElm of this.#clipMap.values()) {
+      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
+    }
+
+    this.#setHeight((maxRowIndex + 1) * CLIP_ROW_HEIGHT);
+  }
 
   #getMaxClipEnd() {
     let maxClipEnd = 0;
@@ -446,7 +471,7 @@ export class ClipGroup extends ItemsElm {
   resolveRowPosition(localY) {
     const rowIndex = Math.max(0, Math.floor(localY / CLIP_ROW_HEIGHT));
     let clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
-    const offsetTop = CLIP_ROW_GAP === 0 ? 0 : (1 + (CLIP_ROW_GAP - 1) / 2);
+    const offsetTop = CLIP_ROW_GAP === 0 ? 0 : 1 + (CLIP_ROW_GAP - 1) / 2;
     clipTop = clipTop - offsetTop;
 
     let top;
@@ -520,32 +545,6 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
-  afterSetItems(items) {
-    const itemValues = this.itemValues;
-    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#setSelectedValue(newSelectedValue, { updateUI: false });
-
-    // clear all clipElm
-    for (const clipElm of this.#clipMap.values()) {
-      clipElm.destroy();
-    }
-    this.#clipMap.clear();
-  }
-
-  // override
-  afterRemoveItem(removedItem) {
-    const itemValues = this.itemValues;
-    const newSelectedValue = filterValue(this.#selectedValue, itemValues);
-    this.#setSelectedValue(newSelectedValue, { updateUI: false });
-
-    const value = removedItem[this.valueField];
-    const clipElm = this.#clipMap.get(value);
-
-    clipElm?.destroy();
-    this.#clipMap.delete(value);
-  }
-
-  // override
   createItemElement(item) {
     const value = item[this.valueField];
     const itemEl = clipTemplate.cloneNode(true);
@@ -567,13 +566,11 @@ export class ClipGroup extends ItemsElm {
     const clipElm = new Clip(itemEl, clipOptions);
 
     clipElm.onClipEndChange = () => {
-      const newDuration = this.#getMaxClipEnd();
-      this.#setDuration(newDuration);
+      this.#updateClipGroupDuration();
     };
 
     clipElm.onRowIndexChange = () => {
-      const newHeight = this.#calculateHeight();
-      this.#setHeight(newHeight);
+      this.#updateClipGroupHeight();
     };
 
     this.#clipMap.set(value, clipElm);
@@ -582,23 +579,45 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
+  afterSetItems(items) {
+    const selectedClipId = filterValue(this.#selectedClipId, this.itemValues);
+    this.#setSelectedClipId(selectedClipId, { updateUI: false });
+
+    // clear all clipElm
+    for (const clipElm of this.#clipMap.values()) {
+      clipElm.destroy();
+    }
+    this.#clipMap.clear();
+  }
+
+  // do nothing for afterAddItem
+  // afterAddItem(addedItem) {}
+
+  // do nothing for afterUpdateItem
+  // afterUpdateItem(updatedItem) {}
+
+  // override
+  afterRemoveItem(removedItem) {
+    const selectedClipId = filterValue(this.#selectedClipId, this.itemValues);
+    this.#setSelectedClipId(selectedClipId, { updateUI: false });
+
+    const trackId = removedItem[this.valueField];
+
+    const clipMap = this.#clipMap;
+    const clipElm = clipMap.get(trackId);
+    clipElm.destroy();
+    clipMap.delete(trackId);
+  }
+
+  // override
   afterRenderItems(items) {
-    const newDuration = this.#getMaxClipEnd();
-    this.#setDuration(newDuration);
-
-    const newHeight = this.#calculateHeight();
-    this.#setHeight(newHeight);
-
     this.#updateSelectedUIState();
   }
 
   // override
   afterRenderItem(addedItem) {
-    const newDuration = this.#getMaxClipEnd();
-    this.#setDuration(newDuration);
-
-    const newHeight = this.#calculateHeight();
-    this.#setHeight(newHeight);
+    this.#updateClipGroupDuration();
+    this.#updateClipGroupHeight();
   }
 
   renderUpdatedItem(updatedItem, assertionSubject = "item") {
@@ -621,12 +640,15 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
-  afterRenderRemovedItem(removedItem) {
-    const newDuration = this.#getMaxClipEnd();
-    this.#setDuration(newDuration);
+  afterRenderUpdatedItem(updatedItem) {
+    this.#updateClipGroupDuration();
+    this.#updateClipGroupHeight();
+  }
 
-    const newHeight = this.#calculateHeight();
-    this.#setHeight(newHeight);
+  // override
+  afterRenderRemovedItem(removedItem) {
+    this.#updateClipGroupDuration();
+    this.#updateClipGroupHeight();
   }
 
   // ---------------------------------------------------------------------------
@@ -636,14 +658,7 @@ export class ClipGroup extends ItemsElm {
   #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
-
-      let selected = false;
-      if (this.#selectedValueMode === 1) {
-        selected = this.#selectedValue === value;
-      } else {
-        selected = this.#selectedValue?.includes(value) ?? false;
-      }
-
+      const selected = this.#selectedClipId === value;
       element.classList.toggle("is-selected", selected);
     });
   }

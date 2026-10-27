@@ -28,8 +28,7 @@ export class TrackList extends ItemsElm {
   #timelineRuler = null;
   // ClipGroup component map
   #clipGroupMap = new Map();
-  #selectedClipGroup = null;
-  #selectedClip = null;
+
   // audio cache
   #audioCache = null;
 
@@ -156,19 +155,21 @@ export class TrackList extends ItemsElm {
   }
 
   getClipGroup(trackId) {
+    if(trackId == null) {
+      return null;
+    }
+
     return this.#clipGroupMap.get(trackId) ?? null;
   }
 
+  getSelectedClipGroup() {
+    return this.getClipGroup(this.#selectedTrackId);
+  }
+
   addClip(clip) {
-    if (this.#selectedTrackId == null) {
+    const clipGroupElm = this.getSelectedClipGroup();
+    if (clipGroupElm == null) {
       return "track-not-selected";
-    }
-
-    const trackId = this.#selectedTrackId;
-    const clipGroupElm = this.#clipGroupMap.get(trackId);
-
-    if (!clipGroupElm) {
-      return "track-not-found";
     }
 
     clipGroupElm.addClip(clip);
@@ -176,27 +177,45 @@ export class TrackList extends ItemsElm {
   }
 
   splitClip() {
-    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+    const clipGroupElm = this.getSelectedClipGroup();
+    if (clipGroupElm == null) {
+      return "track-not-selected";
+    }
+
+    const clipElm = clipGroupElm.getSelectedClip();
+    if (clipElm == null) {
       return "clip-not-selected";
     }
 
-    return this.#selectedClipGroup.splitClip();
+    return clipGroupElm.splitClip();
   }
 
   removeClip() {
-    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+    const clipGroupElm = this.getSelectedClipGroup();
+    if (clipGroupElm == null) {
+      return "track-not-selected";
+    }
+
+    const clipElm = clipGroupElm.getSelectedClip();
+    if (clipElm == null) {
       return "clip-not-selected";
     }
 
-    return this.#selectedClipGroup.removeClip();
+    return clipGroupElm.removeClip();
   }
 
   duplicateClip() {
-    if (this.#selectedClip == null || this.#selectedClipGroup == null) {
+    const clipGroupElm = this.getSelectedClipGroup();
+    if (clipGroupElm == null) {
+      return "track-not-selected";
+    }
+
+    const clipElm = clipGroupElm.getSelectedClip();
+    if (clipElm == null) {
       return "clip-not-selected";
     }
 
-    return this.#selectedClipGroup.duplicateClip();
+    return clipGroupElm.duplicateClip();
   }
 
   // -----------------------------------------------------------------------------
@@ -268,11 +287,6 @@ export class TrackList extends ItemsElm {
       },
     });
 
-    clipGroupElm.onSelectedChange = ({ elm, clip }) => {
-      this.#selectedClip = clip;
-      this.#selectedClipGroup = clip == null ? null : elm;
-    };
-
     clipGroupElm.onDurationChange = () => {
       this.#updateTimelineDuration();
     };
@@ -298,12 +312,10 @@ export class TrackList extends ItemsElm {
       clipGroupElm.destroy();
     }
     this.#clipGroupMap.clear();
-
-    this.#selectedClip = null;
-    this.#selectedClipGroup = null;
   }
 
-  afterAddItem(addedItem) {}
+  // do nothing for afterAddItem
+  // afterAddItem(addedItem) {}
 
   // override
   afterUpdateItem(updatedItem) {
@@ -313,11 +325,6 @@ export class TrackList extends ItemsElm {
     const clipGroupElm = clipGroupMap.get(trackId);
     clipGroupElm.destroy();
     clipGroupMap.delete(trackId);
-
-    if (clipGroupElm === this.#selectedClipGroup) {
-      this.#selectedClip = null;
-      this.#selectedClipGroup = null;
-    }
   }
 
   // override
@@ -331,11 +338,6 @@ export class TrackList extends ItemsElm {
     const clipGroupElm = clipGroupMap.get(trackId);
     clipGroupElm.destroy();
     clipGroupMap.delete(trackId);
-
-    if (clipGroupElm === this.#selectedClipGroup) {
-      this.#selectedClip = null;
-      this.#selectedClipGroup = null;
-    }
   }
 
   // override
