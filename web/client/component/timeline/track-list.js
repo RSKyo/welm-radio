@@ -1,4 +1,4 @@
-import { assertNonBlankString, assertNonNegative } from "../base/assert.js";
+import { assertNonBlankString } from "../base/assert.js";
 import {
   createElementByHTML,
   isEqualValue,
@@ -6,7 +6,7 @@ import {
   getBySelector,
 } from "../base/helper.js";
 import { ItemsElm } from "../base/items-elm.js";
-import { ClipGroup, DEFAULT_CLIP_GROUP_MIN_HEIGHT } from "./clip-group.js";
+import { ClipGroup } from "./clip-group.js";
 
 const TRACK_TEMPLATE = `
 <div class="track" data-role="track">
@@ -111,6 +111,21 @@ export class TrackList extends ItemsElm {
     this.#timelineRuler.duration = maxDuration;
   }
 
+  getSnapPoints() {
+    const snapPoints = [];
+
+    for (const [trackId, clipGroupElm] of this.#clipGroupMap.entries()) {
+      for (const clipGroupSnapPoint of clipGroupElm.getSnapPoints()) {
+        snapPoints.push({
+          ...clipGroupSnapPoint,
+          trackId,
+        });
+      }
+    }
+
+    return snapPoints;
+  }
+
   // -----------------------------------------------------------------------------
   // track operations
   // -----------------------------------------------------------------------------
@@ -127,7 +142,7 @@ export class TrackList extends ItemsElm {
   // clip group operations
   // -----------------------------------------------------------------------------
 
-  findClipGroup(trackId) {
+  getClipGroup(trackId) {
     if (trackId == null) {
       return null;
     }
@@ -135,27 +150,16 @@ export class TrackList extends ItemsElm {
     return this.#clipGroupMap.get(trackId) ?? null;
   }
 
-  findSelectedClipGroup() {
-    return this.findClipGroup(this.#selectedTrackId);
+  getSelectedClipGroup() {
+    return this.getClipGroup(this.#selectedTrackId);
   }
 
   // -----------------------------------------------------------------------------
   // clip operations
   // -----------------------------------------------------------------------------
 
-  findClip(clipId) {
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      const clipElm = clipGroupElm.findClip(clipId);
-      if (clipElm != null) {
-        return clipElm;
-      }
-    }
-
-    return null;
-  }
-
   addClip(clip) {
-    const clipGroupElm = this.findSelectedClipGroup();
+    const clipGroupElm = this.getSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
@@ -165,12 +169,12 @@ export class TrackList extends ItemsElm {
   }
 
   splitClip() {
-    const clipGroupElm = this.findSelectedClipGroup();
+    const clipGroupElm = this.getSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.findSelectedClip();
+    const clipElm = clipGroupElm.getSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
@@ -179,12 +183,12 @@ export class TrackList extends ItemsElm {
   }
 
   removeClip() {
-    const clipGroupElm = this.findSelectedClipGroup();
+    const clipGroupElm = this.getSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.findSelectedClip();
+    const clipElm = clipGroupElm.getSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
@@ -193,32 +197,17 @@ export class TrackList extends ItemsElm {
   }
 
   duplicateClip() {
-    const clipGroupElm = this.findSelectedClipGroup();
+    const clipGroupElm = this.getSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.findSelectedClip();
+    const clipElm = clipGroupElm.getSelectedClip();
     if (clipElm == null) {
       return "clip-not-selected";
     }
 
     return clipGroupElm.duplicateClip();
-  }
-
-  getSnapPoints() {
-    const snapPoints = [];
-
-    for (const [trackId, clipGroupElm] of this.#clipGroupMap.entries()) {
-      for (const clipGroupSnapPoint of clipGroupElm.getSnapPoints()) {
-        snapPoints.push({
-          ...clipGroupSnapPoint,
-          trackId,
-        });
-      }
-    }
-
-    return snapPoints;
   }
 
   // -----------------------------------------------------------------------------
@@ -273,28 +262,35 @@ export class TrackList extends ItemsElm {
 
   // override
   createItemElement(item) {
+    /** create track */
+
     const trackId = item[this.valueField];
+    const trackEl = trackTemplate.cloneNode(true);
+    trackEl.dataset.value = trackId;
 
-    const itemEl = trackTemplate.cloneNode(true);
-    itemEl.dataset.value = trackId;
+    /** create clip group */
 
-    const clipGroupEl = getBySelector(itemEl, '[data-role="clip-group"]');
+    const clipGroupEl = getBySelector(trackEl, '[data-role="clip-group"]');
 
     const clipGroupElm = new ClipGroup(clipGroupEl, {
-      trackId: item[this.valueField],
+      trackId,
       timelineRuler: this.#timelineRuler,
       timelinePlayhead: this.#timelinePlayhead,
       audioCache: this.#audioCache,
       dataset: {
-        trackId: trackId,
+        trackId,
       },
     });
 
-    clipGroupElm.onSelectedChange = ({ trackId }) => {
+    clipGroupElm.onSelectedChange = () => {
       for (const clipGroupElm of this.#clipGroupMap.values()) {
         if (clipGroupElm.trackId !== trackId) {
           clipGroupElm.unselect();
         }
+      }
+
+      if (this.#selectedTrackId !== trackId) {
+        this.#setSelectedTrackId(trackId);
       }
     };
 
@@ -303,14 +299,22 @@ export class TrackList extends ItemsElm {
     };
 
     clipGroupElm.onHeightChange = ({ height }) => {
-      itemEl.style.height = `${height}px`;
+      trackEl.style.height = `${height}px`;
 
       this.#emitTrackHeightChange(trackId, height);
     };
 
     this.#clipGroupMap.set(trackId, clipGroupElm);
 
-    return itemEl;
+    /** create clip */
+
+    if (item.clips) {
+      for (const clip of item.clips) {
+        clipGroupElm.addItem(clip);
+      }
+    }
+
+    return trackEl;
   }
 
   // override
@@ -353,6 +357,7 @@ export class TrackList extends ItemsElm {
 
   // override
   afterRenderItems(items) {
+    this.#updateTimelineDuration();
     this.#updateSelectedUIState();
   }
 
@@ -364,6 +369,7 @@ export class TrackList extends ItemsElm {
   // override
   afterRenderUpdatedItem(updatedItem) {
     this.#updateTimelineDuration();
+    this.#updateSelectedUIState();
   }
 
   // override

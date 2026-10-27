@@ -85,8 +85,6 @@ const trackListElm = new TrackList("#track-list", {
   audioCache: audioCache,
 });
 
-
-
 const cursorTimeletElm = new Timelet("#cursor-timelet", {
   rootClassExtra: "xs",
   full: true,
@@ -198,7 +196,6 @@ function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   playheadElm.pixelsPerSecond = pixelsPerSecond;
   cursorElm.pixelsPerSecond = pixelsPerSecond;
 }
-
 
 function addTrack() {
   const newTrack = createDefaultTrack();
@@ -348,5 +345,6 @@ function createDefaultTrack(options = {}) {
     pan: 0,
     locked: false,
     muted: false,
+    clips: [],
   };
 }

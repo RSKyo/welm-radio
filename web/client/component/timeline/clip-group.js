@@ -1,13 +1,10 @@
 import {
   assertPositive,
-  assertNonNegative,
-  assertValueForMode,
   assertPlainObject,
   assertNonBlankString,
 } from "../base/assert.js";
 import {
   createElementByHTML,
-  normalizeValue,
   isEqualValue,
   filterValue,
 } from "../base/helper.js";
@@ -228,7 +225,7 @@ export class ClipGroup extends ItemsElm {
     this.#setSelectedClipId(null, { emitEvent: false });
   }
 
-  findClip(clipId) {
+  getClip(clipId) {
     if (clipId == null) {
       return null;
     }
@@ -236,8 +233,8 @@ export class ClipGroup extends ItemsElm {
     return this.#clipMap.get(clipId) ?? null;
   }
 
-  findSelectedClip() {
-    return this.findClip(this.#selectedClipId);
+  getSelectedClip() {
+    return this.getClip(this.#selectedClipId);
   }
 
   addClip(clip) {
@@ -614,6 +611,7 @@ export class ClipGroup extends ItemsElm {
 
   // override
   afterRenderItems(items) {
+    this.#updateClipGroupDuration();
     this.#updateSelectedUIState();
   }
 

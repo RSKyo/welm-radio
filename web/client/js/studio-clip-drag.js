@@ -18,9 +18,13 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
   /** pointer down handler */
 
   function pointerDown(event) {
+    const clipId = drag.dragging.element.dataset.value;
     const clipGroupEl = closestElement(event, ".clip-group");
     const trackId = clipGroupEl.dataset.trackId;
     drag.setState("trackId", trackId);
+
+    const clipGroupElm = trackListElm.getClipGroup(trackId);
+    clipGroupElm.selectedClipId = clipId;
 
     const snapPoints = getSnapPoints();
     drag.setState("snapPoints", snapPoints);
@@ -36,7 +40,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     const target = drag.target;
     if (target) {
       const trackId = target.element.dataset.trackId;
-      const clipGroupElm = trackListElm.findClipGroup(trackId);
+      const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
         return;
       }
@@ -128,13 +132,13 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     }
 
     const originTrackId = drag.getState("trackId");
-    const originClipGroupElm = trackListElm.findClipGroup(originTrackId);
+    const originClipGroupElm = trackListElm.getClipGroup(originTrackId);
     if (!originClipGroupElm) {
       return;
     }
 
     const targetTrackId = target.element.dataset.trackId;
-    const targetClipGroupElm = trackListElm.findClipGroup(targetTrackId);
+    const targetClipGroupElm = trackListElm.getClipGroup(targetTrackId);
     if (!targetClipGroupElm) {
       return;
     }

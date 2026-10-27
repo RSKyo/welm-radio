@@ -45,7 +45,7 @@ export function setup({
     const target = drag.target;
     if (target) {
       const trackId = target.element.dataset.trackId;
-      const clipGroupElm = trackListElm.findClipGroup(trackId);
+      const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
         return;
       }
@@ -89,7 +89,7 @@ export function setup({
     }
 
     const trackId = target.element.dataset.trackId;
-    const clipGroupElm = trackListElm.findClipGroup(trackId);
+    const clipGroupElm = trackListElm.getClipGroup(trackId);
     if (!clipGroupElm) {
       return;
     }
@@ -106,7 +106,8 @@ export function setup({
     item.clipStart = clipStart;
     item.rowIndex = rowIndex;
 
-    clipGroupElm.addItem(item);
+    clipGroupElm.addItem(item);console.log(item);
+    clipGroupElm.selectedClipId = item.clipId;
   }
 
   /** methods */
