@@ -106,7 +106,7 @@ export function setup({
     item.clipStart = clipStart;
     item.rowIndex = rowIndex;
 
-    clipGroupElm.addItem(item);console.log(item);
+    clipGroupElm.addItem(item);
     clipGroupElm.selectedClipId = item.clipId;
   }
 
