@@ -17,7 +17,6 @@ const CLIP_ROW_GAP = 3;
 const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;
 
-export const DEFAULT_CLIP_GROUP_MIN_HEIGHT = CLIP_ROW_HEIGHT * 3;
 const EMPTY_TEMPLATE = `
 <div class="empty-placeholder">No Clips</div>
 `;
@@ -30,10 +29,8 @@ const emptyTemplate = createElementByHTML(EMPTY_TEMPLATE);
 const clipTemplate = createElementByHTML(CLIP_TEMPLATE);
 
 export class ClipGroup extends ItemsElm {
-  // state
   #trackId = null;
   #selectedClipId = null;
-  #pixelsPerSecond = 0;
   #duration = 0;
   #height = 0;
 
@@ -41,22 +38,10 @@ export class ClipGroup extends ItemsElm {
   #timelineRuler = null;
   // playhead
   #timelinePlayhead = null;
-
-  // clip component map
-  #clipMap = new Map();
-
-  // dragging
-  #dragMode = null;
-  #draggingClipElm = null;
-  #draggingElement = null;
-  #draggingPointerId = null;
-  #draggingGhostElement = null;
-  #dragStartX = 0;
-
-  #pendingMove = null;
-  #pendingTrim = null;
   // audio cache
   #audioCache = null;
+  // clip component map
+  #clipMap = new Map();
 
   constructor(root, options = {}) {
     super(root, {
@@ -67,7 +52,7 @@ export class ClipGroup extends ItemsElm {
 
     this.#init();
     this.#bindEvents();
-    this.#updateHeightUIState();
+    this.#updateClipGroupHeight();
   }
 
   // -----------------------------------------------------------------------------
@@ -100,16 +85,9 @@ export class ClipGroup extends ItemsElm {
       throw new Error("Timeline playhead not found");
     }
 
-    this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#pixelsPerSecond = value;
-    });
-
     this.resolveOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
-
-    this.#height = this.#calculateHeight();
 
     this.rootElement.style.setProperty(
       "--clip-row-height",
@@ -127,6 +105,10 @@ export class ClipGroup extends ItemsElm {
 
   get trackId() {
     return this.#trackId;
+  }
+
+  get pixelsPerSecond() {
+    return this.#timelineRuler.pixelsPerSecond;
   }
 
   get duration() {
@@ -167,8 +149,6 @@ export class ClipGroup extends ItemsElm {
   // state(read-write)
   // -----------------------------------------------------------------------------
 
-  /** selected value (read-write) */
-
   /** selected trackId (read-write) */
 
   get selectedClipId() {
@@ -196,138 +176,20 @@ export class ClipGroup extends ItemsElm {
     }
   }
 
-  /** pixelsPerSecond value (read-write) */
-
-  get pixelsPerSecond() {
-    return this.#timelineRuler.pixelsPerSecond;
-  }
-
-  set pixelsPerSecond(value) {
-    assertPositive(value, "pixelsPerSecond");
-    this.#setPixelsPerSecond(value);
-  }
-
-  #setPixelsPerSecond(value) {
-    // if (value === this.#pixelsPerSecond) {
-    //   return;
-    // }
-    // this.#pixelsPerSecond = value;
-    // for (const clipElm of this.#clipMap.values()) {
-    //   clipElm.pixelsPerSecond = value;
-    // }
-  }
-
-  // ---------------------------------------------------------------------------
-  // clip methods
-  // ---------------------------------------------------------------------------
-
-  unselect() {
-    this.#setSelectedClipId(null, { emitEvent: false });
-  }
+  // -----------------------------------------------------------------------------
+  // queries / access
+  // -----------------------------------------------------------------------------
 
   getClip(clipId) {
-    if (clipId == null) {
-      return null;
-    }
-
+    assertNonBlankString(clipId, "clipId");
     return this.#clipMap.get(clipId) ?? null;
   }
 
   getSelectedClip() {
-    return this.getClip(this.#selectedClipId);
-  }
-
-  addClip(clip) {
-    assertPlainObject(clip, "clip");
-
-    this.addItem(clip);
-  }
-
-  splitClip() {
     if (this.#selectedClipId == null) {
-      return "clip-not-selected";
+      return null;
     }
-
-    const clipId = this.#selectedClipId;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    const splitTime = this.#timelinePlayhead.time;
-
-    if (splitTime <= clipElm.clipStart + CLIP_MIN_DURATION) {
-      return "too-close-to-start";
-    }
-
-    if (splitTime >= clipElm.clipEnd - CLIP_MIN_DURATION) {
-      return "too-close-to-end";
-    }
-
-    const originalClipItem = this.getItemByValue(clipId);
-
-    const trimSplit =
-      splitTime - originalClipItem.clipStart + originalClipItem.trimStart;
-
-    const newClip = {
-      ...originalClipItem,
-      clipId: crypto.randomUUID(),
-      clipStart: splitTime,
-      trimStart: trimSplit,
-    };
-
-    originalClipItem.trimEnd = trimSplit;
-
-    this.updateItem(originalClipItem, "update item for splitting clip");
-    this.addItem(newClip);
-
-    this.selectedClipId = newClip.clipId;
-
-    return "success";
-  }
-
-  duplicateClip() {
-    if (this.#selectedClipId == null) {
-      return "clip-not-selected";
-    }
-
-    const clipId = this.#selectedClipId;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    const originalClipItem = this.getItemByValue(clipId);
-    const newClip = {
-      ...originalClipItem,
-      clipId: crypto.randomUUID(),
-      clipStart: clipElm.clipEnd,
-    };
-
-    this.addItem(newClip);
-    this.selectedClipId = newClip.clipId;
-
-    return "success";
-  }
-
-  removeClip() {
-    if (this.#selectedClipId == null) {
-      return "clip-not-selected";
-    }
-
-    const clipId = this.#selectedClipId;
-    const clipElm = this.#clipMap.get(clipId);
-
-    if (!clipElm) {
-      return "clip-not-found";
-    }
-
-    this.removeItem(clipId);
-    this.selectedClipId = null;
-
-    return "success";
+    return this.#clipMap.get(this.#selectedClipId) ?? null;
   }
 
   getSnapPoints() {
@@ -355,51 +217,91 @@ export class ClipGroup extends ItemsElm {
     return snapPoints;
   }
 
+  // ---------------------------------------------------------------------------
+  // clip operations
+  // ---------------------------------------------------------------------------
+
+  unselect() {
+    this.#setSelectedClipId(null, { emitEvent: false });
+  }
+
+  addClip(clip) {
+    assertPlainObject(clip, "clip");
+    this.addItem(clip);
+  }
+
+  duplicateClip() {
+    const clipElm = this.getSelectedClip();
+    if (clipElm == null) {
+      return "clip-not-selected";
+    }
+
+    const originalClipItem = this.getItemByValue(clipElm.clipId);
+    const newClip = {
+      ...originalClipItem,
+      clipId: crypto.randomUUID(),
+      clipStart: clipElm.clipEnd,
+    };
+
+    this.addItem(newClip);
+    this.selectedClipId = newClip.clipId;
+
+    return "success";
+  }
+
+  splitClip() {
+    const clipElm = this.getSelectedClip();
+    if (clipElm == null) {
+      return "clip-not-selected";
+    }
+
+    const splitTime = this.#timelinePlayhead.time;
+
+    if (splitTime <= clipElm.clipStart + CLIP_MIN_DURATION) {
+      return "too-close-to-start";
+    }
+
+    if (splitTime >= clipElm.clipEnd - CLIP_MIN_DURATION) {
+      return "too-close-to-end";
+    }
+
+    const originalClipItem = this.getItemByValue(clipElm.clipId);
+
+    const trimSplit =
+      splitTime - originalClipItem.clipStart + originalClipItem.trimStart;
+
+    const newClip = {
+      ...originalClipItem,
+      clipId: crypto.randomUUID(),
+      clipStart: splitTime,
+      trimStart: trimSplit,
+    };
+
+    originalClipItem.trimEnd = trimSplit;
+
+    this.updateItem(originalClipItem, "update item for splitting clip");
+    this.addItem(newClip);
+
+    this.selectedClipId = newClip.clipId;
+
+    return "success";
+  }
+
+  removeClip() {
+    const clipElm = this.getSelectedClip();
+    if (clipElm == null) {
+      return "clip-not-selected";
+    }
+
+    this.removeItem(clipElm.clipId);
+    this.selectedClipId = null;
+
+    return "success";
+  }
+
   // -----------------------------------------------------------------------------
   // layout
   // -----------------------------------------------------------------------------
-
-  #updateClipGroupDuration() {
-    let maxClipEnd = 0;
-
-    for (const clipElm of this.#clipMap.values()) {
-      maxClipEnd = Math.max(maxClipEnd, clipElm.clipEnd);
-    }
-
-    this.#setDuration(maxClipEnd);
-  }
-
-  #updateClipGroupHeight() {
-    let maxRowIndex = 0;
-
-    for (const clipElm of this.#clipMap.values()) {
-      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
-    }
-
-    this.#setHeight((maxRowIndex + 1) * CLIP_ROW_HEIGHT);
-  }
-
-
-  #getMaxClipEnd() {
-    let maxClipEnd = 0;
-
-    for (const clipElm of this.#clipMap.values()) {
-      maxClipEnd = Math.max(maxClipEnd, clipElm.clipEnd);
-    }
-
-    return maxClipEnd;
-  }
-
-  #calculateHeight() {
-    let maxRowIndex = 0;
-
-    for (const clipElm of this.#clipMap.values()) {
-      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
-    }
-
-    return (maxRowIndex + 1) * CLIP_ROW_HEIGHT;
-    // return Math.max(height, DEFAULT_CLIP_GROUP_MIN_HEIGHT);
-  }
 
   #isPlacementAvailable(clipId, clipStart, clipEnd, rowIndex) {
     for (const otherClipElm of this.#clipMap.values()) {
@@ -492,7 +394,7 @@ export class ClipGroup extends ItemsElm {
     this.handler.emit("selectedChangeHandler", {
       elm: this,
       trackId: this.#trackId,
-      clipId: this.#selectedClipId
+      clipId: this.#selectedClipId,
     });
   }
 
@@ -552,7 +454,6 @@ export class ClipGroup extends ItemsElm {
       ...item,
       timelineRuler: this.#timelineRuler,
       timelinePlayhead: this.#timelinePlayhead,
-      pixelsPerSecond: this.pixelsPerSecond,
       height: CLIP_HEIGHT,
       rowGap: CLIP_ROW_GAP,
       audioCache: this.#audioCache,
@@ -563,7 +464,7 @@ export class ClipGroup extends ItemsElm {
 
     clipOptions.rowIndex = clipRowIndex;
 
-    const clipElm = new Clip(itemEl, clipOptions);
+    const clipElm = new Clip(itemEl, clipOptions);console.log(clipOptions);
 
     clipElm.onClipEndChange = () => {
       this.#updateClipGroupDuration();
@@ -611,6 +512,7 @@ export class ClipGroup extends ItemsElm {
 
   // override
   afterRenderItems(items) {
+    this.#updateClipGroupHeight();
     this.#updateClipGroupDuration();
     this.#updateSelectedUIState();
   }
@@ -655,6 +557,26 @@ export class ClipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
   // update ui state
   // ---------------------------------------------------------------------------
+
+  #updateClipGroupDuration() {
+    let maxClipEnd = 0;
+
+    for (const clipElm of this.#clipMap.values()) {
+      maxClipEnd = Math.max(maxClipEnd, clipElm.clipEnd);
+    }
+
+    this.#setDuration(maxClipEnd);
+  }
+
+  #updateClipGroupHeight() {
+    let maxRowIndex = 0;
+
+    for (const clipElm of this.#clipMap.values()) {
+      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
+    }
+
+    this.#setHeight((maxRowIndex + 1) * CLIP_ROW_HEIGHT);
+  }
 
   #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {

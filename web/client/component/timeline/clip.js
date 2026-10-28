@@ -35,7 +35,6 @@ export class Clip extends Elm {
   #trimEnd = 0;
   #clipStart = 0;
   #rowIndex = 0;
-  #pixelsPerSecond = 0;
   // ui
   #height = DEFAULT_CLIP_HEIGHT;
   #rowGap = DEFAULT_CLIP_ROW_GAP;
@@ -43,6 +42,11 @@ export class Clip extends Elm {
   #trimStartEl = null;
   #trimEndEl = null;
   #contentEl = null;
+
+  // ruler
+  #timelineRuler = null;
+  // playhead
+  #timelinePlayhead = null;
   // audio cache
   #audioCache = null;
 
@@ -123,11 +127,6 @@ export class Clip extends Elm {
       this.#rowIndex = value;
     });
 
-    this.resolveOption("pixelsPerSecond", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#pixelsPerSecond = value;
-    });
-
     this.resolveOption("height", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#height = value;
@@ -138,6 +137,22 @@ export class Clip extends Elm {
       assertNonNegative(value, assertionSubject);
       this.#rowGap = value;
     });
+
+    this.resolveOption("timelineRuler", (value) => {
+      this.#timelineRuler = value;
+    });
+
+    if (this.#timelineRuler == null) {
+      throw new Error("Timeline ruler not found");
+    }
+
+    this.resolveOption("timelinePlayhead", (value) => {
+      this.#timelinePlayhead = value;
+    });
+
+    if (this.#timelinePlayhead == null) {
+      throw new Error("Timeline playhead not found");
+    }
 
     this.resolveOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
@@ -152,6 +167,10 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
   // state(read-only)
   // -----------------------------------------------------------------------------
+
+  get pixelsPerSecond() {
+    return this.#timelineRuler.pixelsPerSecond;
+  }
 
   get clipId() {
     return this.#clipId;
@@ -190,11 +209,11 @@ export class Clip extends Elm {
   }
 
   get left() {
-    return this.#clipStart * this.#pixelsPerSecond;
+    return this.#clipStart * this.pixelsPerSecond;
   }
 
   get width() {
-    return this.duration * this.#pixelsPerSecond;
+    return this.duration * this.pixelsPerSecond;
   }
 
   get endLeft() {
@@ -335,27 +354,6 @@ export class Clip extends Elm {
     }
 
     this.#emitRowIndexChange();
-  }
-
-  get pixelsPerSecond() {
-    return this.#pixelsPerSecond;
-  }
-
-  set pixelsPerSecond(value) {
-    assertPositive(value, "pixelsPerSecond");
-    this.#setPixelsPerSecond(value);
-  }
-
-  #setPixelsPerSecond(value, { updateUI = true } = {}) {
-    if (value === this.#pixelsPerSecond) {
-      return;
-    }
-
-    this.#pixelsPerSecond = value;
-
-    if (updateUI) {
-      this.#updatePositionUIState();
-    }
   }
 
   get frontTrim() {

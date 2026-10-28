@@ -146,9 +146,9 @@ function bindEvents() {
   on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
+  on(duplicateClipBtn, "click", duplicateClip);
   on(splitClipBtn, "click", splitClip);
   on(removeClipBtn, "click", removeClip);
-  on(duplicateClipBtn, "click", duplicateClip);
 
   on(playheadElm, "timeChange", timelinePlayheadTimeChange);
   on(cursorElm, "timeChange", timelineCursorTimeChange);
@@ -242,12 +242,34 @@ function timelineCursorTimeChange({ time }) {
   cursorTimeletElm.seconds = time;
 }
 
+function duplicateClip() {
+  const result = trackListElm.duplicateClip();
+
+  switch (result) {
+    case "success":
+      toast.show("Clip duplicated");
+      break;
+
+    case "track-not-selected":
+      toast.show("No track selected");
+      break;
+
+    case "clip-not-selected":
+      toast.show("No clip selected");
+      break;
+  }
+}
+
 function splitClip() {
   const result = trackListElm.splitClip();
 
   switch (result) {
     case "success":
       toast.show("Clip split");
+      break;
+
+    case "track-not-selected":
+      toast.show("No track selected");
       break;
 
     case "clip-not-selected":
@@ -261,10 +283,6 @@ function splitClip() {
     case "too-close-to-end":
       toast.show("Playhead is too close to clip end");
       break;
-
-    case "clip-not-found":
-      toast.show("Selected clip not found");
-      break;
   }
 }
 
@@ -276,30 +294,12 @@ function removeClip() {
       toast.show("Clip removed");
       break;
 
-    case "clip-not-selected":
-      toast.show("No clip selected");
-      break;
-
-    case "clip-not-found":
-      toast.show("Selected clip not found");
-      break;
-  }
-}
-
-function duplicateClip() {
-  const result = trackListElm.duplicateClip();
-
-  switch (result) {
-    case "success":
-      toast.show("Clip duplicated");
+    case "track-not-selected":
+      toast.show("No track selected");
       break;
 
     case "clip-not-selected":
       toast.show("No clip selected");
-      break;
-
-    case "clip-not-found":
-      toast.show("Selected clip not found");
       break;
   }
 }

@@ -98,17 +98,19 @@ export class TrackList extends ItemsElm {
   }
 
   // -----------------------------------------------------------------------------
-  // methods
+  // queries / access
   // -----------------------------------------------------------------------------
 
-  #updateTimelineDuration() {
-    let maxDuration = 0;
+  getClipGroup(trackId) {
+    assertNonBlankString(trackId, "trackId");
+    return this.#clipGroupMap.get(trackId) ?? null;
+  }
 
-    for (const clipGroupElm of this.#clipGroupMap.values()) {
-      maxDuration = Math.max(maxDuration, clipGroupElm.duration);
+  getSelectedClipGroup() {
+    if (this.#selectedTrackId == null) {
+      return null;
     }
-
-    this.#timelineRuler.duration = maxDuration;
+    return this.#clipGroupMap.get(this.#selectedTrackId) ?? null;
   }
 
   getSnapPoints() {
@@ -139,22 +141,6 @@ export class TrackList extends ItemsElm {
   }
 
   // -----------------------------------------------------------------------------
-  // clip group operations
-  // -----------------------------------------------------------------------------
-
-  getClipGroup(trackId) {
-    if (trackId == null) {
-      return null;
-    }
-
-    return this.#clipGroupMap.get(trackId) ?? null;
-  }
-
-  getSelectedClipGroup() {
-    return this.getClipGroup(this.#selectedTrackId);
-  }
-
-  // -----------------------------------------------------------------------------
   // clip operations
   // -----------------------------------------------------------------------------
 
@@ -168,15 +154,19 @@ export class TrackList extends ItemsElm {
     return "success";
   }
 
-  splitClip() {
+  duplicateClip() {
     const clipGroupElm = this.getSelectedClipGroup();
     if (clipGroupElm == null) {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.getSelectedClip();
-    if (clipElm == null) {
-      return "clip-not-selected";
+    return clipGroupElm.duplicateClip();
+  }
+
+  splitClip() {
+    const clipGroupElm = this.getSelectedClipGroup();
+    if (clipGroupElm == null) {
+      return "track-not-selected";
     }
 
     return clipGroupElm.splitClip();
@@ -188,26 +178,7 @@ export class TrackList extends ItemsElm {
       return "track-not-selected";
     }
 
-    const clipElm = clipGroupElm.getSelectedClip();
-    if (clipElm == null) {
-      return "clip-not-selected";
-    }
-
     return clipGroupElm.removeClip();
-  }
-
-  duplicateClip() {
-    const clipGroupElm = this.getSelectedClipGroup();
-    if (clipGroupElm == null) {
-      return "track-not-selected";
-    }
-
-    const clipElm = clipGroupElm.getSelectedClip();
-    if (clipElm == null) {
-      return "clip-not-selected";
-    }
-
-    return clipGroupElm.duplicateClip();
   }
 
   // -----------------------------------------------------------------------------
@@ -379,8 +350,18 @@ export class TrackList extends ItemsElm {
   }
 
   // ---------------------------------------------------------------------------
-  // update ui state
+  // update methods
   // ---------------------------------------------------------------------------
+
+  #updateTimelineDuration() {
+    let maxDuration = 0;
+
+    for (const clipGroupElm of this.#clipGroupMap.values()) {
+      maxDuration = Math.max(maxDuration, clipGroupElm.duration);
+    }
+
+    this.#timelineRuler.duration = maxDuration;
+  }
 
   #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
