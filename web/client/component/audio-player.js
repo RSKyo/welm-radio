@@ -86,17 +86,17 @@ export class AudioPlayer extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("title", (value, assertionSubject) => {
+    this.applyOption("title", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#title = value;
     });
 
-    this.resolveOption("src", (value, assertionSubject) => {
+    this.applyOption("src", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#src = value;
     });
 
-    this.resolveOption("volume", (value, assertionSubject) => {
+    this.applyOption("volume", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
 
       if (value > 1) {
@@ -106,7 +106,7 @@ export class AudioPlayer extends Elm {
       this.#volume = value;
     });
 
-    this.resolveOption("rootClassExtra", (value, assertionSubject) => {
+    this.applyOption("rootClassExtra", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       assertValueIn(value, ["sm", "xs"], assertionSubject);
 

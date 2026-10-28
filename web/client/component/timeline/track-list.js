@@ -45,23 +45,15 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("timelineRuler", (value) => {
+    this.applyRequiredOption("timelineRuler", (value) => {
       this.#timelineRuler = value;
     });
 
-    if (this.#timelineRuler == null) {
-      throw new Error("Timeline ruler not found");
-    }
-
-    this.resolveOption("timelinePlayhead", (value) => {
+    this.applyRequiredOption("timelinePlayhead", (value) => {
       this.#timelinePlayhead = value;
     });
 
-    if (this.#timelinePlayhead == null) {
-      throw new Error("Timeline playhead not found");
-    }
-
-    this.resolveOption("audioCache", (value) => {
+    this.applyOption("audioCache", (value) => {
       this.#audioCache = value;
     });
   }

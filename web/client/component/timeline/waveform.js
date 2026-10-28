@@ -44,7 +44,7 @@ export class Waveform extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption(
+    this.applyOption(
       "audioCache",
       (value, assertionSubject) => {
         if (
@@ -61,7 +61,7 @@ export class Waveform extends Elm {
       true,
     );
 
-    this.resolveOption(
+    this.applyOption(
       "audioPath",
       (value, assertionSubject) => {
         assertNonBlankString(value, assertionSubject);
@@ -70,12 +70,12 @@ export class Waveform extends Elm {
       true,
     );
 
-    this.resolveOption("trimStart", (value, assertionSubject) => {
+    this.applyOption("trimStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#trimStart = value;
     });
 
-    this.resolveOption("trimEnd", (value, assertionSubject) => {
+    this.applyOption("trimEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#trimEnd = value;
     });

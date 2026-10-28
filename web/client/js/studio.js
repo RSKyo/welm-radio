@@ -1,6 +1,6 @@
 import { setThemeMode } from "./theme.js";
 
-import { toast, safeRun, on, resolveElement, xToTime } from "./helper.js";
+import { toast, safeRun, on, resolveElement } from "./helper.js";
 
 import { audioApi } from "../api/audio.api.js";
 
@@ -175,21 +175,6 @@ function toggleAudios() {
 function zoomChange({ value }) {
   rulerElm.pixelsPerSecond = value;
 }
-
-// function timelineContentDoubleClick(event) {
-//   playheadElm.time = timelineContainerPointerSeconds;
-// // }
-
-// function timelineContentPointerMove(event) {
-//   const rect = timelineContentEl.getBoundingClientRect();
-//   timelineContainerPointerX = event.clientX - rect.left;
-
-//   timelineContainerPointerSeconds = xToTime(
-//     timelineContainerPointerX,
-//     rulerElm.pixelsPerSecond,
-//   );
-//   cursorElm.time = timelineContainerPointerSeconds;
-// }
 
 function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
   trackListElm.pixelsPerSecond = pixelsPerSecond;

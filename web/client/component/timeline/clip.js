@@ -1,13 +1,16 @@
 import { Elm } from "../base/elm.js";
 import {
+  assertNonBlankString,
   assertNonNegative,
   assertNonNegativeInteger,
   assertPositive,
 } from "../base/assert.js";
-import { createElementByHTML } from "../base/helper.js";
+import {
+  createElementByHTML,
+  normalizeTime,
+  normalizePixel,
+} from "../base/helper.js";
 
-const DEFAULT_CLIP_HEIGHT = 40;
-const DEFAULT_CLIP_ROW_GAP = 4;
 const CLIP_TRIM_HANDLE_WIDTH = 4;
 
 const TRIM_START_TEMPLATE = `
@@ -26,18 +29,18 @@ const contentTemplate = createElementByHTML(CONTENT_TEMPLATE);
 
 export class Clip extends Elm {
   // state(read-only)
-  #clipId = "";
-  #title = "";
-  #audioStart = 0;
-  #audioEnd = 0;
+  #clipId = null;
+  #title = null;
+  #audioStart = null;
+  #audioEnd = null;
   // state(read-write)
-  #trimStart = 0;
-  #trimEnd = 0;
-  #clipStart = 0;
+  #trimStart = null;
+  #trimEnd = null;
+  #clipStart = null;
   #rowIndex = 0;
   // ui
-  #height = DEFAULT_CLIP_HEIGHT;
-  #rowGap = DEFAULT_CLIP_ROW_GAP;
+  #height = null;
+  #rowGap = null;
   #frontTrim = "end";
   #trimStartEl = null;
   #trimEndEl = null;
@@ -66,36 +69,38 @@ export class Clip extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("clipId", (value) => {
+    this.applyRequiredOption("clipId", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
       this.#clipId = value;
     });
 
-    this.resolveOption("title", (value) => {
+    this.applyRequiredOption("title", (value, assertionSubject) => {
+      assertNonBlankString(value, assertionSubject);
       this.#title = value;
     });
 
-    this.resolveOption("audioStart", (value, assertionSubject) => {
+    this.applyRequiredOption("audioStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#audioStart = value;
+      this.#audioStart = normalizeTime(value);
     });
 
-    this.resolveOption("audioEnd", (value, assertionSubject) => {
+    this.applyRequiredOption("audioEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#audioEnd = value;
+      this.#audioEnd = normalizeTime(value);
     });
 
     if (this.#audioEnd < this.#audioStart) {
       throw new Error("audioEnd must be greater than or equal to audioStart");
     }
 
-    this.resolveOption("trimStart", (value, assertionSubject) => {
+    this.applyRequiredOption("trimStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#trimStart = value;
+      this.#trimStart = normalizeTime(value);
     });
 
-    this.resolveOption("trimEnd", (value, assertionSubject) => {
+    this.applyRequiredOption("trimEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#trimEnd = value;
+      this.#trimEnd = normalizeTime(value);
     });
 
     if (this.#trimEnd < this.#trimStart) {
@@ -117,44 +122,36 @@ export class Clip extends Elm {
       );
     }
 
-    this.resolveOption("clipStart", (value, assertionSubject) => {
+    this.applyRequiredOption("clipStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#clipStart = value;
+      this.#clipStart = normalizeTime(value);
     });
 
-    this.resolveOption("rowIndex", (value, assertionSubject) => {
+    this.applyOption("rowIndex", (value, assertionSubject) => {
       assertNonNegativeInteger(value, assertionSubject);
       this.#rowIndex = value;
     });
 
-    this.resolveOption("height", (value, assertionSubject) => {
+    this.applyRequiredOption("height", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#height = value;
+      this.#height = normalizePixel(value);
       this.rootElement.style.setProperty("--clip-height", `${value}px`);
     });
 
-    this.resolveOption("rowGap", (value, assertionSubject) => {
+    this.applyRequiredOption("rowGap", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#rowGap = value;
+      this.#rowGap = normalizePixel(value);
     });
 
-    this.resolveOption("timelineRuler", (value) => {
+    this.applyRequiredOption("timelineRuler", (value) => {
       this.#timelineRuler = value;
     });
 
-    if (this.#timelineRuler == null) {
-      throw new Error("Timeline ruler not found");
-    }
-
-    this.resolveOption("timelinePlayhead", (value) => {
+    this.applyRequiredOption("timelinePlayhead", (value) => {
       this.#timelinePlayhead = value;
     });
 
-    if (this.#timelinePlayhead == null) {
-      throw new Error("Timeline playhead not found");
-    }
-
-    this.resolveOption("audioCache", (value, assertionSubject) => {
+    this.applyOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
 
@@ -165,12 +162,8 @@ export class Clip extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // state(read-only)
+  // queries / access
   // -----------------------------------------------------------------------------
-
-  get pixelsPerSecond() {
-    return this.#timelineRuler.pixelsPerSecond;
-  }
 
   get clipId() {
     return this.#clipId;
@@ -188,12 +181,32 @@ export class Clip extends Elm {
     return this.#audioEnd;
   }
 
+  get trimStart() {
+    return this.#trimStart;
+  }
+
+  get trimEnd() {
+    return this.#trimEnd;
+  }
+
   get duration() {
-    return Number((this.#trimEnd - this.#trimStart).toFixed(3));
+    return normalizeTime(this.trimEnd - this.trimStart);
+  }
+
+  get clipStart() {
+    return this.#clipStart;
   }
 
   get clipEnd() {
-    return Number((this.#clipStart + this.duration).toFixed(3));
+    return normalizeTime(this.clipStart + this.duration);
+  }
+
+  get rowIndex() {
+    return this.#rowIndex;
+  }
+
+  get frontTrim() {
+    return this.#frontTrim;
   }
 
   get height() {
@@ -204,29 +217,34 @@ export class Clip extends Elm {
     return this.#rowGap;
   }
 
+  get rowHeight() {
+    return normalizePixel(this.height + this.rowGap);
+  }
+
   get top() {
-    return this.#rowIndex * (this.#height + this.#rowGap) + this.#rowGap;
+    return normalizePixel(this.rowIndex * this.rowHeight + this.rowGap);
   }
 
   get left() {
-    return this.#clipStart * this.pixelsPerSecond;
+    this.#timelineRuler.timeToPixel(0);
+    return normalizePixel(this.clipStart * this.pixelsPerSecond);
   }
 
   get width() {
-    return this.duration * this.pixelsPerSecond;
+    return normalizePixel(this.duration * this.pixelsPerSecond);
   }
 
   get endLeft() {
-    return this.left + this.width;
+    return normalizePixel(this.left + this.width);
+  }
+
+  get pixelsPerSecond() {
+    return this.#timelineRuler.pixelsPerSecond;
   }
 
   // -----------------------------------------------------------------------------
-  // state(read-write)
+  // setters / mutators
   // -----------------------------------------------------------------------------
-
-  get trimStart() {
-    return this.#trimStart;
-  }
 
   set trimStart(value) {
     assertNonNegative(value, "trimStart");
@@ -234,31 +252,23 @@ export class Clip extends Elm {
   }
 
   #setTrimStart(value, { updateClipStart = true, updateUI = true } = {}) {
-    if (value === this.#trimStart) {
-      return;
-    }
-
-    if (value < this.#audioStart || value >= this.#audioEnd) {
-      return;
-    }
-
-    if (value > this.#trimEnd) {
-      return;
-    }
-
     const oldTrimStart = this.#trimStart;
+    const newTrimStart = Math.max(
+      this.#audioStart,
+      Math.min(value, this.#trimEnd),
+    );
 
-    this.#trimStart = value;
+    if (newTrimStart === oldTrimStart) {
+      return;
+    }
+
+    this.#trimStart = newTrimStart;
 
     if (updateClipStart) {
-      const newTrimStart = value;
       const oldClipStart = this.#clipStart;
 
-      const newClipStart = this.calculateClipStartFromTrimStart(
-        oldTrimStart,
-        newTrimStart,
-        oldClipStart,
-      );
+      const delta = newTrimStart - oldTrimStart;
+      const newClipStart = normalizeTime(Math.max(0, oldClipStart + delta));
 
       this.#clipStart = newClipStart;
     }
@@ -266,16 +276,6 @@ export class Clip extends Elm {
     if (updateUI) {
       this.#updatePositionUIState();
     }
-  }
-
-  calculateClipStartFromTrimStart(oldTrimStart, newTrimStart, oldClipStart) {
-    const delta = newTrimStart - oldTrimStart;
-    const newClipStart = oldClipStart + delta;
-    return newClipStart < 0 ? 0 : newClipStart;
-  }
-
-  get trimEnd() {
-    return this.#trimEnd;
   }
 
   set trimEnd(value) {
@@ -305,10 +305,6 @@ export class Clip extends Elm {
     this.#emitClipEndChange();
   }
 
-  get clipStart() {
-    return Number(this.#clipStart.toFixed(3));
-  }
-
   set clipStart(value) {
     assertNonNegative(value, "clipStart");
     this.#setClipStart(value);
@@ -333,10 +329,6 @@ export class Clip extends Elm {
     }
   }
 
-  get rowIndex() {
-    return this.#rowIndex;
-  }
-
   set rowIndex(value) {
     assertNonNegativeInteger(value, "rowIndex");
     this.#setRowIndex(value);
@@ -354,10 +346,6 @@ export class Clip extends Elm {
     }
 
     this.#emitRowIndexChange();
-  }
-
-  get frontTrim() {
-    return this.#frontTrim;
   }
 
   set frontTrim(value) {
@@ -481,7 +469,7 @@ export class Clip extends Elm {
   }
 
   #updatePositionUIState() {
-    const offsetTop = this.#rowGap === 0 ? 0 : (1 + (this.#rowGap - 1) / 2);
+    const offsetTop = this.#rowGap === 0 ? 0 : 1 + (this.#rowGap - 1) / 2;
     this.rootElement.style.top = `${this.top - offsetTop}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;

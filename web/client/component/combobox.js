@@ -66,7 +66,7 @@ export class Combobox extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption(
+    this.applyOption(
       "items",
       (value, assertionSubject) => {
         assertPlainObjectArray(value, assertionSubject, "text", "value");
@@ -77,7 +77,7 @@ export class Combobox extends Elm {
       true,
     );
 
-    this.resolveOption("text", (value, assertionSubject) => {
+    this.applyOption("text", (value, assertionSubject) => {
       assertString(value, assertionSubject);
       this.#text = value;
       this.#value = this.#resolveValue(value);

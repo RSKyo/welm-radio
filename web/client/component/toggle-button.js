@@ -39,21 +39,21 @@ export class ToggleButton extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("activeText", (value, assertionSubject) => {
+    this.applyOption("activeText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#activeText = value;
     });
 
-    this.resolveOption("inactiveText", (value, assertionSubject) => {
+    this.applyOption("inactiveText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#inactiveText = value;
     });
 
-    this.resolveOption("activeValue", (value) => {
+    this.applyOption("activeValue", (value) => {
       this.#activeValue = value;
     });
 
-    this.resolveOption("inactiveValue", (value) => {
+    this.applyOption("inactiveValue", (value) => {
       this.#inactiveValue = value;
       this.#value = value;
     });
@@ -62,12 +62,12 @@ export class ToggleButton extends Elm {
       throw new Error("activeValue and inactiveValue must be different");
     }
 
-    this.resolveOption("value", (value, assertionSubject) => {
+    this.applyOption("value", (value, assertionSubject) => {
       this.#assertValue(value, assertionSubject);
       this.#value = value;
     });
 
-    this.resolveOption("color", (value, assertionSubject) => {
+    this.applyOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.rootElement.style.setProperty("--color-toggle-button", value);
     });

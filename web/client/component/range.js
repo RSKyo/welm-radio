@@ -60,27 +60,27 @@ export class Range extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("fixed", (value, assertionSubject) => {
+    this.applyOption("fixed", (value, assertionSubject) => {
       assertNonNegativeInteger(value, assertionSubject);
       this.#fixed = value;
     });
 
-    this.resolveOption("min", (value, assertionSubject) => {
+    this.applyOption("min", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#min = value;
     });
 
-    this.resolveOption("max", (value, assertionSubject) => {
+    this.applyOption("max", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#max = value;
     });
 
-    this.resolveOption("step", (value, assertionSubject) => {
+    this.applyOption("step", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#step = value;
     });
 
-    this.resolveOption("value", (value, assertionSubject) => {
+    this.applyOption("value", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#value = value;
     });
@@ -93,32 +93,32 @@ export class Range extends Elm {
       fixed: this.#fixed,
     });
 
-    this.resolveOption("percentBase", (value, assertionSubject) => {
+    this.applyOption("percentBase", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#percentBase = value;
     });
 
-    this.resolveOption("suffix", (value, assertionSubject) => {
+    this.applyOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#suffix = value;
     });
 
-    this.resolveOption("disabled", (value, assertionSubject) => {
+    this.applyOption("disabled", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#disabled = value;
     });
 
-    this.resolveOption("showThumb", (value, assertionSubject) => {
+    this.applyOption("showThumb", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showThumb = value;
     });
 
-    this.resolveOption("showText", (value, assertionSubject) => {
+    this.applyOption("showText", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showText = value;
     });
 
-    this.resolveOption("color", (value, assertionSubject) => {
+    this.applyOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.rootElement.style.setProperty("--color-range", value);
     });

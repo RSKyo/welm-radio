@@ -50,32 +50,32 @@ export class TimelineRuler extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("basePixelsPerInterval", (value, assertionSubject) => {
+    this.applyOption("basePixelsPerInterval", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#basePixelsPerInterval = value;
     });
 
-    this.resolveOption("baseTimeUnit", (value, assertionSubject) => {
+    this.applyOption("baseTimeUnit", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#baseTimeUnit = value;
     });
 
-    this.resolveOption("baseZoom", (value, assertionSubject) => {
+    this.applyOption("baseZoom", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#baseZoom = value;
     });
 
-    this.resolveOption("minZoom", (value, assertionSubject) => {
+    this.applyOption("minZoom", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#minZoom = value;
     });
 
-    this.resolveOption("maxZoom", (value, assertionSubject) => {
+    this.applyOption("maxZoom", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#maxZoom = value;
     });
 
-    this.resolveOption("basePixelsPerSecond", (value, assertionSubject) => {
+    this.applyOption("basePixelsPerSecond", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#basePixelsPerSecond = value;
     });

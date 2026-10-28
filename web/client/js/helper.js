@@ -12,6 +12,9 @@ import {
   assertNonNegativeInteger,
 } from "./assert.js";
 
+const TIME_PRECISION = 3;
+const PIXEL_PRECISION = 2;
+
 export const toast = new Toast();
 
 export function sleep(ms) {
@@ -69,6 +72,32 @@ export function safeHandler(handler) {
   }
 
   return (...args) => safeRun(handler, ...args);
+}
+
+// -----------------------------------------------------------------------------
+// normalization functions
+// -----------------------------------------------------------------------------
+
+export function normalizeTime(value) {
+  return Number(value.toFixed(TIME_PRECISION));
+}
+
+export function normalizePixel(value) {
+  return Number(value.toFixed(PIXEL_PRECISION));
+}
+
+export function normalizeArray(value) {
+  if (isNullish(value)) {
+    return [[], false];
+  }
+  return Array.isArray(value) ? [value, true] : [[value], false];
+}
+
+export function normalizeValue(value, mode = 1) {
+  if (isNullishOrEmpty(value)) {
+    return null;
+  }
+  return mode === 2 ? [...value] : value;
 }
 
 // -----------------------------------------------------------------------------
@@ -136,20 +165,6 @@ function isElmObject(target) {
 // -----------------------------------------------------------------------------
 // value helpers
 // -----------------------------------------------------------------------------
-
-export function normalizeArray(value) {
-  if (isNullish(value)) {
-    return [[], false];
-  }
-  return Array.isArray(value) ? [value, true] : [[value], false];
-}
-
-export function normalizeValue(value, mode = 1) {
-  if (isNullishOrEmpty(value)) {
-    return null;
-  }
-  return mode === 2 ? [...value] : value;
-}
 
 export function isEqualValue(value1, value2) {
   if (Object.is(value1, value2)) {
@@ -315,43 +330,27 @@ export function getBySelector(target, ...selectors) {
   return selectors.length === 1 ? elements[0] : elements;
 }
 
-  export function closestElement(event, selector) {
-    assertNonBlankString(selector, "selector");
+export function closestElement(event, selector) {
+  assertNonBlankString(selector, "selector");
 
-    const { target, currentTarget } = event;
+  const { target, currentTarget } = event;
 
-    if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
-      return null;
-    }
-
-    const element = target.closest(selector);
-
-    if (element == null || !currentTarget.contains(element)) {
-      return null;
-    }
-
-    return element;
+  if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
+    return null;
   }
 
-// -----------------------------------------------------------------------------
-// Time and Position Helpers
-// -----------------------------------------------------------------------------
+  const element = target.closest(selector);
 
-export function timeToX(seconds, pixelsPerSecond) {
-  assertNonNegative(seconds, "seconds");
-  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
+  if (element == null || !currentTarget.contains(element)) {
+    return null;
+  }
 
-  return Number((seconds * pixelsPerSecond).toFixed(2));
+  return element;
 }
 
-export function xToTime(x, pixelsPerSecond) {
-  assertNumber(x, "x");
-  assertNonNegative(pixelsPerSecond, "pixelsPerSecond");
-
-  x = x < 0 ? 0 : x;
-
-  return Number((x / pixelsPerSecond).toFixed(3));
-}
+// -----------------------------------------------------------------------------
+// Time Operations
+// -----------------------------------------------------------------------------
 
 /**
  * Parse a time value into seconds.
@@ -516,4 +515,3 @@ export function formatTime(
 
   return `${second}${fractionText}`;
 }
-

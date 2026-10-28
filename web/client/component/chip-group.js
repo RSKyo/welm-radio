@@ -53,17 +53,17 @@ export class ChipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
+    this.applyOption("selectedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#selectedValueMode = value;
     });
 
-    this.resolveOption("showActions", (value, assertionSubject) => {
+    this.applyOption("showActions", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showActions = value;
     });
 
-    this.resolveOption("showActionsMinCount", (value, assertionSubject) => {
+    this.applyOption("showActionsMinCount", (value, assertionSubject) => {
       assertPositiveInteger(value, assertionSubject);
       this.#showActionsMinCount = value;
     });

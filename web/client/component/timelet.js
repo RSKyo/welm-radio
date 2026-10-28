@@ -37,27 +37,27 @@ export class Timelet extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("minimumUnit", (value, assertionSubject) => {
+    this.applyOption("minimumUnit", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#minimumUnit = value;
     });
 
-    this.resolveOption("prefix", (value, assertionSubject) => {
+    this.applyOption("prefix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#prefix = value;
     });
 
-    this.resolveOption("suffix", (value, assertionSubject) => {
+    this.applyOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#suffix = value;
     });
 
-    this.resolveOption("seconds", (value, assertionSubject) => {
+    this.applyOption("seconds", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#seconds = value;
     });
 
-    this.resolveOption("color", (value, assertionSubject) => {
+    this.applyOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.rootElement.style.setProperty("--color-time", value);
     });

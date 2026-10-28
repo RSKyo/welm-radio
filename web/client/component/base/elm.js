@@ -62,8 +62,9 @@ export class Elm {
       this.#rootElement.classList.add(...classes);
     }
 
-    const rootClassExtra = this.#options.rootClassExtra ?? this.#dataset.rootClassExtra;
-    
+    const rootClassExtra =
+      this.#options.rootClassExtra ?? this.#dataset.rootClassExtra;
+
     if (rootClassExtra != null) {
       assertNonBlankString(rootClassExtra, "rootClassExtra");
 
@@ -113,9 +114,17 @@ export class Elm {
     this.#rootElementResizeObserver.observe(this.#rootElement);
   }
 
-  /** public option resolution */
+  /** Public option resolution methods */
 
-  resolveOption(key, handler, required = false) {
+  applyOption(key, handler) {
+    return this.#resolveOption(key, handler, false);
+  }
+
+  applyRequiredOption(key, handler) {
+    return this.#resolveOption(key, handler, true);
+  }
+
+  #resolveOption(key, handler, required) {
     assertNonBlankString(key, "key");
     assertFunction(handler, "handler");
     assertBoolean(required, "required");

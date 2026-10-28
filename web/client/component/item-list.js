@@ -47,17 +47,17 @@ export class ItemList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("selectedValueMode", (value, assertionSubject) => {
+    this.applyOption("selectedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#selectedValueMode = value;
     });
 
-    this.resolveOption("checkedValueMode", (value, assertionSubject) => {
+    this.applyOption("checkedValueMode", (value, assertionSubject) => {
       assertValueIn(value, [1, 2], assertionSubject);
       this.#checkedValueMode = value;
     });
 
-    this.resolveOption("showCheckboxes", (value, assertionSubject) => {
+    this.applyOption("showCheckboxes", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#showCheckboxes = value;
     });

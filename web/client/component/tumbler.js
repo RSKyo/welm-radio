@@ -70,22 +70,22 @@ export class Tumbler extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("wheelReverse", (value, assertionSubject) => {
+    this.applyOption("wheelReverse", (value, assertionSubject) => {
       assertBoolean(value, assertionSubject);
       this.#wheelReverse = value;
     });
 
-    this.resolveOption("suffix", (value, assertionSubject) => {
+    this.applyOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#suffix = value;
     });
 
-    this.resolveOption("fixed", (value, assertionSubject) => {
+    this.applyOption("fixed", (value, assertionSubject) => {
       assertNonNegativeInteger(value, assertionSubject);
       this.#fixed = value;
     });
 
-    this.resolveOption("percentBase", (value, assertionSubject) => {
+    this.applyOption("percentBase", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
 
       if (value === 0) {
@@ -95,27 +95,27 @@ export class Tumbler extends Elm {
       this.#percentBase = value;
     });
 
-    this.resolveOption("min", (value, assertionSubject) => {
+    this.applyOption("min", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#min = value;
     });
 
-    this.resolveOption("max", (value, assertionSubject) => {
+    this.applyOption("max", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#max = value;
     });
 
-    this.resolveOption("step", (value, assertionSubject) => {
+    this.applyOption("step", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#step = value;
     });
 
-    this.resolveOption("pixelsPerStep", (value, assertionSubject) => {
+    this.applyOption("pixelsPerStep", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#pixelsPerStep = value;
     });
 
-    this.resolveOption("wheelPixelsPerStep", (value, assertionSubject) => {
+    this.applyOption("wheelPixelsPerStep", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#wheelPixelsPerStep = value;
     });
@@ -124,7 +124,7 @@ export class Tumbler extends Elm {
       throw new Error("max must be greater than min");
     }
 
-    this.resolveOption("value", (value, assertionSubject) => {
+    this.applyOption("value", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#value = this.#snapValue(value);
     });

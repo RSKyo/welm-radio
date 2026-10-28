@@ -20,7 +20,7 @@ export class TimelineCursor extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("timelineRuler", (value, assertionSubject) => {
+    this.applyOption("timelineRuler", (value, assertionSubject) => {
       this.#timelineRuler = value;
     });
 
@@ -28,7 +28,7 @@ export class TimelineCursor extends Elm {
       throw new Error("Timeline ruler not found");
     }
 
-    this.resolveOption("time", (value, assertionSubject) => {
+    this.applyOption("time", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
       this.#time = value;
     });

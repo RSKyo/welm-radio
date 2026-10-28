@@ -28,12 +28,12 @@ export class ItemsElm extends Elm {
   constructor(root, options = {}) {
     super(root, options);
 
-    this.resolveOption("valueField", (value, assertionSubject) => {
+    this.applyOption("valueField", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#valueField = value;
     });
 
-    this.resolveOption("textField", (value, assertionSubject) => {
+    this.applyOption("textField", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#textField = value;
     });

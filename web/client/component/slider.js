@@ -81,52 +81,52 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("labelText", (value, assertionSubject) => {
+    this.applyOption("labelText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#labelText = value;
     });
 
-    this.resolveOption("prevText", (value, assertionSubject) => {
+    this.applyOption("prevText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#prevText = value;
     });
 
-    this.resolveOption("nextText", (value, assertionSubject) => {
+    this.applyOption("nextText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#nextText = value;
     });
 
-    this.resolveOption("suffix", (value, assertionSubject) => {
+    this.applyOption("suffix", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#suffix = value;
     });
 
-    this.resolveOption("minValueText", (value, assertionSubject) => {
+    this.applyOption("minValueText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#minValueText = value;
     });
 
-    this.resolveOption("maxValueText", (value, assertionSubject) => {
+    this.applyOption("maxValueText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#maxValueText = value;
     });
 
-    this.resolveOption("zeroValueText", (value, assertionSubject) => {
+    this.applyOption("zeroValueText", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#zeroValueText = value;
     });
 
-    this.resolveOption("fixed", (value, assertionSubject) => {
+    this.applyOption("fixed", (value, assertionSubject) => {
       assertNonNegativeInteger(value, assertionSubject);
       this.#fixed = value;
     });
 
-    this.resolveOption("step", (value, assertionSubject) => {
+    this.applyOption("step", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#step = value;
     });
 
-    this.resolveOption("percentBase", (value, assertionSubject) => {
+    this.applyOption("percentBase", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
 
       if (value === 0) {
@@ -136,17 +136,17 @@ export class Slider extends Elm {
       this.#percentBase = value;
     });
 
-    this.resolveOption("min", (value, assertionSubject) => {
+    this.applyOption("min", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#min = value;
     });
 
-    this.resolveOption("max", (value, assertionSubject) => {
+    this.applyOption("max", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       this.#max = value;
     });
 
-    this.resolveOption("value", (value, assertionSubject) => {
+    this.applyOption("value", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
       const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
       this.#value = normalizedValue;
@@ -156,7 +156,7 @@ export class Slider extends Elm {
       throw new Error("max must be greater than min");
     }
 
-    this.resolveOption("color", (value, assertionSubject) => {
+    this.applyOption("color", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.rootElement.style.setProperty("--color-slider", value);
     });

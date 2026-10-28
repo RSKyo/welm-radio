@@ -60,32 +60,20 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #init() {
-    this.resolveOption("trackId", (value, assertionSubject) => {
+    this.applyRequiredOption("trackId", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#trackId = value;
     });
 
-    if (this.#trackId == null) {
-      throw new Error("clip group trackId is required");
-    }
-
-    this.resolveOption("timelineRuler", (value) => {
+    this.applyRequiredOption("timelineRuler", (value) => {
       this.#timelineRuler = value;
     });
 
-    if (this.#timelineRuler == null) {
-      throw new Error("Timeline ruler not found");
-    }
-
-    this.resolveOption("timelinePlayhead", (value, assertionSubject) => {
+    this.applyRequiredOption("timelinePlayhead", (value, assertionSubject) => {
       this.#timelinePlayhead = value;
     });
 
-    if (this.#timelinePlayhead == null) {
-      throw new Error("Timeline playhead not found");
-    }
-
-    this.resolveOption("audioCache", (value, assertionSubject) => {
+    this.applyOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
 
@@ -446,9 +434,9 @@ export class ClipGroup extends ItemsElm {
 
   // override
   createItemElement(item) {
-    const value = item[this.valueField];
-    const itemEl = clipTemplate.cloneNode(true);
-    itemEl.dataset.value = value;
+    const clipId = item[this.valueField];
+    const clipEl = clipTemplate.cloneNode(true);
+    clipEl.dataset.value = clipId;
 
     const clipOptions = {
       ...item,
@@ -464,7 +452,8 @@ export class ClipGroup extends ItemsElm {
 
     clipOptions.rowIndex = clipRowIndex;
 
-    const clipElm = new Clip(itemEl, clipOptions);console.log(clipOptions);
+    const clipElm = new Clip(clipEl, clipOptions);
+    console.log(clipOptions);
 
     clipElm.onClipEndChange = () => {
       this.#updateClipGroupDuration();
@@ -474,9 +463,9 @@ export class ClipGroup extends ItemsElm {
       this.#updateClipGroupHeight();
     };
 
-    this.#clipMap.set(value, clipElm);
+    this.#clipMap.set(clipId, clipElm);
 
-    return itemEl;
+    return clipEl;
   }
 
   // override
@@ -502,12 +491,12 @@ export class ClipGroup extends ItemsElm {
     const selectedClipId = filterValue(this.#selectedClipId, this.itemValues);
     this.#setSelectedClipId(selectedClipId, { updateUI: false });
 
-    const trackId = removedItem[this.valueField];
+    const clipId = removedItem[this.valueField];
 
     const clipMap = this.#clipMap;
-    const clipElm = clipMap.get(trackId);
+    const clipElm = clipMap.get(clipId);
     clipElm.destroy();
-    clipMap.delete(trackId);
+    clipMap.delete(clipId);
   }
 
   // override
