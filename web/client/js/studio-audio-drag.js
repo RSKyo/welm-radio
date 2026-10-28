@@ -54,15 +54,12 @@ export function setup({
       const ghostTop = y - target.y1;
 
       let time = clipGroupElm.resolveTime(ghostLeft);
-      const { rowIndex, top,snapThreshold } = clipGroupElm.resolveRowPosition(ghostTop);
+      const { rowIndex, top, snapThreshold } =
+        clipGroupElm.resolveRowPosition(ghostTop);
 
       if (!event.shiftKey) {
         const snapPoints = drag.getState("snapPoints");
-        const snap = trySnapTime(
-          time,
-          snapPoints,
-          clipGroupElm.snapThreshold,
-        );
+        const snap = trySnapTime(time, snapPoints, clipGroupElm.snapThreshold);
         time = snap.time;
       }
 
@@ -115,7 +112,7 @@ export function setup({
   function createClipItemFromAudio(audio) {
     return {
       clipId: crypto.randomUUID(),
-      title: "",
+      title: "xxx",
       audioStart: audio.meta.start,
       audioEnd: audio.meta.end,
       trimStart: audio.meta.start,

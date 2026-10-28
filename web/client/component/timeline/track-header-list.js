@@ -121,8 +121,8 @@ export class TrackHeaderList extends ItemsElm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedChange(handler) {
-    this.handler.on("selectedChangeHandler", handler);
+  onSelectedChange(handler) {
+    return this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange(value) {

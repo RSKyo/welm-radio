@@ -14,6 +14,7 @@ export class Elm {
   #options = {};
   #dataset = {};
   #handler = new ElmHandler();
+  #offHandlers = [];
   #event = new ElmEvent();
   #rootElementResizeObserver;
 
@@ -95,23 +96,22 @@ export class Elm {
 
   /** resize observer management */
 
-  set onResize(handler) {
-    this.#rootElementResizeObserver?.disconnect();
-    this.#rootElementResizeObserver = null;
+  onResize(handler) {
+    assertFunction(handler, "handler");
 
-    if (handler == null) {
-      this.#handler.delete("resize");
-      return;
+    this.#handler.on("resizeElement", handler);
+
+    if (!this.#rootElementResizeObserver) {
+      this.#rootElementResizeObserver = new ResizeObserver(() => {
+        this.#handler.emit("resizeElement", {});
+      });
+
+      this.#rootElementResizeObserver.observe(this.#rootElement);
     }
 
-    assertFunction(handler, "handler");
-    this.#handler.on("resize", handler);
-
-    this.#rootElementResizeObserver = new ResizeObserver(() => {
-      this.#handler.emit("resize", {});
-    });
-
-    this.#rootElementResizeObserver.observe(this.#rootElement);
+    return () => {
+      this.#handler.off("resizeElement", handler);
+    };
   }
 
   /** Public option resolution methods */
@@ -150,11 +150,22 @@ export class Elm {
     return value;
   }
 
+  registerOffHandler(off) {
+    assertFunction(off, "off");
+    this.#offHandlers.push(off);
+  }
+
   destroy() {
+    for (const off of this.#offHandlers) {
+      off();
+    }
+
+    this.#offHandlers = [];
+
     this.#rootElementResizeObserver?.disconnect();
     this.#rootElementResizeObserver = null;
 
-    this.#handler.delete();
+    this.#handler.off();
     this.#event.off();
 
     this.#rootElement = null;

@@ -11,7 +11,7 @@ import {
   assertNonEmptyNonBlankStringArray,
   assertValueForMode,
 } from "./assert.js";
-import { createElementByHTML, normalizeValue } from "./helper.js";
+import { createElementByHTML, normalizeValue,clonePlainObject } from "./helper.js";
 
 const EMPTY_TEMPLATE = `
 <div style="display: flex; align-items: center; justify-content: center; min-height: 36px;">No items</div>
@@ -102,7 +102,7 @@ export class ItemsElm extends Elm {
   }
 
   getItems() {
-    return this.#items.map((item) => ({ ...item }));
+    return this.#items.map((item) => clonePlainObject(item));
   }
 
   setItems(items, assertionSubject = "items") {
@@ -130,7 +130,7 @@ export class ItemsElm extends Elm {
   #setItems(items, assertionSubject = "items") {
     this.#items = isNullishOrEmpty(items)
       ? []
-      : items.map((item) => ({ ...item }));
+      : items.map((item) => clonePlainObject(item));
 
     this.afterSetItems(this.#items, assertionSubject);
   }
@@ -206,11 +206,11 @@ export class ItemsElm extends Elm {
     // render the added item
     this.#addItemRender(addedItem, assertionSubject);
 
-    return { ...addedItem };
+    return clonePlainObject(addedItem);
   }
 
   #addItem(item, assertionSubject = "item") {
-    const addedItem = { ...item };
+    const addedItem = clonePlainObject(item);
     this.#items.push(addedItem);
 
     this.afterAddItem(addedItem, assertionSubject);
@@ -251,12 +251,12 @@ export class ItemsElm extends Elm {
     // render the updated item
     this.#updateItemRender(updatedItem, assertionSubject);
 
-    return { ...updatedItem };
+    return clonePlainObject(updatedItem);
   }
 
   // Update the item in the internal list.
   #updateItem(item, assertionSubject = "item") {
-    const updatedItem = { ...item };
+    const updatedItem = clonePlainObject(item);
     const index = this.#items.findIndex(
       (findItem) => findItem[this.#valueField] === item[this.#valueField],
     );
@@ -309,7 +309,7 @@ export class ItemsElm extends Elm {
     // render the removed item
     this.#removeItemRender(removedItem, assertionSubject);
 
-    return { ...removedItem };
+    return clonePlainObject(removedItem);
   }
 
   // Remove the item from the internal list by its value.
@@ -370,7 +370,7 @@ export class ItemsElm extends Elm {
 
     const item = this.#items[index];
 
-    return item == null ? null : { ...item };
+    return item == null ? null : clonePlainObject(item);
   }
 
   getItemByValue(value, mode = 1) {
@@ -390,7 +390,7 @@ export class ItemsElm extends Elm {
       const item = this.#items.find(
         (item) => item[this.#valueField] === normalizedValue,
       );
-      return { ...item };
+      return clonePlainObject(item);
     }
 
     assertNonEmptyNonBlankStringArray(normalizedValue, assertionSubject);
@@ -398,7 +398,7 @@ export class ItemsElm extends Elm {
     const items = this.#items.filter((item) =>
       normalizedValue.includes(item[this.#valueField]),
     );
-    return items.map((item) => ({ ...item }));
+    return items.map((item) => clonePlainObject(item));
   }
 
   eachItem(callback) {
@@ -409,7 +409,7 @@ export class ItemsElm extends Elm {
       const element = this.#elements.get(value) ?? null;
 
       callback({
-        item: { ...item },
+        item: clonePlainObject(item),
         index,
         value,
         element,

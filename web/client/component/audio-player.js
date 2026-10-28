@@ -293,8 +293,8 @@ export class AudioPlayer extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onLoadedMetadata(handler) {
-    this.handler.on("loadedMetadataHandler", handler);
+  onLoadedMetadata(handler) {
+    return this.handler.on("loadedMetadataHandler", handler);
   }
 
   #emitLoadedMetadata(value) {
@@ -304,8 +304,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onDurationChange(handler) {
-    this.handler.on("durationChangeHandler", handler);
+  onDurationChange(handler) {
+    return this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange(value) {
@@ -315,8 +315,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onTimeUpdate(handler) {
-    this.handler.on("timeUpdateHandler", handler);
+  onTimeUpdate(handler) {
+    return this.handler.on("timeUpdateHandler", handler);
   }
 
   #emitTimeUpdate(value) {
@@ -326,8 +326,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onPlay(handler) {
-    this.handler.on("playHandler", handler);
+  onPlay(handler) {
+    return this.handler.on("playHandler", handler);
   }
 
   #emitPlay(value) {
@@ -337,8 +337,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onPause(handler) {
-    this.handler.on("pauseHandler", handler);
+  onPause(handler) {
+    return this.handler.on("pauseHandler", handler);
   }
 
   #emitPause(value) {
@@ -348,8 +348,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onEnded(handler) {
-    this.handler.on("endedHandler", handler);
+  onEnded(handler) {
+    return this.handler.on("endedHandler", handler);
   }
 
   #emitEnded(value) {
@@ -359,8 +359,8 @@ export class AudioPlayer extends Elm {
     });
   }
 
-  set onEmptied(handler) {
-    this.handler.on("emptiedHandler", handler);
+  onEmptied(handler) {
+    return this.handler.on("emptiedHandler", handler);
   }
 
   #emitEmptied(value) {
@@ -375,9 +375,9 @@ export class AudioPlayer extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.onResize = () => {
+    this.onResize(() => {
       this.#updateTitleScrollingUIState();
-    };
+    });
 
     this.event.on(this.#audioEl, "error", () => {
       console.log("audio error:", this.#audioEl.error);
@@ -426,7 +426,7 @@ export class AudioPlayer extends Elm {
       await this.toggle();
     });
 
-    this.#progressRange.onEndChange = ({ value }) => {
+    this.#progressRange.onEndChange(({ value }) => {
       console.log({
         value,
         duration: this.duration,
@@ -437,7 +437,7 @@ export class AudioPlayer extends Elm {
       this.currentTime = value;
 
       console.log("after:", this.#audioEl.currentTime);
-    };
+    });
   }
 
   // -----------------------------------------------------------------------------

@@ -14,6 +14,10 @@ export class ElmHandler {
     }
 
     handlers.add(handler);
+
+    return () => {
+      this.off(key, handler);
+    };
   }
 
   emit(key, detail = {}) {

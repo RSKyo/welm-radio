@@ -10,6 +10,7 @@ import {
   isNullish,
   isNullishOrEmpty,
   assertNonNegativeInteger,
+  assertPlainObject,
 } from "./assert.js";
 
 const TIME_PRECISION = 3;
@@ -19,6 +20,11 @@ export const toast = new Toast();
 
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function clonePlainObject(value) {
+  assertPlainObject(value, "value");
+  return structuredClone(value);
 }
 
 /**
@@ -145,21 +151,14 @@ function bindDomEvent(element, eventName, handler) {
 
 function bindObjEvent(obj, eventName, handler) {
   const objName = obj.rootElement?.dataset?.name ?? "object";
-  const eventProp = `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
+  const eventMethod =
+    `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
 
-  if (!(eventProp in obj)) {
-    throw new Error(`Elm ${objName} does not have event: ${eventProp}`);
+  if (typeof obj[eventMethod] !== "function") {
+    throw new Error(`Elm ${objName} does not have event: ${eventMethod}`);
   }
 
-  obj[eventProp] = safeHandler(handler);
-
-  return () => {
-    obj[eventProp] = null;
-  };
-}
-
-function isElmObject(target) {
-  return target instanceof Elm;
+  return obj[eventMethod](safeHandler(handler));
 }
 
 // -----------------------------------------------------------------------------

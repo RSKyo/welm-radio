@@ -1,6 +1,6 @@
 import { Elm } from "../base/elm.js";
 import { assertNonNegative } from "../base/assert.js";
-
+import { clampValue } from "../base/helper.js";
 export class TimelinePlayhead extends Elm {
   #timelineRuler = null;
 
@@ -54,7 +54,7 @@ export class TimelinePlayhead extends Elm {
   set time(value) {
     assertNonNegative(value, "time");
 
-    const time = Math.min(Math.max(0, value), this.#timelineRuler.seconds);
+    const time = clampValue(value, 0, this.#timelineRuler.seconds);
 
     this.#setTime(time);
   }
@@ -74,8 +74,8 @@ export class TimelinePlayhead extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onTimeChange(handler) {
-    this.handler.on("timeChangeHandler", handler);
+  onTimeChange(handler) {
+    return this.handler.on("timeChangeHandler", handler);
   }
 
   #emitTimeChange(time) {
@@ -102,9 +102,11 @@ export class TimelinePlayhead extends Elm {
       this.#pointerDoubleClickHandler,
     );
 
-    this.#timelineRuler.onWidthChange = () => {
-      this.time = this.#time;
-    };
+    this.registerOffHandler(
+      this.#timelineRuler.onWidthChange(() => {
+        this.time = this.#time;
+      })
+    );
   }
 
   #pointerDownHandler = (event) => {

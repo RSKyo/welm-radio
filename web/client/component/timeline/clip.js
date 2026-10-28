@@ -9,6 +9,7 @@ import {
   createElementByHTML,
   normalizeTime,
   normalizePixel,
+  clampValue,
 } from "../base/helper.js";
 
 const CLIP_TRIM_HANDLE_WIDTH = 4;
@@ -41,10 +42,6 @@ export class Clip extends Elm {
   // ui
   #height = null;
   #rowGap = null;
-  #frontTrim = "end";
-  #trimStartEl = null;
-  #trimEndEl = null;
-  #contentEl = null;
 
   // ruler
   #timelineRuler = null;
@@ -205,10 +202,6 @@ export class Clip extends Elm {
     return this.#rowIndex;
   }
 
-  get frontTrim() {
-    return this.#frontTrim;
-  }
-
   get height() {
     return this.#height;
   }
@@ -226,12 +219,11 @@ export class Clip extends Elm {
   }
 
   get left() {
-    this.#timelineRuler.timeToPixel(0);
-    return normalizePixel(this.clipStart * this.pixelsPerSecond);
+    return this.#timelineRuler.timeToPixels(this.clipStart);
   }
 
   get width() {
-    return normalizePixel(this.duration * this.pixelsPerSecond);
+    return this.#timelineRuler.timeToPixels(this.duration);
   }
 
   get endLeft() {
@@ -243,152 +235,88 @@ export class Clip extends Elm {
   }
 
   // -----------------------------------------------------------------------------
-  // setters / mutators
+  // update
   // -----------------------------------------------------------------------------
 
-  set trimStart(value) {
-    assertNonNegative(value, "trimStart");
-    this.#setTrimStart(value);
-  }
-
-  #setTrimStart(value, { updateClipStart = true, updateUI = true } = {}) {
-    const oldTrimStart = this.#trimStart;
-    const newTrimStart = Math.max(
-      this.#audioStart,
-      Math.min(value, this.#trimEnd),
-    );
-
-    if (newTrimStart === oldTrimStart) {
-      return;
-    }
-
-    this.#trimStart = newTrimStart;
-
-    if (updateClipStart) {
-      const oldClipStart = this.#clipStart;
-
-      const delta = newTrimStart - oldTrimStart;
-      const newClipStart = normalizeTime(Math.max(0, oldClipStart + delta));
-
-      this.#clipStart = newClipStart;
-    }
-
-    if (updateUI) {
-      this.#updatePositionUIState();
-    }
-  }
-
-  set trimEnd(value) {
-    assertNonNegative(value, "trimEnd");
-    this.#setTrimEnd(value);
-  }
-
-  #setTrimEnd(value, { updateUI = true } = {}) {
-    if (value === this.#trimEnd) {
-      return;
-    }
-
-    if (value <= this.#audioStart || value > this.#audioEnd) {
-      return;
-    }
-
-    if (value < this.#trimStart) {
-      return;
-    }
-
-    this.#trimEnd = value;
-
-    if (updateUI) {
-      this.#updatePositionUIState();
-    }
-
-    this.#emitClipEndChange();
-  }
-
-  set clipStart(value) {
-    assertNonNegative(value, "clipStart");
-    this.#setClipStart(value);
-  }
-
-  #setClipStart(value, { updateUI = true, emitEvent = true } = {}) {
-    if (value === this.#clipStart) {
-      return;
-    }
-
+  update(updatedItem) {
     const oldClipEnd = this.clipEnd;
+    const oldRowIndex = this.rowIndex;
 
-    this.#clipStart = value;
+    this.#setTrimEnd(updatedItem.trimEnd);
+    this.#setTrimStart(updatedItem.trimStart);
 
-    if (updateUI) {
-      this.#updatePositionUIState();
-    }
-
-    const newClipEnd = this.clipEnd;
-    if (newClipEnd !== oldClipEnd && emitEvent) {
-      this.#emitClipEndChange();
-    }
-  }
-
-  set rowIndex(value) {
-    assertNonNegativeInteger(value, "rowIndex");
-    this.#setRowIndex(value);
-  }
-
-  #setRowIndex(value, { updateUI = true } = {}) {
-    if (value === this.#rowIndex) {
-      return;
-    }
-
-    this.#rowIndex = value;
-
-    if (updateUI) {
-      this.#updatePositionUIState();
-    }
-
-    this.#emitRowIndexChange();
-  }
-
-  set frontTrim(value) {
-    if (value !== "start" && value !== "end") {
-      throw new Error('frontTrim must be "start" or "end"');
-    }
-    this.#setFrontTrim(value);
-  }
-
-  #setFrontTrim(value, { updateUI = true } = {}) {
-    if (value === this.#frontTrim) {
-      return;
-    }
-
-    this.#frontTrim = value;
-
-    if (updateUI) {
-      this.#updateFrontTrimState();
-    }
-  }
-
-  setTrimStartAndClipStart(trimStart, clipStart) {
-    const oldClipEnd = this.clipEnd;
-
-    if (trimStart != null) {
-      this.#setTrimStart(trimStart, {
-        updateClipStart: false,
-        updateUI: false,
-      });
-    }
-
-    if (clipStart != null) {
-      this.#setClipStart(clipStart, {
-        updateUI: false,
-        emitEvent: false,
-      });
-    }
+    this.#setClipStart(updatedItem.clipStart);
+    this.#setRowIndex(updatedItem.rowIndex);
 
     this.#updatePositionUIState();
 
     if (this.clipEnd !== oldClipEnd) {
       this.#emitClipEndChange();
     }
+
+    if (this.rowIndex !== oldRowIndex) {
+      this.#emitRowIndexChange();
+    }
+  }
+
+  #setTrimStart(value) {
+    if (value == null) {
+      return;
+    }
+
+    assertNonNegative(value, "trimStart");
+
+    const newTrimStart = clampValue(value, this.audioStart, this.trimEnd);
+
+    if (newTrimStart === this.#trimStart) {
+      return;
+    }
+
+    this.#trimStart = normalizeTime(newTrimStart);
+  }
+
+  #setTrimEnd(value) {
+    if (value == null) {
+      return;
+    }
+
+    assertNonNegative(value, "trimEnd");
+
+    const newTrimEnd = clampValue(value, this.trimStart, this.audioEnd);
+
+    if (newTrimEnd === this.#trimEnd) {
+      return;
+    }
+
+    this.#trimEnd = normalizeTime(newTrimEnd);
+  }
+
+  #setClipStart(value) {
+    if (value == null) {
+      return;
+    }
+
+    assertNonNegative(value, "clipStart");
+
+    if (value === this.#clipStart) {
+      return;
+    }
+
+    this.#clipStart = normalizeTime(value);
+  }
+
+  #setRowIndex(value) {
+    if (value == null) {
+      return;
+    }
+
+    assertNonNegativeInteger(value, "rowIndex");
+
+    if (value === this.#rowIndex) {
+      return;
+    }
+
+    this.#rowIndex = value;
   }
 
   // -----------------------------------------------------------------------------
@@ -414,16 +342,16 @@ export class Clip extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onClipEndChange(handler) {
-    this.handler.on("clipEndChangeHandler", handler);
+  onClipEndChange(handler) {
+    return this.handler.on("clipEndChangeHandler", handler);
   }
 
   #emitClipEndChange() {
     this.handler.emit("clipEndChangeHandler", this.#getClipDetail());
   }
 
-  set onRowIndexChange(handler) {
-    this.handler.on("rowIndexChangeHandler", handler);
+  onRowIndexChange(handler) {
+    return this.handler.on("rowIndexChangeHandler", handler);
   }
 
   #emitRowIndexChange() {
@@ -434,7 +362,13 @@ export class Clip extends Elm {
   // bind events
   // -----------------------------------------------------------------------------
 
-  #bindEvents() {}
+  #bindEvents() {
+    this.registerOffHandler(
+      this.#timelineRuler.onPixelsPerSecondChange(() => {
+        this.#updatePositionUIState();
+      }),
+    );
+  }
 
   // -----------------------------------------------------------------------------
   // render
@@ -450,10 +384,6 @@ export class Clip extends Elm {
     this.rootElement.appendChild(trimStartEl);
     this.rootElement.appendChild(trimEndEl);
 
-    this.#contentEl = contentEl;
-    this.#trimStartEl = trimStartEl;
-    this.#trimEndEl = trimEndEl;
-
     contentEl.textContent = this.#clipId;
 
     this.#updateUIState();
@@ -465,7 +395,6 @@ export class Clip extends Elm {
 
   #updateUIState() {
     this.#updatePositionUIState();
-    this.#updateFrontTrimState();
   }
 
   #updatePositionUIState() {
@@ -473,10 +402,5 @@ export class Clip extends Elm {
     this.rootElement.style.top = `${this.top - offsetTop}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;
-  }
-
-  #updateFrontTrimState() {
-    this.#trimStartEl.style.zIndex = this.#frontTrim === "start" ? "11" : "10";
-    this.#trimEndEl.style.zIndex = this.#frontTrim === "end" ? "11" : "10";
   }
 }

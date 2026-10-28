@@ -1,12 +1,15 @@
 import {
-  assertBoolean,
   assertNumber,
   assertNonBlankString,
   isNonBlankString,
   assertNonNegativeInteger,
   assertPositive,
 } from "./base/assert.js";
-import { createElementByHTML, getBySelector } from "./base/helper.js";
+import {
+  createElementByHTML,
+  getBySelector,
+  clampValue,
+} from "./base/helper.js";
 import { Elm } from "./base/elm.js";
 
 const MAIN_TEMPLATE = `
@@ -148,7 +151,7 @@ export class Slider extends Elm {
 
     this.applyOption("value", (value, assertionSubject) => {
       assertNumber(value, assertionSubject);
-      const normalizedValue = Math.min(this.#max, Math.max(this.#min, value));
+      const normalizedValue = clampValue(value, this.#min, this.#max);
       this.#value = normalizedValue;
     });
 
@@ -214,7 +217,7 @@ export class Slider extends Elm {
   }
 
   #setValue(value) {
-    const newValue = Math.min(this.#max, Math.max(this.#min, value));
+    const newValue = clampValue(value, this.#min, this.#max);
 
     if (newValue === this.#value) {
       return;
@@ -230,8 +233,8 @@ export class Slider extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onChange(handler) {
-    this.handler.on("changeHandler", handler);
+  onChange(handler) {
+    return this.handler.on("changeHandler", handler);
   }
 
   #emitChange(value) {
@@ -246,9 +249,9 @@ export class Slider extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.onResize = () => {
+    this.onResize(() => {
       this.#updateUIState();
-    };
+    });
 
     this.event.on(this.#rangeEl, "input", this.#rangeInputHandler);
     this.event.on(this.#prevEl, "click", this.#prevClickHandler);
@@ -309,7 +312,7 @@ export class Slider extends Elm {
     const valueElWidth = this.#valueEl.offsetWidth;
     const minLeft = prevElWidth + valueElWidth / 2;
     const maxLeft = mainWidth - nextElWidth - valueElWidth / 2;
-    const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
+    const left = clampValue(rawLeft, minLeft, maxLeft);
 
     this.#valueEl.style.left = `${left}px`;
   }

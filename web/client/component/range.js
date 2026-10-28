@@ -305,8 +305,8 @@ export class Range extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onChange(handler) {
-    this.handler.on("changeHandler", handler);
+  onChange(handler) {
+    return this.handler.on("changeHandler", handler);
   }
 
   #emitChange(value) {
@@ -316,8 +316,8 @@ export class Range extends Elm {
     });
   }
 
-  set onEndChange(handler) {
-    this.handler.on("endChangeHandler", handler);
+  onEndChange(handler) {
+    return this.handler.on("endChangeHandler", handler);
   }
 
   #emitEndChange(value) {
@@ -332,9 +332,9 @@ export class Range extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.onResize = () => {
+    this.onResize(() => {
       this.#updateUIState();
-    };
+    });
 
     this.event.on(
       this.#rangeTrackEl,
@@ -549,7 +549,7 @@ export class Range extends Elm {
       const minLeft = textWidth / 2;
       const maxLeft = trackWidth - textWidth / 2;
 
-      const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
+      const left = clampValue(rawLeft,minLeft,maxLeft);
 
       this.#rangeTextEl.style.left = `${left}px`;
     }

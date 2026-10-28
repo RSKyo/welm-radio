@@ -1,8 +1,4 @@
-import {
-  assertPositive,
-  assertPlainObject,
-  assertNonBlankString,
-} from "../base/assert.js";
+import { assertPlainObject, assertNonBlankString } from "../base/assert.js";
 import {
   createElementByHTML,
   isEqualValue,
@@ -11,7 +7,7 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
-const CLIP_MIN_DURATION = 0.05;
+const CLIP_MIN_DURATION = 4;
 const CLIP_HEIGHT = 40;
 const CLIP_ROW_GAP = 3;
 const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
@@ -84,7 +80,7 @@ export class ClipGroup extends ItemsElm {
 
     this.rootElement.style.setProperty("--clip-row-gap", `${CLIP_ROW_GAP}px`);
 
-    this.setItems(null);
+    // this.setItems(null);
   }
 
   // -----------------------------------------------------------------------------
@@ -125,7 +121,6 @@ export class ClipGroup extends ItemsElm {
     this.#height = value;
 
     this.#updateHeightUIState();
-
     this.#emitHeightChange();
   }
 
@@ -282,7 +277,6 @@ export class ClipGroup extends ItemsElm {
     }
 
     this.removeItem(clipElm.clipId);
-    this.selectedClipId = null;
 
     return "success";
   }
@@ -370,12 +364,58 @@ export class ClipGroup extends ItemsElm {
     };
   }
 
+  getClipTrimTimeRange(clipId, edge) {
+    const clipElm = this.getClip(clipId);
+
+    let prevClipEnd = 0;
+    let nextClipStart = Infinity;
+
+    for (const otherClipElm of this.#clipMap.values()) {
+      if (otherClipElm.clipId === clipId) {
+        continue;
+      }
+
+      if (otherClipElm.rowIndex !== clipElm.rowIndex) {
+        continue;
+      }
+
+      if (otherClipElm.clipEnd <= clipElm.clipStart) {
+        prevClipEnd = Math.max(prevClipEnd, otherClipElm.clipEnd);
+      }
+
+      if (otherClipElm.clipStart >= clipElm.clipEnd) {
+        nextClipStart = Math.min(nextClipStart, otherClipElm.clipStart);
+      }
+    }
+
+    if (edge === "start") {
+      const minClipStart =
+        clipElm.clipStart - (clipElm.trimStart - clipElm.audioStart);
+
+      return {
+        minTime: Math.max(0, minClipStart, prevClipEnd),
+        maxTime: clipElm.clipEnd - CLIP_MIN_DURATION,
+      };
+    }
+
+    if (edge === "end") {
+      const maxClipEnd = clipElm.clipEnd + (clipElm.audioEnd - clipElm.trimEnd);
+
+      return {
+        minTime: clipElm.clipStart + CLIP_MIN_DURATION,
+        maxTime: Math.min(maxClipEnd, nextClipStart),
+      };
+    }
+
+    throw new Error(`Unknown trim edge: ${edge}`);
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedChange(handler) {
-    this.handler.on("selectedChangeHandler", handler);
+  onSelectedChange(handler) {
+    return this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange() {
@@ -386,8 +426,8 @@ export class ClipGroup extends ItemsElm {
     });
   }
 
-  set onDurationChange(handler) {
-    this.handler.on("durationChangeHandler", handler);
+  onDurationChange(handler) {
+    return this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange() {
@@ -397,8 +437,8 @@ export class ClipGroup extends ItemsElm {
     });
   }
 
-  set onHeightChange(handler) {
-    this.handler.on("heightChangeHandler", handler);
+  onHeightChange(handler) {
+    return this.handler.on("heightChangeHandler", handler);
   }
 
   #emitHeightChange() {
@@ -453,15 +493,14 @@ export class ClipGroup extends ItemsElm {
     clipOptions.rowIndex = clipRowIndex;
 
     const clipElm = new Clip(clipEl, clipOptions);
-    console.log(clipOptions);
 
-    clipElm.onClipEndChange = () => {
+    clipElm.onClipEndChange(() => {
       this.#updateClipGroupDuration();
-    };
+    });
 
-    clipElm.onRowIndexChange = () => {
+    clipElm.onRowIndexChange(() => {
       this.#updateClipGroupHeight();
-    };
+    });
 
     this.#clipMap.set(clipId, clipElm);
 
@@ -520,15 +559,10 @@ export class ClipGroup extends ItemsElm {
       return;
     }
 
-    clipElm.setTrimStartAndClipStart(
-      updatedItem.trimStart,
-      updatedItem.clipStart,
-    );
-    clipElm.trimEnd = updatedItem.trimEnd;
-
     const clipRowIndex = this.#findAvailableRowIndex(updatedItem);
+    updatedItem.rowIndex = clipRowIndex;
 
-    clipElm.rowIndex = clipRowIndex;
+    clipElm.update(updatedItem);
   }
 
   // override

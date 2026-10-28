@@ -1,5 +1,5 @@
 import { Elm } from "./base/elm.js";
-import { createElementByHTML, getBySelector } from "./base/helper.js";
+import { createElementByHTML, getBySelector,clampValue } from "./base/helper.js";
 import {
   assertBoolean,
   assertNonBlankString,
@@ -209,8 +209,8 @@ export class Tumbler extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onChange(handler) {
-    this.handler.on("changeHandler", handler);
+  onChange(handler) {
+    return this.handler.on("changeHandler", handler);
   }
 
   #emitChange(value) {
@@ -225,9 +225,9 @@ export class Tumbler extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.onResize = () => {
+    this.onResize(() => {
       this.#updateRulerPosition();
-    };
+    });
 
     this.event.on(this.#mainEl, "wheel", this.#wheelHandler, {
       passive: false,
@@ -269,7 +269,7 @@ export class Tumbler extends Elm {
   }
 
   #clampPosition(position) {
-    return Math.min(Math.max(position, 0), this.#getTickCount() - 1);
+    return clampValue(position, 0, this.#getTickCount() - 1);
   }
 
   #updateValueByPosition() {
@@ -355,12 +355,8 @@ export class Tumbler extends Elm {
   // value
   // -----------------------------------------------------------------------------
 
-  #clampValue(value) {
-    return Math.min(Math.max(value, this.#min), this.#max);
-  }
-
   #snapValue(value) {
-    const clampedValue = this.#clampValue(value);
+    const clampedValue = clampValue(value, this.#min, this.#max);
 
     const index = Math.round((clampedValue - this.#min) / this.#step);
 

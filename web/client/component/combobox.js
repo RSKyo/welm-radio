@@ -137,8 +137,8 @@ export class Combobox extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onChange(handler) {
-    this.handler.on("changeHandler", handler);
+  onChange(handler) {
+    return this.handler.on("changeHandler", handler);
   }
 
   #emitChange() {

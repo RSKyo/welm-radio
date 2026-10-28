@@ -5,7 +5,11 @@ import {
   assertHtmlElement,
   assertNumber,
 } from "../base/assert.js";
-import { on, createElementByHTML, formatTime } from "../base/helper.js";
+import {
+  createElementByHTML,
+  formatTime,
+  clampValue,
+} from "../base/helper.js";
 
 const TRAILING_DURATION = 30;
 const TICK_TEMPLATE = `
@@ -168,8 +172,6 @@ export class TimelineRuler extends Elm {
     return [...this.#tickSeconds];
   }
 
-  
-
   get timelineViewport() {
     const viewport = this.#timelineInfo.timelineViewport;
 
@@ -208,8 +210,9 @@ export class TimelineRuler extends Elm {
   }
 
   #setPixelsPerSecond(value) {
-    const newValue = Math.min(
-      Math.max(value, this.#minPixelsPerSecond),
+    const newValue = clampValue(
+      value,
+      this.#minPixelsPerSecond,
       this.#maxPixelsPerSecond,
     );
 
@@ -301,7 +304,7 @@ export class TimelineRuler extends Elm {
   timeToLeft(seconds) {
     assertNonNegative(seconds, "seconds");
 
-    seconds = Math.min(Math.max(seconds, 0), this.seconds);
+    seconds = clampValue(seconds, 0, this.seconds);
 
     const pixels = this.timeToPixels(seconds);
     const canvas = this.#timelineInfo.timelineCanvas;
@@ -361,24 +364,24 @@ export class TimelineRuler extends Elm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onPixelsPerSecondChange(handler) {
-    this.handler.on("pixelsPerSecondChangeHandler", handler);
+  onPixelsPerSecondChange(handler) {
+    return this.handler.on("pixelsPerSecondChangeHandler", handler);
   }
 
   #emitPixelsPerSecondChange() {
     this.handler.emit("pixelsPerSecondChangeHandler", this.#getEventObject());
   }
 
-  set onDurationChange(handler) {
-    this.handler.on("durationChangeHandler", handler);
+  onDurationChange(handler) {
+    return this.handler.on("durationChangeHandler", handler);
   }
 
   #emitDurationChange() {
     this.handler.emit("durationChangeHandler", this.#getEventObject());
   }
 
-  set onWidthChange(handler) {
-    this.handler.on("widthChangeHandler", handler);
+  onWidthChange(handler) {
+    return this.handler.on("widthChangeHandler", handler);
   }
 
   #emitWidthChange() {
@@ -494,7 +497,7 @@ export class TimelineRuler extends Elm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    on(this.timelineViewport.element, "resizeElement", () => {
+    this.event.on(this.timelineViewport.element, "resizeElement", () => {
       const newWidth = this.#calculateWidth();
       if (newWidth !== this.#width) {
         this.#width = newWidth;

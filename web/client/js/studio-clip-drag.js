@@ -1,4 +1,4 @@
-import { on, closestElement } from "./helper.js";
+import { on, closestElement, clampValue, normalizeTime } from "./helper.js";
 import { DragDelegate } from "../component/drag.js";
 
 export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
@@ -26,6 +26,15 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     const clipGroupElm = trackListElm.getClipGroup(trackId);
     clipGroupElm.selectedClipId = clipId;
 
+    const clipItem = clipGroupElm.getItemByValue(clipId);
+    drag.setState("clipDuration", clipItem.trimEnd - clipItem.trimStart);
+
+    const edge = drag.mode === "dragging-start" ? "start" : "end";
+    if (edge === "start" || edge === "end") {
+      const trimTimeRange = clipGroupElm.getClipTrimTimeRange(clipId, edge);
+      drag.setState("trimTimeRange", trimTimeRange);
+    }
+
     const snapPoints = getSnapPoints();
     drag.setState("snapPoints", snapPoints);
   }
@@ -39,6 +48,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
     const target = drag.target;
     if (target) {
+      // clip group
       const trackId = target.element.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
@@ -50,11 +60,11 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const mode = drag.mode;
 
       if (mode === "move") {
-        const localX = draggingGhost.x1 - target.x1;
-        const localY = draggingGhost.y1 - target.y1;
-
+        // determine the x position based on the drag direction
+        const x =
+          drag.direction === "left" ? draggingGhost.x1 : draggingGhost.x2;
+        const localX = x - target.x1;
         let time = clipGroupElm.resolveTime(localX);
-        const { rowIndex, top } = clipGroupElm.resolveRowPosition(localY);
 
         if (!event.shiftKey) {
           const snap = trySnapTime(
@@ -65,11 +75,26 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           time = snap.time;
         }
 
-        const x1 = target.x1 + time * clipGroupElm.pixelsPerSecond;
+        let clipStart;
+        if (drag.direction === "left") {
+          // time represents clipStart
+          clipStart = time;
+        } else {
+          // time represents clipEnd
+          const clipDuration = drag.getState("clipDuration");
+          clipStart = time - clipDuration;
+        }
+
+        const x1 = target.x1 + clipStart * clipGroupElm.pixelsPerSecond;
+
+        // determine the y position based on the drag direction
+        const localY = draggingGhost.y1 - target.y1;
+        const { rowIndex, top } = clipGroupElm.resolveRowPosition(localY);
         const y1 = target.y1 + top;
+
         drag.dragTo(x1, y1);
 
-        drag.setState("clipStart", time);
+        drag.setState("clipStart", clipStart);
         drag.setState("rowIndex", rowIndex);
 
         return;
@@ -79,6 +104,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
         const localX = draggingGhost.x1 - target.x1;
         let time = clipGroupElm.resolveTime(localX);
 
+        // snap time if shift key is not pressed
         if (!event.shiftKey) {
           const snap = trySnapTime(
             time,
@@ -88,6 +114,11 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           time = snap.time;
         }
 
+        // clamp time within the trim time range
+        const { minTime, maxTime } = drag.getState("trimTimeRange");
+        time = clampValue(time, minTime, maxTime);
+
+        // update the dragging ghost position based on the new clip start time
         const x1 = target.x1 + time * clipGroupElm.pixelsPerSecond;
         drag.dragStartTo(x1);
 
@@ -100,6 +131,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
         const localX = draggingGhost.x2 - target.x1;
         let time = clipGroupElm.resolveTime(localX);
 
+        // snap time if shift key is not pressed
         if (!event.shiftKey) {
           const snap = trySnapTime(
             time,
@@ -108,7 +140,11 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
           );
           time = snap.time;
         }
+        // clamp time within the trim time range
+        const { minTime, maxTime } = drag.getState("trimTimeRange");
+        time = clampValue(time, minTime, maxTime);
 
+        // update the dragging ghost position based on the new clip end time
         const x2 = target.x1 + time * clipGroupElm.pixelsPerSecond;
         drag.dragEndTo(x2);
 
@@ -164,7 +200,13 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const deltaTime = clipStart - clipItem.clipStart;
 
       clipItem.clipStart = clipStart;
-      clipItem.trimStart += deltaTime;
+      clipItem.trimStart = normalizeTime(
+        clampValue(
+          clipItem.trimStart + deltaTime,
+          clipItem.audioStart,
+          clipItem.trimEnd,
+        ),
+      );
 
       originClipGroupElm.updateItem(clipItem);
     }
@@ -175,7 +217,14 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipEnd = drag.getState("clipEnd");
       const deltaTime = clipEnd - oldClipEnd;
 
-      clipItem.trimEnd += deltaTime;
+      clipItem.trimEnd = normalizeTime(
+        clampValue(
+          clipItem.trimEnd + deltaTime,
+          clipItem.trimStart,
+          clipItem.audioEnd,
+        ),
+      );
+
       originClipGroupElm.updateItem(clipItem);
     }
   }

@@ -291,7 +291,7 @@ function removeClip() {
 
 function getSnapPoints() {
   return [
-    ...rulerElm.getSnapPoints(),
+    // ...rulerElm.getSnapPoints(),
     ...trackListElm.getSnapPoints(),
     {
       time: playheadElm.time,

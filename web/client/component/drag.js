@@ -22,9 +22,8 @@ export class DragDelegate {
   #draggingGhost = null;
   #target = null;
 
-  #draggingStartEl = null;
-  #draggingEndEl = null;
-  #originalZIndex = null;
+  #lastClientX = null;
+  #direction = null;
 
   #state = new Map();
 
@@ -94,6 +93,10 @@ export class DragDelegate {
     return this.#draggingGhost != null;
   }
 
+  get direction() {
+    return this.#direction;
+  }
+
   #pointerDown = (event) => {
     if (this.#pointerId != null) {
       return;
@@ -131,21 +134,12 @@ export class DragDelegate {
     this.#mode = "move";
     if (startEl) {
       this.#mode = "dragging-start";
-      this.#draggingStartEl = startEl;
-      this.#originalZIndex = startEl.style.zIndex;
-
-      // Read the computed z-index because the value may come from a CSS class,
-      // not from the element's inline style.
-      const zIndex = Number(getComputedStyle(startEl).zIndex) || 0;
-      startEl.style.zIndex = zIndex + 1;
     } else if (endEl) {
       this.#mode = "dragging-end";
-      this.#draggingEndEl = endEl;
-      this.#originalZIndex = endEl.style.zIndex;
-
-      const zIndex = Number(getComputedStyle(endEl).zIndex) || 0;
-      endEl.style.zIndex = zIndex + 1;
     }
+
+    this.#lastClientX = event.clientX;
+    this.#direction = null;
 
     const clientX = event.clientX;
     const clientY = event.clientY;
@@ -171,6 +165,14 @@ export class DragDelegate {
     if (event.pointerId !== this.#pointerId) {
       return;
     }
+
+    const deltaX = event.clientX - this.#lastClientX;
+    if (deltaX < 0) {
+      this.#direction = "left";
+    } else if (deltaX > 0) {
+      this.#direction = "right";
+    }
+    this.#lastClientX = event.clientX;
 
     const clientX = event.clientX;
     const clientY = event.clientY;
@@ -252,18 +254,6 @@ export class DragDelegate {
   };
 
   #endDragging() {
-    if (this.#mode === "dragging-start") {
-      this.#draggingStartEl.style.zIndex = this.#originalZIndex;
-      this.#draggingStartEl = null;
-      this.#originalZIndex = null;
-    }
-
-    if (this.#mode === "dragging-end") {
-      this.#draggingEndEl.style.zIndex = this.#originalZIndex;
-      this.#draggingEndEl = null;
-      this.#originalZIndex = null;
-    }
-
     this.#pointerId = null;
     this.#initClientX = null;
     this.#initClientY = null;
@@ -273,6 +263,9 @@ export class DragDelegate {
     this.#draggingGhost?.element.remove();
     this.#draggingGhost = null;
     this.#target = null;
+
+    this.#lastClientX = null;
+    this.#direction = null;
 
     this.#state.clear();
   }
@@ -325,32 +318,32 @@ export class DragDelegate {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onPointerDown(handler) {
-    this.#handler.on("pointerDownHandler", handler);
+  onPointerDown(handler) {
+    return this.#handler.on("pointerDownHandler", handler);
   }
 
   #emitPointerDown(event) {
     this.#handler.emit("pointerDownHandler", event);
   }
 
-  set onPointerMove(handler) {
-    this.#handler.on("pointerMoveHandler", handler);
+  onPointerMove(handler) {
+    return this.#handler.on("pointerMoveHandler", handler);
   }
 
   #emitPointerMove(event) {
     this.#handler.emit("pointerMoveHandler", event);
   }
 
-  set onPointerUp(handler) {
-    this.#handler.on("pointerUpHandler", handler);
+  onPointerUp(handler) {
+    return this.#handler.on("pointerUpHandler", handler);
   }
 
   #emitPointerUp(event) {
     this.#handler.emit("pointerUpHandler", event);
   }
 
-  set onPointerCancel(handler) {
-    this.#handler.on("pointerCancelHandler", handler);
+  onPointerCancel(handler) {
+    return this.#handler.on("pointerCancelHandler", handler);
   }
 
   #emitPointerCancel(event) {
@@ -450,6 +443,7 @@ export class DragDelegate {
     if (x > draggingGhost.x2) {
       x = draggingGhost.x2;
     }
+
     const deltaX = x - draggingGhost.x1;
 
     draggingGhost.x1 += deltaX;
@@ -467,6 +461,25 @@ export class DragDelegate {
     const { element, x1, width } = this.#draggingGhost;
     element.style.left = `${x1}px`;
     element.style.width = `${width}px`;
+
+    // // 临时调试
+    // const style = getComputedStyle(element);
+    // const rect = element.getBoundingClientRect();
+
+    // console.log({
+    //   internalX1: x1,
+    //   internalX2: this.#draggingGhost.x2,
+    //   domX1: rect.left,
+    //   domX2: rect.right,
+    //   internalWidth: width,
+    //   domWidth: rect.width,
+
+    //   boxSizing: style.boxSizing,
+    //   borderLeftWidth: style.borderLeftWidth,
+    //   borderRightWidth: style.borderRightWidth,
+    //   minWidth: style.minWidth,
+    //   transform: style.transform,
+    // });
   }
 
   // Update ghost metrics only.
@@ -478,6 +491,7 @@ export class DragDelegate {
     if (x < draggingGhost.x1) {
       x = draggingGhost.x1;
     }
+
     const deltaX = x - draggingGhost.x2;
 
     draggingGhost.x2 += deltaX;

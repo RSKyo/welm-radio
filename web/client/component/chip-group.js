@@ -100,7 +100,7 @@ export class ChipGroup extends ItemsElm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedChange(handler) {
+  onSelectedChange(handler) {
     this.handler.on("selectedChangeHandler", handler);
   }
 

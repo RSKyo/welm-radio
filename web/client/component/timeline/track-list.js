@@ -177,8 +177,8 @@ export class TrackList extends ItemsElm {
   // registered events
   // -----------------------------------------------------------------------------
 
-  set onSelectedChange(handler) {
-    this.handler.on("selectedChangeHandler", handler);
+  onSelectedChange(handler) {
+    return this.handler.on("selectedChangeHandler", handler);
   }
 
   #emitSelectedChange(value) {
@@ -188,8 +188,8 @@ export class TrackList extends ItemsElm {
     });
   }
 
-  set onTrackHeightChange(handler) {
-    this.handler.on("trackHeightChangeHandler", handler);
+  onTrackHeightChange(handler) {
+    return this.handler.on("trackHeightChangeHandler", handler);
   }
 
   #emitTrackHeightChange(value, height) {
@@ -209,9 +209,11 @@ export class TrackList extends ItemsElm {
       selector: '[data-role="track"]',
     });
 
-    this.#timelineRuler.onWidthChange = () => {
-      this.#updateWidthUIState();
-    };
+    this.registerOffHandler(
+      this.#timelineRuler.onWidthChange(() => {
+        this.#updateWidthUIState();
+      }),
+    );
   }
 
   #trackClickHandler = (event, { element }) => {
@@ -245,7 +247,7 @@ export class TrackList extends ItemsElm {
       },
     });
 
-    clipGroupElm.onSelectedChange = () => {
+    clipGroupElm.onSelectedChange(() => {
       for (const clipGroupElm of this.#clipGroupMap.values()) {
         if (clipGroupElm.trackId !== trackId) {
           clipGroupElm.unselect();
@@ -255,19 +257,23 @@ export class TrackList extends ItemsElm {
       if (this.#selectedTrackId !== trackId) {
         this.#setSelectedTrackId(trackId);
       }
-    };
+    });
 
-    clipGroupElm.onDurationChange = () => {
+    clipGroupElm.onDurationChange(() => {
       this.#updateTimelineDuration();
-    };
+    });
 
-    clipGroupElm.onHeightChange = ({ height }) => {
+    clipGroupElm.onHeightChange(({ height }) => {
       trackEl.style.height = `${height}px`;
 
       this.#emitTrackHeightChange(trackId, height);
-    };
+    });
 
     this.#clipGroupMap.set(trackId, clipGroupElm);
+
+    // set initial track height based on clip group height
+    // when new clip group is created, it has an initial height that should be applied to the track element
+    trackEl.style.height = `${clipGroupElm.height}px`;
 
     /** create clip */
 
