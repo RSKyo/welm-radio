@@ -1,4 +1,4 @@
-import { on, closestElement, clampValue, normalizeTime } from "./helper.js";
+import { on, closestElement, clampValue } from "./helper.js";
 import { DragDelegate } from "../component/drag.js";
 
 export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
@@ -200,12 +200,10 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const deltaTime = clipStart - clipItem.clipStart;
 
       clipItem.clipStart = clipStart;
-      clipItem.trimStart = normalizeTime(
-        clampValue(
-          clipItem.trimStart + deltaTime,
-          clipItem.audioStart,
-          clipItem.trimEnd,
-        ),
+      clipItem.trimStart = clampValue(
+        clipItem.trimStart + deltaTime,
+        clipItem.audioStart,
+        clipItem.trimEnd,
       );
 
       originClipGroupElm.updateItem(clipItem);
@@ -217,12 +215,10 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipEnd = drag.getState("clipEnd");
       const deltaTime = clipEnd - oldClipEnd;
 
-      clipItem.trimEnd = normalizeTime(
-        clampValue(
-          clipItem.trimEnd + deltaTime,
-          clipItem.trimStart,
-          clipItem.audioEnd,
-        ),
+      clipItem.trimEnd = clampValue(
+        clipItem.trimEnd + deltaTime,
+        clipItem.trimStart,
+        clipItem.audioEnd,
       );
 
       originClipGroupElm.updateItem(clipItem);

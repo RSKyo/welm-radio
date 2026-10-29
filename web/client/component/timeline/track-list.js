@@ -205,21 +205,12 @@ export class TrackList extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(this.rootElement, "click", this.#trackClickHandler, {
-      selector: '[data-role="track"]',
-    });
-
     this.registerOffHandler(
       this.#timelineRuler.onWidthChange(() => {
         this.#updateWidthUIState();
       }),
     );
   }
-
-  #trackClickHandler = (event, { element }) => {
-    const trackId = element.dataset.value;
-    this.#setSelectedTrackId(trackId);
-  };
 
   // ---------------------------------------------------------------------------
   // overrides

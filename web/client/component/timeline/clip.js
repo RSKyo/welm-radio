@@ -7,7 +7,6 @@ import {
 } from "../base/assert.js";
 import {
   createElementByHTML,
-  normalizeTime,
   normalizePixel,
   clampValue,
 } from "../base/helper.js";
@@ -78,12 +77,12 @@ export class Clip extends Elm {
 
     this.applyRequiredOption("audioStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#audioStart = normalizeTime(value);
+      this.#audioStart = value;
     });
 
     this.applyRequiredOption("audioEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#audioEnd = normalizeTime(value);
+      this.#audioEnd = value;
     });
 
     if (this.#audioEnd < this.#audioStart) {
@@ -92,12 +91,12 @@ export class Clip extends Elm {
 
     this.applyRequiredOption("trimStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#trimStart = normalizeTime(value);
+      this.#trimStart = value;
     });
 
     this.applyRequiredOption("trimEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
-      this.#trimEnd = normalizeTime(value);
+      this.#trimEnd = value;
     });
 
     if (this.#trimEnd < this.#trimStart) {
@@ -121,7 +120,7 @@ export class Clip extends Elm {
 
     this.applyRequiredOption("clipStart", (value, assertionSubject) => {
       assertNonNegative(value, assertionSubject);
-      this.#clipStart = normalizeTime(value);
+      this.#clipStart = value;
     });
 
     this.applyOption("rowIndex", (value, assertionSubject) => {
@@ -187,7 +186,7 @@ export class Clip extends Elm {
   }
 
   get duration() {
-    return normalizeTime(this.trimEnd - this.trimStart);
+    return this.trimEnd - this.trimStart;
   }
 
   get clipStart() {
@@ -195,7 +194,7 @@ export class Clip extends Elm {
   }
 
   get clipEnd() {
-    return normalizeTime(this.clipStart + this.duration);
+    return this.clipStart + this.duration;
   }
 
   get rowIndex() {
@@ -211,11 +210,11 @@ export class Clip extends Elm {
   }
 
   get rowHeight() {
-    return normalizePixel(this.height + this.rowGap);
+    return this.height + this.rowGap;
   }
 
   get top() {
-    return normalizePixel(this.rowIndex * this.rowHeight + this.rowGap);
+    return this.rowIndex * this.rowHeight + this.rowGap;
   }
 
   get left() {
@@ -227,7 +226,7 @@ export class Clip extends Elm {
   }
 
   get endLeft() {
-    return normalizePixel(this.left + this.width);
+    return this.left + this.width;
   }
 
   get pixelsPerSecond() {
@@ -272,7 +271,7 @@ export class Clip extends Elm {
       return;
     }
 
-    this.#trimStart = normalizeTime(newTrimStart);
+    this.#trimStart = newTrimStart;
   }
 
   #setTrimEnd(value) {
@@ -288,7 +287,7 @@ export class Clip extends Elm {
       return;
     }
 
-    this.#trimEnd = normalizeTime(newTrimEnd);
+    this.#trimEnd = newTrimEnd;
   }
 
   #setClipStart(value) {
@@ -302,7 +301,7 @@ export class Clip extends Elm {
       return;
     }
 
-    this.#clipStart = normalizeTime(value);
+    this.#clipStart = value;
   }
 
   #setRowIndex(value) {

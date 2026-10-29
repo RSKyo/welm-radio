@@ -7,7 +7,7 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
-const CLIP_MIN_DURATION = 4;
+const CLIP_MIN_DURATION = 5;
 const CLIP_HEIGHT = 40;
 const CLIP_ROW_GAP = 3;
 const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
@@ -453,7 +453,7 @@ export class ClipGroup extends ItemsElm {
   // -----------------------------------------------------------------------------
 
   #bindEvents() {
-    this.event.on(this.rootElement, "click", this.#clipClickHandler, {
+    this.event.on(this.rootElement, "pointerdown", this.#clipClickHandler, {
       selector: '[data-role="clip"]',
     });
   }

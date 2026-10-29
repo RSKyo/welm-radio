@@ -462,6 +462,8 @@ export class DragDelegate {
     element.style.left = `${x1}px`;
     element.style.width = `${width}px`;
 
+    const rect = element.getBoundingClientRect();
+
     // // 临时调试
     // const style = getComputedStyle(element);
     // const rect = element.getBoundingClientRect();
