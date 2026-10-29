@@ -97,6 +97,10 @@ export class DragDelegate {
     return this.#direction;
   }
 
+  // -----------------------------------------------------------------------------
+  // pointer down
+  // -----------------------------------------------------------------------------
+
   #pointerDown = (event) => {
     if (this.#pointerId != null) {
       return;
@@ -161,6 +165,10 @@ export class DragDelegate {
     this.#emitPointerDown(event);
   };
 
+  // -----------------------------------------------------------------------------
+  // pointer move
+  // -----------------------------------------------------------------------------
+
   #pointerMove = (event) => {
     if (event.pointerId !== this.#pointerId) {
       return;
@@ -177,6 +185,13 @@ export class DragDelegate {
     const clientX = event.clientX;
     const clientY = event.clientY;
 
+    // target
+    const element = document.elementFromPoint(clientX, clientY);
+    const targetEl = element?.closest(this.#targetSelector) ?? null;
+    this.#target = this.getElementMetrics(clientX, clientY, targetEl);
+
+    let ghostParentEl = targetEl ?? document.body;
+
     // Create the ghost only after the pointer has moved far enough
     // to avoid treating a click as a drag.
     //
@@ -187,19 +202,15 @@ export class DragDelegate {
       const deltaY = clientY - this.#initClientY;
 
       if (Math.hypot(deltaX, deltaY) >= 3) {
-        const draggingGhostEl = this.#createDraggingGhost();
+        const ghostEl = this.#createDraggingGhost(ghostParentEl);
+
         this.#draggingGhost = this.getElementMetrics(
           this.#initClientX,
           this.#initClientY,
-          draggingGhostEl,
+          ghostEl,
         );
       }
     }
-
-    // target
-    const element = document.elementFromPoint(clientX, clientY);
-    const targetEl = element?.closest(this.#targetSelector) ?? null;
-    this.#target = this.getElementMetrics(clientX, clientY, targetEl);
 
     // Update the raw ghost metrics from the current pointer position.
     //
@@ -207,6 +218,11 @@ export class DragDelegate {
     // adjust the position first, for example by applying snapping,
     // and then commit it through dragTo(), dragStartTo(), or dragEndTo().
     if (this.#draggingGhost) {
+      ghostParentEl.append(this.#draggingGhost.element);
+      const ghostParentElRect = ghostParentEl.getBoundingClientRect();
+      const pointerLocalX = clientX - ghostParentElRect.left;
+      const pointerLocalY = clientY - ghostParentElRect.top;
+
       const mode = this.#mode;
       const offsetLeft = this.#draggingGhost.pointer.left;
       const offsetTop = this.#draggingGhost.pointer.top;
@@ -214,20 +230,24 @@ export class DragDelegate {
       const offsetBottom = this.#draggingGhost.pointer.bottom;
 
       if (mode == "move") {
-        const x = clientX - offsetLeft;
-        const y = clientY - offsetTop;
+        const x = pointerLocalX - offsetLeft;
+        const y = pointerLocalY - offsetTop;
         this.#dragTo(x, y);
       } else if (mode == "dragging-start") {
-        const x = clientX - offsetLeft;
+        const x = pointerLocalX - offsetLeft;
         this.#dragStartTo(x);
       } else if (mode == "dragging-end") {
-        const x = clientX + offsetRight;
+        const x = pointerLocalX + offsetRight;
         this.#dragEndTo(x);
       }
     }
 
     this.#emitPointerMove(event);
   };
+
+  // -----------------------------------------------------------------------------
+  // pointer up
+  // -----------------------------------------------------------------------------
 
   #pointerUp = (event) => {
     if (event.pointerId !== this.#pointerId) {
@@ -270,7 +290,7 @@ export class DragDelegate {
     this.#state.clear();
   }
 
-  #createDraggingGhost(event) {
+  #createDraggingGhost(parentEl) {
     if (this.#dragging == null) {
       return null;
     }
@@ -286,18 +306,21 @@ export class DragDelegate {
     ghost.style.pointerEvents = "none";
     ghost.classList.add("is-drag-ghost");
 
-    ghost.style.position = "fixed";
+    ghost.style.position = "absolute";
     ghost.style.visibility = "hidden";
 
-    document.body.appendChild(ghost);
+    parentEl.appendChild(ghost);
+
+    const parentRect = parentEl.getBoundingClientRect();
+    let left = this.#initClientX - parentRect.left;
+    let top = this.#initClientY - parentRect.top;
 
     const ghostRect = ghost.getBoundingClientRect();
-
     const pointerLeft = ghostRect.width * pointerRatioX;
     const pointerTop = ghostRect.height * pointerRatioY;
 
-    ghost.style.left = `${this.#initClientX - pointerLeft}px`;
-    ghost.style.top = `${this.#initClientY - pointerTop}px`;
+    ghost.style.left = `${left - pointerLeft}px`;
+    ghost.style.top = `${top - pointerTop}px`;
 
     ghost.style.visibility = "";
 

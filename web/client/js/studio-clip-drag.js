@@ -46,9 +46,18 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       return;
     }
 
+    const mode = drag.mode;
     const target = drag.target;
+
+    if (mode === "move" && !target) {
+      let x1 = drag.draggingGhost.x1;
+      let y1 = drag.draggingGhost.y1;
+
+      drag.dragTo(x1, y1);
+      return;
+    }
+
     if (target) {
-      // clip group
       const trackId = target.element.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       if (!clipGroupElm) {
@@ -57,7 +66,6 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
       const draggingGhost = drag.draggingGhost;
       const snapPoints = drag.getState("snapPoints");
-      const mode = drag.mode;
 
       if (mode === "move") {
         // determine the x position based on the drag direction
@@ -192,6 +200,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       } else {
         originClipGroupElm.removeItem(clipId);
         targetClipGroupElm.addItem(clipItem);
+        targetClipGroupElm.selectedClipId = clipId;
       }
     }
 
