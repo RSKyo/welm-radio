@@ -218,7 +218,12 @@ export class DragDelegate {
     // adjust the position first, for example by applying snapping,
     // and then commit it through dragTo(), dragStartTo(), or dragEndTo().
     if (this.#draggingGhost) {
-      ghostParentEl.append(this.#draggingGhost.element);
+      const ghostEl = this.#draggingGhost.element;
+
+      if (ghostEl.parentElement !== ghostParentEl) {
+        ghostParentEl.append(ghostEl);
+      }
+
       const ghostParentElRect = ghostParentEl.getBoundingClientRect();
       const pointerLocalX = clientX - ghostParentElRect.left;
       const pointerLocalY = clientY - ghostParentElRect.top;
