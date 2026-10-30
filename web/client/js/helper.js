@@ -151,8 +151,7 @@ function bindDomEvent(element, eventName, handler) {
 
 function bindObjEvent(obj, eventName, handler) {
   const objName = obj.rootElement?.dataset?.name ?? "object";
-  const eventMethod =
-    `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
+  const eventMethod = `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
 
   if (typeof obj[eventMethod] !== "function") {
     throw new Error(`Elm ${objName} does not have event: ${eventMethod}`);
@@ -345,6 +344,45 @@ export function closestElement(event, selector) {
   }
 
   return element;
+}
+
+export function toLocalPoint(clientX, clientY, target, rect = null) {
+  const targetEl = resolveElement(target, "target");
+
+  if (rect == null) {
+    rect = targetEl.getBoundingClientRect();
+  }
+
+  const left = clientX - rect.left - targetEl.clientLeft + targetEl.scrollLeft;
+
+  const top = clientY - rect.top - targetEl.clientTop + targetEl.scrollTop;
+
+  const right = targetEl.scrollWidth - left;
+  const bottom = targetEl.scrollHeight - top;
+
+  return {
+    localX: left,
+    localY: top,
+
+    left,
+    top,
+    right,
+    bottom,
+  };
+}
+
+export function toClientPoint(localX, localY, target) {
+  const targetEl = resolveElement(target, "target");
+  const rect = targetEl.getBoundingClientRect();
+
+  const clientX =
+    localX + rect.left + targetEl.clientLeft - targetEl.scrollLeft;
+  const clientY = localY + rect.top + targetEl.clientTop - targetEl.scrollTop;
+
+  return {
+    clientX,
+    clientY,
+  };
 }
 
 // -----------------------------------------------------------------------------

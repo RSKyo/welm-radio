@@ -1,5 +1,5 @@
 import { assertHtmlElement, assertNonBlankString } from "./base/assert.js";
-import { resolveElement, closestElement } from "./base/helper.js";
+import { resolveElement, closestElement, toLocalPoint } from "./base/helper.js";
 import { ElmHandler } from "./base/elm-handler.js";
 
 const DRAGGING_START_SELECTOR = "[data-role='dragging-start']";
@@ -190,8 +190,6 @@ export class DragDelegate {
     const targetEl = element?.closest(this.#targetSelector) ?? null;
     this.#target = this.getElementMetrics(clientX, clientY, targetEl);
 
-    let ghostParentEl = targetEl ?? document.body;
-
     // Create the ghost only after the pointer has moved far enough
     // to avoid treating a click as a drag.
     //
@@ -202,7 +200,7 @@ export class DragDelegate {
       const deltaY = clientY - this.#initClientY;
 
       if (Math.hypot(deltaX, deltaY) >= 3) {
-        const ghostEl = this.#createDraggingGhost(ghostParentEl);
+        const ghostEl = this.#createDraggingGhost();
 
         this.#draggingGhost = this.getElementMetrics(
           this.#initClientX,
@@ -218,31 +216,30 @@ export class DragDelegate {
     // adjust the position first, for example by applying snapping,
     // and then commit it through dragTo(), dragStartTo(), or dragEndTo().
     if (this.#draggingGhost) {
-      const ghostEl = this.#draggingGhost.element;
+      const draggingGhost = this.#draggingGhost;
+      const ghostEl = draggingGhost.element;
+      const containerEl = this.#target ? this.#target.element : document.body;
 
-      if (ghostEl.parentElement !== ghostParentEl) {
-        ghostParentEl.append(ghostEl);
+      if (ghostEl.parentElement !== containerEl) {
+        containerEl.append(ghostEl);
       }
 
-      const ghostParentElRect = ghostParentEl.getBoundingClientRect();
-      const pointerLocalX = clientX - ghostParentElRect.left;
-      const pointerLocalY = clientY - ghostParentElRect.top;
+      let { localX, localY } = toLocalPoint(clientX, clientY, containerEl);
 
       const mode = this.#mode;
-      const offsetLeft = this.#draggingGhost.pointer.left;
-      const offsetTop = this.#draggingGhost.pointer.top;
-      const offsetRight = this.#draggingGhost.pointer.right;
-      const offsetBottom = this.#draggingGhost.pointer.bottom;
+      const offsetLeft = draggingGhost.originClientX - draggingGhost.x1;
+      const offsetTop = draggingGhost.originClientY - draggingGhost.y1;
+      const offsetRight = draggingGhost.x2 - draggingGhost.originClientX;
 
       if (mode == "move") {
-        const x = pointerLocalX - offsetLeft;
-        const y = pointerLocalY - offsetTop;
+        const x = localX - offsetLeft;
+        const y = localY - offsetTop;
         this.#dragTo(x, y);
       } else if (mode == "dragging-start") {
-        const x = pointerLocalX - offsetLeft;
+        const x = localX - offsetLeft;
         this.#dragStartTo(x);
       } else if (mode == "dragging-end") {
-        const x = pointerLocalX + offsetRight;
+        const x = localX + offsetRight;
         this.#dragEndTo(x);
       }
     }
@@ -295,41 +292,47 @@ export class DragDelegate {
     this.#state.clear();
   }
 
-  #createDraggingGhost(parentEl) {
+  #createDraggingGhost() {
     if (this.#dragging == null) {
       return null;
     }
 
-    const dragging = this.#dragging;
-    const pointerRatioX = dragging.pointer.left / dragging.width;
-    const pointerRatioY = dragging.pointer.top / dragging.height;
+    const clientX = this.#initClientX;
+    const clientY = this.#initClientY;
 
-    const ghost = dragging.element.cloneNode(true);
+    const dragging = this.#dragging;
+    const draggingEl = this.#dragging.element;
+    const draggingRect = draggingEl.getBoundingClientRect();
+
+    const ratioX = (clientX - draggingRect.left) / draggingRect.width;
+    const ratioY = (clientY - draggingRect.top) / draggingRect.height;
+
+    const ghostEl = dragging.element.cloneNode(true);
 
     // Let hit testing pass through the ghost so elementFromPoint()
     // can find the actual drop target underneath it.
-    ghost.style.pointerEvents = "none";
-    ghost.classList.add("is-drag-ghost");
+    ghostEl.style.pointerEvents = "none";
+    ghostEl.classList.add("is-drag-ghost");
 
-    ghost.style.position = "absolute";
-    ghost.style.visibility = "hidden";
+    ghostEl.style.position = "absolute";
+    ghostEl.style.visibility = "hidden";
 
-    parentEl.appendChild(ghost);
+    const containerEl = this.#target ? this.#target.element : document.body;
 
-    const parentRect = parentEl.getBoundingClientRect();
-    let left = this.#initClientX - parentRect.left;
-    let top = this.#initClientY - parentRect.top;
+    containerEl.appendChild(ghostEl);
 
-    const ghostRect = ghost.getBoundingClientRect();
-    const pointerLeft = ghostRect.width * pointerRatioX;
-    const pointerTop = ghostRect.height * pointerRatioY;
+    let { localX, localY } = toLocalPoint(clientX, clientY, containerEl);
 
-    ghost.style.left = `${left - pointerLeft}px`;
-    ghost.style.top = `${top - pointerTop}px`;
+    const ghostRect = ghostEl.getBoundingClientRect();
+    const offertLeft = ghostRect.width * ratioX;
+    const offsetTop = ghostRect.height * ratioY;
 
-    ghost.style.visibility = "";
+    ghostEl.style.left = `${localX - offertLeft}px`;
+    ghostEl.style.top = `${localY - offsetTop}px`;
 
-    return ghost;
+    ghostEl.style.visibility = "";
+
+    return ghostEl;
   }
 
   destroy() {
@@ -391,9 +394,13 @@ export class DragDelegate {
     }
 
     const rect = element.getBoundingClientRect();
+    const localPoint = toLocalPoint(clientX, clientY, element, rect);
 
-    const info = {
+    return (info = {
       element,
+
+      originClientX: clientX,
+      originClientY: clientY,
 
       width: rect.width,
       height: rect.height,
@@ -402,37 +409,10 @@ export class DragDelegate {
       y1: rect.top,
       x2: rect.right,
       y2: rect.bottom,
-    };
 
-    if (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    ) {
-      info.pointer = {
-        localX: clientX - rect.left,
-        localY: clientY - rect.top,
-
-        left: clientX - rect.left,
-        top: clientY - rect.top,
-        right: rect.right - clientX,
-        bottom: rect.bottom - clientY,
-      };
-    }
-
-    if (relativeElement != null) {
-      const relativeElementRect = relativeElement.getBoundingClientRect();
-
-      info.left = rect.left - relativeElementRect.left;
-      info.leftEnd = rect.right - relativeElementRect.left;
-      info.top = rect.top - relativeElementRect.top;
-      info.topEnd = rect.bottom - relativeElementRect.top;
-      info.right = relativeElementRect.right - rect.right;
-      info.bottom = relativeElementRect.bottom - rect.bottom;
-    }
-
-    return info;
+      localX: localPoint.localX,
+      localY: localPoint.localY,
+    });
   }
 
   // Update ghost metrics only.
