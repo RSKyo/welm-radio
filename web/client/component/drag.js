@@ -200,13 +200,7 @@ export class DragDelegate {
       const deltaY = clientY - this.#initClientY;
 
       if (Math.hypot(deltaX, deltaY) >= 3) {
-        const ghostEl = this.#createDraggingGhost();
-
-        this.#draggingGhost = this.getElementMetrics(
-          this.#initClientX,
-          this.#initClientY,
-          ghostEl,
-        );
+        this.#createDraggingGhost();
       }
     }
 
@@ -227,9 +221,10 @@ export class DragDelegate {
       let { localX, localY } = toLocalPoint(clientX, clientY, containerEl);
 
       const mode = this.#mode;
-      const offsetLeft = draggingGhost.originClientX - draggingGhost.x1;
-      const offsetTop = draggingGhost.originClientY - draggingGhost.y1;
-      const offsetRight = draggingGhost.x2 - draggingGhost.originClientX;
+      const offsetLeft = draggingGhost.origin.clientX - draggingGhost.origin.x1;
+      const offsetTop = draggingGhost.origin.clientY - draggingGhost.origin.y1;
+      const offsetRight =
+        draggingGhost.origin.x2 - draggingGhost.origin.clientX;
 
       if (mode == "move") {
         const x = localX - offsetLeft;
@@ -301,7 +296,7 @@ export class DragDelegate {
     const clientY = this.#initClientY;
 
     const dragging = this.#dragging;
-    const draggingEl = this.#dragging.element;
+    const draggingEl = dragging.element;
     const draggingRect = draggingEl.getBoundingClientRect();
 
     const ratioX = (clientX - draggingRect.left) / draggingRect.width;
@@ -323,14 +318,37 @@ export class DragDelegate {
 
     let { localX, localY } = toLocalPoint(clientX, clientY, containerEl);
 
-    const ghostRect = ghostEl.getBoundingClientRect();
-    const offertLeft = ghostRect.width * ratioX;
-    const offsetTop = ghostRect.height * ratioY;
+    const rect = ghostEl.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
 
-    ghostEl.style.left = `${localX - offertLeft}px`;
+    const offsetLeft = width * ratioX;
+    const offsetTop = height * ratioY;
+
+    ghostEl.style.left = `${localX - offsetLeft}px`;
     ghostEl.style.top = `${localY - offsetTop}px`;
 
     ghostEl.style.visibility = "";
+
+    this.#draggingGhost = {
+      element: ghostEl,
+      origin: {
+        clientX,
+        clientY,
+        localX,
+        localY,
+        x1: localX - offsetLeft,
+        y1: localY - offsetTop,
+        x2: localX - offsetLeft + width,
+        y2: localY - offsetTop + height,
+      },
+      width,
+      height,
+      x1: localX - offsetLeft,
+      y1: localY - offsetTop,
+      x2: localX - offsetLeft + width,
+      y2: localY - offsetTop + height,
+    };
 
     return ghostEl;
   }
@@ -388,19 +406,17 @@ export class DragDelegate {
    * x1/y1/x2/y2 are viewport coordinates.
    * left/top/right/bottom are distances relative to relativeElement.
    */
-  getElementMetrics(clientX, clientY, element, relativeElement = null) {
+  getElementMetrics(clientX, clientY, element, rect = null) {
     if (element == null) {
       return null;
     }
 
-    const rect = element.getBoundingClientRect();
-    const localPoint = toLocalPoint(clientX, clientY, element, rect);
+    if (rect == null) {
+      rect = element.getBoundingClientRect();
+    }
 
     return (info = {
       element,
-
-      originClientX: clientX,
-      originClientY: clientY,
 
       width: rect.width,
       height: rect.height,
@@ -409,9 +425,6 @@ export class DragDelegate {
       y1: rect.top,
       x2: rect.right,
       y2: rect.bottom,
-
-      localX: localPoint.localX,
-      localY: localPoint.localY,
     });
   }
 
