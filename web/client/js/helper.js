@@ -353,21 +353,30 @@ export function toLocalPoint(clientX, clientY, target, rect = null) {
     rect = targetEl.getBoundingClientRect();
   }
 
-  const left = clientX - rect.left - targetEl.clientLeft + targetEl.scrollLeft;
+  const localX =
+    clientX - rect.left - targetEl.clientLeft + targetEl.scrollLeft;
 
-  const top = clientY - rect.top - targetEl.clientTop + targetEl.scrollTop;
-
-  const right = targetEl.scrollWidth - left;
-  const bottom = targetEl.scrollHeight - top;
+  const localY = clientY - rect.top - targetEl.clientTop + targetEl.scrollTop;
 
   return {
-    localX: left,
-    localY: top,
+    localX,
+    localY,
 
-    left,
-    top,
-    right,
-    bottom,
+    // Distance to the scrollable content edges.
+    content: {
+      left: localX,
+      top: localY,
+      right: targetEl.scrollWidth - localX,
+      bottom: targetEl.scrollHeight - localY,
+    },
+
+    // Distance to the outer bounding rect edges.
+    bounds: {
+      left: clientX - rect.left,
+      top: clientY - rect.top,
+      right: rect.right - clientX,
+      bottom: rect.bottom - clientY,
+    },
   };
 }
 
