@@ -74,9 +74,9 @@ const playheadElm = new TimelinePlayhead("[data-role='timeline-playhead']", {
   timelineRuler: rulerElm,
 });
 
-const cursorElm = new TimelineCursor("[data-role='timeline-cursor']", {
-  timelineRuler: rulerElm,
-});
+// const cursorElm = new TimelineCursor("[data-role='timeline-cursor']", {
+//   timelineRuler: rulerElm,
+// });
 
 const trackListElm = new TrackList("#track-list", {
   valueField: "trackId",
@@ -141,7 +141,7 @@ function bindEvents() {
   // on(timelineContentEl, "dblclick", timelineContentDoubleClick);
   // on(timelineContentEl, "pointermove", timelineContentPointerMove);
 
-  on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
+  // on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
 
   on("#toggle-audios", "click", toggleAudios);
   on(addTrackBtn, "click", addTrack);
@@ -151,7 +151,7 @@ function bindEvents() {
   on(removeClipBtn, "click", removeClip);
 
   on(playheadElm, "timeChange", timelinePlayheadTimeChange);
-  on(cursorElm, "timeChange", timelineCursorTimeChange);
+  // on(cursorElm, "timeChange", timelineCursorTimeChange);
 }
 
 async function initData() {
@@ -176,11 +176,11 @@ function zoomChange({ value }) {
   rulerElm.pixelsPerSecond = value;
 }
 
-function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
-  trackListElm.pixelsPerSecond = pixelsPerSecond;
-  playheadElm.pixelsPerSecond = pixelsPerSecond;
-  cursorElm.pixelsPerSecond = pixelsPerSecond;
-}
+// function rulerPixelsPerSecondChange({ pixelsPerSecond }) {
+//   trackListElm.pixelsPerSecond = pixelsPerSecond;
+//   playheadElm.pixelsPerSecond = pixelsPerSecond;
+//   cursorElm.pixelsPerSecond = pixelsPerSecond;
+// }
 
 function addTrack() {
   const newTrack = createDefaultTrack();

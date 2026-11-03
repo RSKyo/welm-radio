@@ -10,7 +10,6 @@
   justify-content: center;
   align-items: center;
 
-
   height: var(--clip-height);
   box-sizing: border-box;
 
@@ -18,7 +17,6 @@
   margin: 0 !important;
 
   border: 1px solid var(--color-clip-border);
-
 
   color: var(--color-primary-text);
 
@@ -63,7 +61,6 @@
   background: var(--color-clip-selected-hover);
 }
 
-
 .clip-trim-start,
 .clip-trim-end {
   position: absolute;
@@ -72,7 +69,7 @@
 
   width: var(--clip-trim-width);
 
-  opacity: 0;
+  opacity: 1;
 
   cursor: ew-resize;
 
@@ -87,13 +84,18 @@
   right: 0;
 }
 
-.clip.is-selected .clip-trim-start,
-.clip.is-selected .clip-trim-end {
-  opacity: 0.4;
+.clip.is-selected {
+  border-color: var(--color-clip-selected);
 }
 
-.clip.is-selected .clip-trim-start::after,
-.clip.is-selected .clip-trim-end::after {
+.clip.is-selected:hover {
+  border-color: var(--color-clip-selected-hover);
+}
+
+.clip-trim-start:hover::after,
+.clip.is-drag-ghost.is-dragging-start .clip-trim-start::after,
+.clip-trim-end:hover::after,
+.clip.is-drag-ghost.is-dragging-end .clip-trim-end::after {
   content: "";
 
   position: absolute;
@@ -103,13 +105,13 @@
 
   width: 1px;
 
-  background: var(--color-primary-text);
+  background: var(--color-clip-dragging-border);
 
   transform: translateX(-50%);
 }
 
 .clip.is-drag-ghost {
-  border-left-color:  var(--color-clip-dragging-border);
+  border-left-color: var(--color-clip-dragging-border);
   border-right-color: var(--color-clip-dragging-border);
 
   pointer-events: none;

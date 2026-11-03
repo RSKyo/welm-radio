@@ -308,6 +308,12 @@ export class DragDelegate {
     const draggingEl = this.#draggingEl;
     const ghostEl = draggingEl.cloneNode(true);
 
+    if (this.#mode === "dragging-start") {
+      ghostEl.classList.add("is-dragging-start");
+    } else if (this.#mode === "dragging-end") {
+      ghostEl.classList.add("is-dragging-end");
+    }
+
     ghostEl.style.pointerEvents = "none";
     ghostEl.classList.add("is-drag-ghost");
 
