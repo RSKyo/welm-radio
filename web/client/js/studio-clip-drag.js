@@ -3,7 +3,7 @@ import { DragDelegate } from "../component/drag.js";
 
 export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
   // drag delegate component
-  const drag = new DragDelegate(
+  const clipDrag = new DragDelegate(
     trackListElm.rootElement,
     ".clip",
     ".clip-group",
@@ -11,189 +11,179 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
   /** bind events */
 
-  on(drag, "pointerDown", pointerDown);
-  on(drag, "pointerMove", pointerMove);
-  on(drag, "pointerUp", pointerUp);
+  on(clipDrag, "pointerDown", pointerDown);
+  on(clipDrag, "pointerMove", pointerMove);
+  on(clipDrag, "pointerUp", pointerUp);
 
   /** pointer down handler */
 
   function pointerDown(event) {
-    const clipId = drag.dragging.element.dataset.value;
+    const clipId = clipDrag.draggingEl.dataset.value;
     const clipGroupEl = closestElement(event, ".clip-group");
     const trackId = clipGroupEl.dataset.trackId;
-    drag.setState("trackId", trackId);
+    clipDrag.setState("trackId", trackId);
 
     const clipGroupElm = trackListElm.getClipGroup(trackId);
     clipGroupElm.selectedClipId = clipId;
 
-    const clipItem = clipGroupElm.getItemByValue(clipId);
-    drag.setState("clipDuration", clipItem.trimEnd - clipItem.trimStart);
+    if (clipDrag.mode !== "move") {
+      const edge = clipDrag.mode === "dragging-start" ? "start" : "end";
 
-    const edge = drag.mode === "dragging-start" ? "start" : "end";
-    if (edge === "start" || edge === "end") {
-      const trimTimeRange = clipGroupElm.getClipTrimTimeRange(clipId, edge);
-      drag.setState("trimTimeRange", trimTimeRange);
+      clipDrag.setState(
+        "trimTimeRange",
+        clipGroupElm.getClipTrimTimeRange(clipId, edge),
+      );
     }
 
     const snapPoints = getSnapPoints();
-    drag.setState("snapPoints", snapPoints);
+    clipDrag.setState("snapPoints", snapPoints);
   }
 
   /** pointer move handler */
 
   function pointerMove(event) {
-    if (!drag.isDragging) {
+    if (!clipDrag.isDragging) {
       return;
     }
 
-    const mode = drag.mode;
-    const target = drag.target;
+    const ghostInfo = clipDrag.ghostInfo;
+    const mode = clipDrag.mode;
 
-    if (mode === "move" && !target) {
-      let x1 = drag.draggingGhost.x1;
-      let y1 = drag.draggingGhost.y1;
+    if (mode === "move") {
+      let x1 = ghostInfo.x1;
+      let y1 = ghostInfo.y1;
 
-      drag.dragTo(x1, y1);
+      if (clipDrag.hasTarget) {
+        const trackId = clipDrag.targetEl.dataset.trackId;
+        const clipGroupElm = trackListElm.getClipGroup(trackId);
+
+        if (!event.shiftKey) {
+          const snapPoints = clipDrag.getState("snapPoints");
+
+          if (clipDrag.direction === "left") {
+            const snap = trySnapTime(
+              clipGroupElm.resolveTime(ghostInfo.x1),
+              snapPoints,
+              clipGroupElm.snapThreshold,
+            );
+            x1 = snap.time * clipGroupElm.pixelsPerSecond;
+          } else if (clipDrag.direction === "right") {
+            const snap = trySnapTime(
+              clipGroupElm.resolveTime(ghostInfo.x2),
+              snapPoints,
+              clipGroupElm.snapThreshold,
+            );
+            const x2 = snap.time * clipGroupElm.pixelsPerSecond;
+            x1 = x1 + (x2 - ghostInfo.x2);
+          }
+        }
+
+        const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
+        y1 = top;
+
+        const clipStart = clipGroupElm.resolveTime(x1);
+        clipDrag.setState("clipStart", clipStart);
+        clipDrag.setState("rowIndex", rowIndex);
+      }
+
+      clipDrag.dragTo(x1, y1);
+
       return;
     }
 
-    if (target) {
-      const trackId = target.element.dataset.trackId;
+    if (mode === "dragging-start") {
+      const trackId = clipDrag.targetEl.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
-      if (!clipGroupElm) {
-        return;
+      const snapPoints = clipDrag.getState("snapPoints");
+
+      let x1 = ghostInfo.x1;
+      // snap time if shift key is not pressed
+      if (!event.shiftKey) {
+        const snap = trySnapTime(
+          clipGroupElm.resolveTime(x1),
+          snapPoints,
+          clipGroupElm.snapThreshold,
+        );
+        x1 = snap.time * clipGroupElm.pixelsPerSecond;
       }
 
-      const draggingGhost = drag.draggingGhost;
-      const snapPoints = drag.getState("snapPoints");
+      let clipStart = clipGroupElm.resolveTime(x1);
 
-      if (mode === "move") {
-        // determine the x position based on the drag direction
-        const x =
-          drag.direction === "left" ? draggingGhost.x1 : draggingGhost.x2;
-        const localX = x - target.x1;
-        let time = clipGroupElm.resolveTime(localX);
+      // clamp clip start within the trim time range
+      const { minTime, maxTime } = clipDrag.getState("trimTimeRange");
+      clipStart = clampValue(clipStart, minTime, maxTime);
+      clipDrag.setState("clipStart", clipStart);
 
-        if (!event.shiftKey) {
-          const snap = trySnapTime(
-            time,
-            snapPoints,
-            clipGroupElm.snapThreshold,
-          );
-          time = snap.time;
-        }
+      // update the dragging ghost position based on the new clip start time
+      x1 = clipStart * clipGroupElm.pixelsPerSecond;
+      clipDrag.dragStartTo(x1);
 
-        let clipStart;
-        if (drag.direction === "left") {
-          // time represents clipStart
-          clipStart = time;
-        } else {
-          // time represents clipEnd
-          const clipDuration = drag.getState("clipDuration");
-          clipStart = time - clipDuration;
-        }
+      return;
+    }
 
-        const x1 = target.x1 + clipStart * clipGroupElm.pixelsPerSecond;
+    if (mode === "dragging-end") {
+      const trackId = clipDrag.targetEl.dataset.trackId;
+      const clipGroupElm = trackListElm.getClipGroup(trackId);
+      const snapPoints = clipDrag.getState("snapPoints");
 
-        // determine the y position based on the drag direction
-        const localY = draggingGhost.y1 - target.y1;
-        const { rowIndex, top } = clipGroupElm.resolveRowPosition(localY);
-        const y1 = target.y1 + top;
-
-        drag.dragTo(x1, y1);
-
-        drag.setState("clipStart", clipStart);
-        drag.setState("rowIndex", rowIndex);
-
-        return;
+      let x2 = ghostInfo.x2;
+      // snap time if shift key is not pressed
+      if (!event.shiftKey) {
+        const snap = trySnapTime(
+          clipGroupElm.resolveTime(x2),
+          snapPoints,
+          clipGroupElm.snapThreshold,
+        );
+        x2 = snap.time * clipGroupElm.pixelsPerSecond;
       }
 
-      if (mode === "dragging-start") {
-        const localX = draggingGhost.x1 - target.x1;
-        let time = clipGroupElm.resolveTime(localX);
+      let clipEnd = clipGroupElm.resolveTime(x2);
 
-        // snap time if shift key is not pressed
-        if (!event.shiftKey) {
-          const snap = trySnapTime(
-            time,
-            snapPoints,
-            clipGroupElm.snapThreshold,
-          );
-          time = snap.time;
-        }
+      // clamp clip end within the trim time range
+      const { minTime, maxTime } = clipDrag.getState("trimTimeRange");
+      clipEnd = clampValue(clipEnd, minTime, maxTime);
+      clipDrag.setState("clipEnd", clipEnd);
 
-        // clamp time within the trim time range
-        const { minTime, maxTime } = drag.getState("trimTimeRange");
-        time = clampValue(time, minTime, maxTime);
+      // update the dragging ghost position based on the new clip end time
+      x2 = clipEnd * clipGroupElm.pixelsPerSecond;
+      clipDrag.dragEndTo(x2);
 
-        // update the dragging ghost position based on the new clip start time
-        const x1 = target.x1 + time * clipGroupElm.pixelsPerSecond;
-        drag.dragStartTo(x1);
-
-        drag.setState("clipStart", time);
-
-        return;
-      }
-
-      if (mode === "dragging-end") {
-        const localX = draggingGhost.x2 - target.x1;
-        let time = clipGroupElm.resolveTime(localX);
-
-        // snap time if shift key is not pressed
-        if (!event.shiftKey) {
-          const snap = trySnapTime(
-            time,
-            snapPoints,
-            clipGroupElm.snapThreshold,
-          );
-          time = snap.time;
-        }
-        // clamp time within the trim time range
-        const { minTime, maxTime } = drag.getState("trimTimeRange");
-        time = clampValue(time, minTime, maxTime);
-
-        // update the dragging ghost position based on the new clip end time
-        const x2 = target.x1 + time * clipGroupElm.pixelsPerSecond;
-        drag.dragEndTo(x2);
-
-        drag.setState("clipEnd", time);
-
-        return;
-      }
+      return;
     }
   }
 
   /** pointer up handler */
 
   function pointerUp() {
-    if (!drag.isDragging) {
+    if (!clipDrag.isDragging) {
       return;
     }
 
-    const target = drag.target;
-    if (!target) {
+    if (!clipDrag.hasTarget) {
       return;
     }
 
-    const originTrackId = drag.getState("trackId");
+    const originTrackId = clipDrag.getState("trackId");
     const originClipGroupElm = trackListElm.getClipGroup(originTrackId);
     if (!originClipGroupElm) {
       return;
     }
 
-    const targetTrackId = target.element.dataset.trackId;
+    const targetTrackId = clipDrag.targetEl.dataset.trackId;
     const targetClipGroupElm = trackListElm.getClipGroup(targetTrackId);
     if (!targetClipGroupElm) {
       return;
     }
 
-    const clipId = drag.dragging.element.dataset.value;
+    const clipId = clipDrag.draggingEl.dataset.value;
     const clipItem = originClipGroupElm.getItemByValue(clipId);
 
-    const mode = drag.mode;
+    const mode = clipDrag.mode;
     if (mode === "move") {
-      clipItem.clipStart = drag.getState("clipStart");
-      clipItem.rowIndex = drag.getState("rowIndex");
+      clipItem.clipStart = clipDrag.getState("clipStart");
+      clipItem.rowIndex = clipDrag.getState("rowIndex");
+
+      originClipGroupElm.normalizeClipEdges(clipItem);
 
       if (originTrackId === targetTrackId) {
         originClipGroupElm.updateItem(clipItem);
@@ -205,31 +195,23 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     }
 
     if (mode === "dragging-start") {
-      const clipStart = drag.getState("clipStart");
-      const deltaTime = clipStart - clipItem.clipStart;
+      const clipStart = clipDrag.getState("clipStart");
+      const oldClipStart = clipItem.clipStart;
+      const deltaTime = clipStart - oldClipStart;
 
       clipItem.clipStart = clipStart;
-      clipItem.trimStart = clampValue(
-        clipItem.trimStart + deltaTime,
-        clipItem.audioStart,
-        clipItem.trimEnd,
-      );
+      clipItem.trimStart += deltaTime;
 
+      originClipGroupElm.normalizeClipEdges(clipItem);
       originClipGroupElm.updateItem(clipItem);
     }
 
     if (mode === "dragging-end") {
-      const oldClipEnd =
-        clipItem.clipStart + (clipItem.trimEnd - clipItem.trimStart);
-      const clipEnd = drag.getState("clipEnd");
-      const deltaTime = clipEnd - oldClipEnd;
+      const clipEnd = clipDrag.getState("clipEnd");
 
-      clipItem.trimEnd = clampValue(
-        clipItem.trimEnd + deltaTime,
-        clipItem.trimStart,
-        clipItem.audioEnd,
-      );
+      clipItem.trimEnd = clipItem.trimStart + (clipEnd - clipItem.clipStart);
 
+      originClipGroupElm.normalizeClipEdges(clipItem);
       originClipGroupElm.updateItem(clipItem);
     }
   }

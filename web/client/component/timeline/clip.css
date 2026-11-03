@@ -109,7 +109,7 @@
 }
 
 .clip.is-drag-ghost {
-  border-left-color: var(--color-clip-dragging-border);
+  border-left-color:  var(--color-clip-dragging-border);
   border-right-color: var(--color-clip-dragging-border);
 
   pointer-events: none;

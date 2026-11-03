@@ -9,95 +9,85 @@ export function setup({
   trySnapTime,
 } = {}) {
   // drag delegate component
-  const drag = new DragDelegate(audioListEl, ".audio", ".clip-group", {
+  const audioDrag = new DragDelegate(audioListEl, ".audio", ".clip-group", {
     ignoreDraggingSelector: ".audio-remove",
   });
 
   /** bind events */
 
-  on(drag, "pointerDown", pointerDown);
-  on(drag, "pointerMove", pointerMove);
-  on(drag, "pointerUp", pointerUp);
+  on(audioDrag, "pointerDown", pointerDown);
+  on(audioDrag, "pointerMove", pointerMove);
+  on(audioDrag, "pointerUp", pointerUp);
 
   /** pointer down handler */
 
   function pointerDown() {
-    const draggingEl = drag.dragging.element;
+    const draggingEl = audioDrag.draggingEl;
     const audioPath = draggingEl.dataset.audioPath;
     const audio = audioMap.get(audioPath);
-    drag.setState("audio", audio);
+    audioDrag.setState("audio", audio);
 
     const snapPoints = getSnapPoints();
-    drag.setState("snapPoints", snapPoints);
+    audioDrag.setState("snapPoints", snapPoints);
   }
 
   /** pointer move handler */
 
   function pointerMove(event) {
-    if (!drag.isDragging) {
+    if (!audioDrag.isDragging) {
       return;
     }
 
-    const draggingGhost = drag.draggingGhost;
-    let x = draggingGhost.x1;
-    let y = draggingGhost.y1;
+    const ghostInfo = audioDrag.ghostInfo;
+    let x1 = ghostInfo.x1;
+    let y1 = ghostInfo.y1;
 
-    const target = drag.target;
-    if (target) {
-      const trackId = target.element.dataset.trackId;
+    if (audioDrag.hasTarget) {
+      const trackId = audioDrag.targetEl.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
-      if (!clipGroupElm) {
-        return;
-      }
-
-      const ghostLeft = x - target.x1;
-      const ghostTop = y - target.y1;
-
-      let time = clipGroupElm.resolveTime(ghostLeft);
-      const { rowIndex, top, snapThreshold } =
-        clipGroupElm.resolveRowPosition(ghostTop);
 
       if (!event.shiftKey) {
-        const snapPoints = drag.getState("snapPoints");
-        const snap = trySnapTime(time, snapPoints, clipGroupElm.snapThreshold);
-        time = snap.time;
+        const snapPoints = audioDrag.getState("snapPoints");
+        const snap = trySnapTime(
+          clipGroupElm.resolveTime(ghostInfo.x1),
+          snapPoints,
+          clipGroupElm.snapThreshold,
+        );
+        x1 = snap.time * clipGroupElm.pixelsPerSecond;
       }
 
-      x = target.x1 + time * clipGroupElm.pixelsPerSecond;
-      y = target.y1 + top;
+      const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
+      y1 = top;
 
-      drag.setState("clipStart", time);
-      drag.setState("rowIndex", rowIndex);
+      const clipStart = clipGroupElm.resolveTime(x1);
+      audioDrag.setState("clipStart", clipStart);
+      audioDrag.setState("rowIndex", rowIndex);
     }
 
-    drag.dragTo(x, y);
+    audioDrag.dragTo(x1, y1);
   }
 
   /** pointer up handler */
 
   function pointerUp() {
-    if (!drag.isDragging) {
+    if (!audioDrag.isDragging) {
       return;
     }
 
-    const target = drag.target;
-    if (!target) {
+    if (!audioDrag.hasTarget) {
       return;
     }
 
-    const trackId = target.element.dataset.trackId;
+    const trackId = audioDrag.targetEl.dataset.trackId;
     const clipGroupElm = trackListElm.getClipGroup(trackId);
-    if (!clipGroupElm) {
-      return;
-    }
 
-    const audio = drag.getState("audio");
+    const audio = audioDrag.getState("audio");
     if (!audio) {
       return;
     }
 
-    const clipStart = drag.getState("clipStart");
-    const rowIndex = drag.getState("rowIndex");
+    const clipStart = audioDrag.getState("clipStart");
+    const rowIndex = audioDrag.getState("rowIndex");
 
     const item = createClipItemFromAudio(audio);
     item.clipStart = clipStart;
@@ -117,7 +107,7 @@ export function setup({
       audioEnd: audio.meta.end,
       trimStart: audio.meta.start,
       trimEnd: audio.meta.end,
-      clipStart: 2,
+      clipStart: 0,
       rowIndex: 0,
       audioMeta: { ...audio.meta },
     };

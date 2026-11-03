@@ -410,6 +410,48 @@ export class ClipGroup extends ItemsElm {
     throw new Error(`Unknown trim edge: ${edge}`);
   }
 
+  normalizeClipEdges(clipItem) {
+    const epsilon = 0.001;
+
+    const clipStart = clipItem.clipStart;
+    const clipEnd =
+      clipItem.clipStart + (clipItem.trimEnd - clipItem.trimStart);
+
+    for (const otherItem of this.items) {
+      if (otherItem.clipId === clipItem.clipId) {
+        continue;
+      }
+
+      if (otherItem.rowIndex !== clipItem.rowIndex) {
+        continue;
+      }
+
+      const otherStart = otherItem.clipStart;
+      const otherEnd =
+        otherItem.clipStart + (otherItem.trimEnd - otherItem.trimStart);
+
+      // Current clip end ≈ next clip start.
+      if (Math.abs(clipEnd - otherStart) <= epsilon) {
+        clipItem.trimEnd =
+          clipItem.trimStart + (otherStart - clipItem.clipStart);
+
+        break;
+      }
+
+      // Current clip start ≈ previous clip end.
+      if (Math.abs(clipStart - otherEnd) <= epsilon) {
+        const delta = otherEnd - clipItem.clipStart;
+
+        clipItem.clipStart = otherEnd;
+        clipItem.trimStart += delta;
+
+        break;
+      }
+    }
+
+    return clipItem;
+  }
+
   // -----------------------------------------------------------------------------
   // registered events
   // -----------------------------------------------------------------------------

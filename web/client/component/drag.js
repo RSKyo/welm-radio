@@ -84,14 +84,18 @@ export class DragDelegate {
   }
 
   get ghostInfo() {
-    return this.#ghostInfo;
+    if (this.#ghostInfo == null) {
+      return null;
+    }
+
+    return { ...this.#ghostInfo };
   }
 
   get targetEl() {
     return this.#targetEl;
   }
 
-  hasTarget() {
+  get hasTarget() {
     return this.#targetEl != null;
   }
 
@@ -232,29 +236,17 @@ export class DragDelegate {
           ghostContainerEl,
         );
 
-        this.#ghostInfo = {
-          ...this.#ghostInfo,
-          x1: localX - ghostInfo.offsetLeft,
-          y1: localY - ghostInfo.offsetTop,
-          x2: localX + ghostInfo.offsetRight,
-          y2: localY + ghostInfo.offsetBottom,
-        };
+        const x1 = localX - ghostInfo.offsetLeft;
+        const y1 = localY - ghostInfo.offsetTop;
+        this.#dragTo(x1, y1);
       } else if (mode == "dragging-start") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
-
-        this.#ghostInfo = {
-          ...this.#ghostInfo,
-          x1: localX - ghostInfo.offsetLeft,
-          width: ghostInfo.x2 - localX + ghostInfo.offsetLeft,
-        };
+        const x1 = localX - ghostInfo.offsetLeft;
+        this.#dragStartTo(x1);
       } else if (mode == "dragging-end") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
-
-        this.#ghostInfo = {
-          ...this.#ghostInfo,
-          x2: localX + ghostInfo.offsetRight,
-          width: localX + ghostInfo.offsetRight - ghostInfo.x1,
-        };
+        const x2 = localX + ghostInfo.offsetRight;
+        this.#dragEndTo(x2);
       }
     }
 
@@ -377,28 +369,60 @@ export class DragDelegate {
     this.#ghostEl = ghostEl;
   }
 
-  dragGhostTo(x1, y1, width = null) {
+  dragTo(x1, y1) {
     if (this.#ghostEl == null) {
       return;
     }
 
-    width ??= this.#ghostInfo.width;
+    this.#dragTo(x1, y1);
+    this.#ghostEl.style.left = `${this.#ghostInfo.x1}px`;
+    this.#ghostEl.style.top = `${this.#ghostInfo.y1}px`;
+  }
 
-    const height = this.#ghostInfo.height;
-    const x2 = x1 + width;
-    const y2 = y1 + height;
-
-    this.#ghostEl.style.left = `${x1}px`;
-    this.#ghostEl.style.top = `${y1}px`;
-    this.#ghostEl.style.width = `${width}px`;
-
+  #dragTo(x1, y1) {
     this.#ghostInfo = {
       ...this.#ghostInfo,
-      width,
       x1,
       y1,
+      x2: x1 + this.#ghostInfo.width,
+      y2: y1 + this.#ghostInfo.height,
+    };
+  }
+
+  dragStartTo(x1) {
+    if (this.#ghostEl == null) {
+      return;
+    }
+
+    this.#dragStartTo(x1);
+    this.#ghostEl.style.left = `${this.#ghostInfo.x1}px`;
+    this.#ghostEl.style.width = `${this.#ghostInfo.width}px`;
+  }
+
+  #dragStartTo(x1) {
+    const deltaX = x1 - this.#ghostInfo.x1;
+    this.#ghostInfo = {
+      ...this.#ghostInfo,
+      x1,
+      width: this.#ghostInfo.width - deltaX,
+    };
+  }
+
+  dragEndTo(x2) {
+    if (this.#ghostEl == null) {
+      return;
+    }
+
+    this.#dragEndTo(x2);
+    this.#ghostEl.style.width = `${this.#ghostInfo.width}px`;
+  }
+
+  #dragEndTo(x2) {
+    const deltaX = x2 - this.#ghostInfo.x2;
+    this.#ghostInfo = {
+      ...this.#ghostInfo,
       x2,
-      y2,
+      width: this.#ghostInfo.width + deltaX,
     };
   }
 
