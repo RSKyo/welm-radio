@@ -308,9 +308,7 @@ export class ClipGroup extends ItemsElm {
 
   #isRowAvailable(clipItem, rowIndex) {
     const clipStart = clipItem.clipStart;
-    const clipEnd = Number(
-      (clipStart + (clipItem.trimEnd - clipItem.trimStart)).toFixed(3),
-    );
+    const clipEnd = clipStart + (clipItem.trimEnd - clipItem.trimStart);
 
     return this.#isPlacementAvailable(
       clipItem[this.valueField],
@@ -410,8 +408,9 @@ export class ClipGroup extends ItemsElm {
     throw new Error(`Unknown trim edge: ${edge}`);
   }
 
-  normalizeClipEdges(clipItem) {
-    const epsilon = 0.001;
+  normalizeClipEdges(clipItem, mode) {
+    const epsilonPixel = 1;
+    const epsilonTime = epsilonPixel / this.pixelsPerSecond;
 
     const clipStart = clipItem.clipStart;
     const clipEnd =
@@ -426,26 +425,39 @@ export class ClipGroup extends ItemsElm {
         continue;
       }
 
-      const otherStart = otherItem.clipStart;
-      const otherEnd =
+      const otherClipStart = otherItem.clipStart;
+      const otherClipEnd =
         otherItem.clipStart + (otherItem.trimEnd - otherItem.trimStart);
 
-      // Current clip end ≈ next clip start.
-      if (Math.abs(clipEnd - otherStart) <= epsilon) {
-        clipItem.trimEnd =
-          clipItem.trimStart + (otherStart - clipItem.clipStart);
+      if (mode === "move") {
+        if (Math.abs(clipStart - otherClipEnd) <= epsilonTime) {
+          clipItem.clipStart = otherClipEnd;
+          break;
+        }
 
-        break;
+        if (Math.abs(clipEnd - otherClipStart) <= epsilonTime) {
+          const duration = clipItem.trimEnd - clipItem.trimStart;
+          clipItem.clipStart = otherClipStart - duration;
+
+          break;
+        }
       }
 
-      // Current clip start ≈ previous clip end.
-      if (Math.abs(clipStart - otherEnd) <= epsilon) {
-        const delta = otherEnd - clipItem.clipStart;
+      if (mode === "dragging-start") {
+        if (Math.abs(clipStart - otherClipEnd) <= epsilonTime) {
+          const deltaTime = otherClipEnd - clipStart;
+          clipItem.clipStart = otherClipEnd;
+          clipItem.trimStart += deltaTime;
+          break;
+        }
+      }
 
-        clipItem.clipStart = otherEnd;
-        clipItem.trimStart += delta;
-
-        break;
+      if (mode === "dragging-end") {
+        if (Math.abs(clipEnd - otherClipStart) <= epsilonTime) {
+          const deltaTime = otherClipStart - clipEnd;
+          clipItem.trimEnd += deltaTime;
+          break;
+        }
       }
     }
 

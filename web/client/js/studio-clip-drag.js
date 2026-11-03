@@ -183,7 +183,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       clipItem.clipStart = clipDrag.getState("clipStart");
       clipItem.rowIndex = clipDrag.getState("rowIndex");
 
-      originClipGroupElm.normalizeClipEdges(clipItem);
+      originClipGroupElm.normalizeClipEdges(clipItem, mode);
 
       if (originTrackId === targetTrackId) {
         originClipGroupElm.updateItem(clipItem);
@@ -202,7 +202,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       clipItem.clipStart = clipStart;
       clipItem.trimStart += deltaTime;
 
-      originClipGroupElm.normalizeClipEdges(clipItem);
+      originClipGroupElm.normalizeClipEdges(clipItem, mode);
       originClipGroupElm.updateItem(clipItem);
     }
 
@@ -211,7 +211,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
       clipItem.trimEnd = clipItem.trimStart + (clipEnd - clipItem.clipStart);
 
-      originClipGroupElm.normalizeClipEdges(clipItem);
+      originClipGroupElm.normalizeClipEdges(clipItem, mode);
       originClipGroupElm.updateItem(clipItem);
     }
   }
