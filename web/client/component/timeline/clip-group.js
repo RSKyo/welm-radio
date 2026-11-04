@@ -8,7 +8,7 @@ import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
 const CLIP_MIN_DURATION = 5;
-const CLIP_HEIGHT = 40;
+const CLIP_HEIGHT = 50;
 const CLIP_ROW_GAP = 3;
 const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
 const SNAP_THRESHOLD = 5;

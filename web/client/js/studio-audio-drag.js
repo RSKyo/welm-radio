@@ -38,9 +38,9 @@ export function setup({
       return;
     }
 
-    const ghostInfo = audioDrag.ghostInfo;
-    let x1 = ghostInfo.x1;
-    let y1 = ghostInfo.y1;
+    const draggingGhostInfo = audioDrag.draggingGhostInfo;
+    let x1 = draggingGhostInfo.x1;
+    let y1 = draggingGhostInfo.y1;
 
     if (audioDrag.hasTarget) {
       const trackId = audioDrag.targetEl.dataset.trackId;
@@ -49,7 +49,7 @@ export function setup({
       if (!event.shiftKey) {
         const snapPoints = audioDrag.getState("snapPoints");
         const snap = trySnapTime(
-          clipGroupElm.resolveTime(ghostInfo.x1),
+          clipGroupElm.resolveTime(draggingGhostInfo.x1),
           snapPoints,
           clipGroupElm.snapThreshold,
         );

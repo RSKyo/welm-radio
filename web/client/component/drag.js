@@ -19,11 +19,14 @@ export class DragDelegate {
   #initClientY = null;
 
   #mode = null;
+  #moveMode = null;
 
   #delegateEl = null;
   #draggingEl = null;
-  #ghostEl = null;
-  #ghostInfo = null;
+  #draggingGhostEl = null;
+  #draggingGhostInfo = null;
+  #insertGhostEl = null;
+  #insertGhostInfo = null;
   #targetEl = null;
 
   #lastClientX = null;
@@ -71,6 +74,10 @@ export class DragDelegate {
     return this.#mode;
   }
 
+  get moveMode() {
+    return this.#moveMode;
+  }
+
   get delegateEl() {
     return this.#delegateEl;
   }
@@ -79,16 +86,28 @@ export class DragDelegate {
     return this.#draggingEl;
   }
 
-  get ghostEl() {
-    return this.#ghostEl;
+  get draggingGhostEl() {
+    return this.#draggingGhostEl;
   }
 
-  get ghostInfo() {
-    if (this.#ghostInfo == null) {
+  get draggingGhostInfo() {
+    if (this.#draggingGhostInfo == null) {
       return null;
     }
 
-    return { ...this.#ghostInfo };
+    return { ...this.#draggingGhostInfo };
+  }
+
+  get insertGhostEl() {
+    return this.#insertGhostEl;
+  }
+
+  get insertGhostInfo() {
+    if (this.#insertGhostInfo == null) {
+      return null;
+    }
+
+    return { ...this.#insertGhostInfo };
   }
 
   get targetEl() {
@@ -100,7 +119,7 @@ export class DragDelegate {
   }
 
   get isDragging() {
-    return this.#ghostEl != null;
+    return this.#draggingGhostEl != null;
   }
 
   get direction() {
@@ -205,29 +224,39 @@ export class DragDelegate {
     this.#lastClientX = event.clientX;
 
     // dragging ghost
-    if (this.#ghostEl == null) {
+    if (this.#draggingGhostEl == null) {
       const deltaX = clientX - initClientX;
       const deltaY = clientY - initClientY;
 
       if (Math.hypot(deltaX, deltaY) >= 3) {
         this.#createDraggingGhost();
+
+        if (this.#mode === "move") {
+          this.#createInsertGhost();
+        }
       }
     }
 
-    const ghostEl = this.#ghostEl;
-    if (ghostEl) {
-      const ghostInfo = this.#ghostInfo;
+    const draggingGhostEl = this.#draggingGhostEl;
+    if (draggingGhostEl) {
+      const draggingGhostInfo = this.#draggingGhostInfo;
       const mode = this.#mode;
 
       if (mode == "move") {
+        this.#moveMode = event.metaKey || event.ctrlKey ? "insert" : "move";
+
         const element = document.elementFromPoint(clientX, clientY);
         const targetEl = element?.closest(this.#targetSelector) ?? null;
         this.#targetEl = targetEl;
 
         const ghostContainerEl = targetEl ?? document.body;
 
-        if (ghostEl.parentElement !== ghostContainerEl) {
-          ghostContainerEl.append(ghostEl);
+        if (draggingGhostEl.parentElement !== ghostContainerEl) {
+          ghostContainerEl.append(draggingGhostEl);
+        }
+
+        if (this.#insertGhostEl.parentElement !== ghostContainerEl) {
+          ghostContainerEl.append(this.#insertGhostEl);
         }
 
         const { localX, localY } = toLocalPoint(
@@ -236,16 +265,32 @@ export class DragDelegate {
           ghostContainerEl,
         );
 
-        const x1 = localX - ghostInfo.offsetLeft;
-        const y1 = localY - ghostInfo.offsetTop;
-        this.#dragTo(x1, y1);
+        if (this.#moveMode === "move") {
+          const x1 = localX - draggingGhostInfo.offsetLeft;
+          const y1 = localY - draggingGhostInfo.offsetTop;
+          this.#dragTo(x1, y1);
+        } else if (this.#moveMode === "insert") {
+          const x1 = localX - this.#insertGhostInfo.offsetLeft;
+          const y1 = localY - this.#insertGhostInfo.offsetTop;
+          this.#insertTo(x1, y1);
+        }
+
+        if (this.#moveMode === "move") {
+          this.#draggingGhostEl.hidden = false;
+          this.#insertGhostEl.hidden = true;
+        } else {
+          this.#draggingGhostEl.hidden = true;
+          this.#insertGhostEl.hidden = false;
+        }
+
+        console.log(this.#insertGhostEl);
       } else if (mode == "dragging-start") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
-        const x1 = localX - ghostInfo.offsetLeft;
+        const x1 = localX - draggingGhostInfo.offsetLeft;
         this.#dragStartTo(x1);
       } else if (mode == "dragging-end") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
-        const x2 = localX + ghostInfo.offsetRight;
+        const x2 = localX + draggingGhostInfo.offsetRight;
         this.#dragEndTo(x2);
       }
     }
@@ -282,16 +327,20 @@ export class DragDelegate {
   };
 
   #endDragging() {
-    this.#ghostEl?.remove();
+    this.#draggingGhostEl?.remove();
+    this.#insertGhostEl?.remove();
 
     this.#pointerId = null;
     this.#initClientX = null;
     this.#initClientY = null;
     this.#mode = null;
+    this.#moveMode = null;
 
     this.#draggingEl = null;
-    this.#ghostEl = null;
-    this.#ghostInfo = null;
+    this.#draggingGhostEl = null;
+    this.#draggingGhostInfo = null;
+    this.#insertGhostEl = null;
+    this.#insertGhostInfo = null;
     this.#targetEl = null;
 
     this.#lastClientX = null;
@@ -306,22 +355,22 @@ export class DragDelegate {
     }
 
     const draggingEl = this.#draggingEl;
-    const ghostEl = draggingEl.cloneNode(true);
+    const draggingGhostEl = draggingEl.cloneNode(true);
 
     if (this.#mode === "dragging-start") {
-      ghostEl.classList.add("is-dragging-start");
+      draggingGhostEl.classList.add("is-dragging-start");
     } else if (this.#mode === "dragging-end") {
-      ghostEl.classList.add("is-dragging-end");
+      draggingGhostEl.classList.add("is-dragging-end");
     }
 
-    ghostEl.style.pointerEvents = "none";
-    ghostEl.classList.add("is-drag-ghost");
+    draggingGhostEl.style.pointerEvents = "none";
+    draggingGhostEl.classList.add("is-drag-ghost");
 
-    ghostEl.style.position = "absolute";
-    ghostEl.style.visibility = "hidden";
+    draggingGhostEl.style.position = "absolute";
+    draggingGhostEl.style.visibility = "hidden";
 
     const ghostContainerEl = this.#targetEl ?? document.body;
-    ghostContainerEl.appendChild(ghostEl);
+    ghostContainerEl.appendChild(draggingGhostEl);
 
     const initClientX = this.#initClientX;
     const initClientY = this.#initClientY;
@@ -343,7 +392,7 @@ export class DragDelegate {
     const ratioX = localPointInDragging.bounds.left / draggingRect.width;
     const ratioY = localPointInDragging.bounds.top / draggingRect.height;
 
-    const ghostRect = ghostEl.getBoundingClientRect();
+    const ghostRect = draggingGhostEl.getBoundingClientRect();
     const offsetLeft = ghostRect.width * ratioX;
     const offsetTop = ghostRect.height * ratioY;
 
@@ -354,12 +403,12 @@ export class DragDelegate {
     const x2 = x1 + width;
     const y2 = y1 + height;
 
-    ghostEl.style.left = `${x1}px`;
-    ghostEl.style.top = `${y1}px`;
-    ghostEl.style.visibility = "";
+    draggingGhostEl.style.left = `${x1}px`;
+    draggingGhostEl.style.top = `${y1}px`;
+    draggingGhostEl.style.visibility = "";
 
-    const { bounds } = toLocalPoint(initClientX, initClientY, ghostEl);
-    this.#ghostInfo = {
+    const { bounds } = toLocalPoint(initClientX, initClientY, draggingGhostEl);
+    this.#draggingGhostInfo = {
       width,
       height,
       x1,
@@ -372,63 +421,130 @@ export class DragDelegate {
       offsetBottom: bounds.bottom,
     };
 
-    this.#ghostEl = ghostEl;
+    this.#draggingGhostEl = draggingGhostEl;
+  }
+
+  #createInsertGhost() {
+    const insertGhostEl = document.createElement("div");
+    insertGhostEl.classList.add("is-insert-ghost");
+    insertGhostEl.style.position = "absolute";
+    insertGhostEl.style.pointerEvents = "none";
+    insertGhostEl.hidden = true;
+
+    const ghostContainerEl = this.#targetEl ?? document.body;
+    ghostContainerEl.appendChild(insertGhostEl);
+
+    const initClientX = this.#initClientX;
+    const initClientY = this.#initClientY;
+
+    const { localX, localY } = toLocalPoint(
+      initClientX,
+      initClientY,
+      ghostContainerEl,
+    );
+
+    const draggingEl = this.#draggingEl;
+    const draggingRect = draggingEl.getBoundingClientRect();
+    const localPointInDragging = toLocalPoint(
+      initClientX,
+      initClientY,
+      draggingEl,
+      draggingRect,
+    );
+
+    const offsetTop = localPointInDragging.bounds.top;
+    const offsetBottom = localPointInDragging.bounds.bottom;
+
+    this.#insertGhostInfo = {
+      width: 1,
+      height: draggingRect.height,
+      x1: localX,
+      y1: localY - offsetTop,
+      x2: localX + 1,
+      y2: localY + offsetBottom,
+      offsetLeft: 0,
+      offsetTop: offsetTop,
+      offsetRight: 0,
+      offsetBottom: offsetBottom,
+    };
+
+    this.#insertGhostEl = insertGhostEl;
+  }
+
+  insertTo(x1, y1) {
+    if (this.#insertGhostEl == null) {
+      return;
+    }
+
+    this.#insertTo(x1, y1);
+    this.#insertGhostEl.style.left = `${this.#insertGhostInfo.x1}px`;
+    this.#insertGhostEl.style.top = `${this.#insertGhostInfo.y1}px`;
+  }
+
+  #insertTo(x1, y1) {
+    this.#insertGhostInfo = {
+      ...this.#insertGhostInfo,
+      x1,
+      y1,
+      x2: x1 + 1,
+      y2: y1 + this.#insertGhostInfo.height,
+    };
   }
 
   dragTo(x1, y1) {
-    if (this.#ghostEl == null) {
+    if (this.#draggingGhostEl == null) {
       return;
     }
 
     this.#dragTo(x1, y1);
-    this.#ghostEl.style.left = `${this.#ghostInfo.x1}px`;
-    this.#ghostEl.style.top = `${this.#ghostInfo.y1}px`;
+    this.#draggingGhostEl.style.left = `${this.#draggingGhostInfo.x1}px`;
+    this.#draggingGhostEl.style.top = `${this.#draggingGhostInfo.y1}px`;
   }
 
   #dragTo(x1, y1) {
-    this.#ghostInfo = {
-      ...this.#ghostInfo,
+    this.#draggingGhostInfo = {
+      ...this.#draggingGhostInfo,
       x1,
       y1,
-      x2: x1 + this.#ghostInfo.width,
-      y2: y1 + this.#ghostInfo.height,
+      x2: x1 + this.#draggingGhostInfo.width,
+      y2: y1 + this.#draggingGhostInfo.height,
     };
   }
 
   dragStartTo(x1) {
-    if (this.#ghostEl == null) {
+    if (this.#draggingGhostEl == null) {
       return;
     }
 
     this.#dragStartTo(x1);
-    this.#ghostEl.style.left = `${this.#ghostInfo.x1}px`;
-    this.#ghostEl.style.width = `${this.#ghostInfo.width}px`;
+    this.#draggingGhostEl.style.left = `${this.#draggingGhostInfo.x1}px`;
+    this.#draggingGhostEl.style.width = `${this.#draggingGhostInfo.width}px`;
   }
 
   #dragStartTo(x1) {
-    const deltaX = x1 - this.#ghostInfo.x1;
-    this.#ghostInfo = {
-      ...this.#ghostInfo,
+    const deltaX = x1 - this.#draggingGhostInfo.x1;
+    this.#draggingGhostInfo = {
+      ...this.#draggingGhostInfo,
       x1,
-      width: this.#ghostInfo.width - deltaX,
+      width: this.#draggingGhostInfo.width - deltaX,
     };
   }
 
   dragEndTo(x2) {
-    if (this.#ghostEl == null) {
+    if (this.#draggingGhostEl == null) {
       return;
     }
 
     this.#dragEndTo(x2);
-    this.#ghostEl.style.width = `${this.#ghostInfo.width}px`;
+    this.#draggingGhostEl.style.width = `${this.#draggingGhostInfo.width}px`;
   }
 
   #dragEndTo(x2) {
-    const deltaX = x2 - this.#ghostInfo.x2;
-    this.#ghostInfo = {
-      ...this.#ghostInfo,
+    const deltaX = x2 - this.#draggingGhostInfo.x2;
+    this.#draggingGhostInfo = {
+      ...this.#draggingGhostInfo,
       x2,
-      width: this.#ghostInfo.width + deltaX,
+      width: this.#draggingGhostInfo.width + deltaX,
     };
   }
 

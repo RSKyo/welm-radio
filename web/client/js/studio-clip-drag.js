@@ -46,47 +46,56 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       return;
     }
 
-    const ghostInfo = clipDrag.ghostInfo;
+    const draggingGhostInfo = clipDrag.draggingGhostInfo;
     const mode = clipDrag.mode;
 
     if (mode === "move") {
-      let x1 = ghostInfo.x1;
-      let y1 = ghostInfo.y1;
+      const moveMode = clipDrag.moveMode;
+      if (moveMode === "move") {
+        let x1 = draggingGhostInfo.x1;
+        let y1 = draggingGhostInfo.y1;
 
-      if (clipDrag.hasTarget) {
-        const trackId = clipDrag.targetEl.dataset.trackId;
-        const clipGroupElm = trackListElm.getClipGroup(trackId);
+        if (clipDrag.hasTarget) {
+          const trackId = clipDrag.targetEl.dataset.trackId;
+          const clipGroupElm = trackListElm.getClipGroup(trackId);
 
-        if (!event.shiftKey) {
-          const snapPoints = clipDrag.getState("snapPoints");
+          if (!event.shiftKey) {
+            const snapPoints = clipDrag.getState("snapPoints");
 
-          if (clipDrag.direction === "left") {
-            const snap = trySnapTime(
-              clipGroupElm.resolveTime(ghostInfo.x1),
-              snapPoints,
-              clipGroupElm.snapThreshold,
-            );
-            x1 = snap.time * clipGroupElm.pixelsPerSecond;
-          } else if (clipDrag.direction === "right") {
-            const snap = trySnapTime(
-              clipGroupElm.resolveTime(ghostInfo.x2),
-              snapPoints,
-              clipGroupElm.snapThreshold,
-            );
-            const x2 = snap.time * clipGroupElm.pixelsPerSecond;
-            x1 = x1 + (x2 - ghostInfo.x2);
+            if (clipDrag.direction === "left") {
+              const snap = trySnapTime(
+                clipGroupElm.resolveTime(draggingGhostInfo.x1),
+                snapPoints,
+                clipGroupElm.snapThreshold,
+              );
+              x1 = snap.time * clipGroupElm.pixelsPerSecond;
+            } else if (clipDrag.direction === "right") {
+              const snap = trySnapTime(
+                clipGroupElm.resolveTime(draggingGhostInfo.x2),
+                snapPoints,
+                clipGroupElm.snapThreshold,
+              );
+              const x2 = snap.time * clipGroupElm.pixelsPerSecond;
+              x1 = x1 + (x2 - draggingGhostInfo.x2);
+            }
           }
+
+          const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
+          y1 = top;
+
+          const clipStart = clipGroupElm.resolveTime(x1);
+          clipDrag.setState("clipStart", clipStart);
+          clipDrag.setState("rowIndex", rowIndex);
         }
 
-        const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
-        y1 = top;
-
-        const clipStart = clipGroupElm.resolveTime(x1);
-        clipDrag.setState("clipStart", clipStart);
-        clipDrag.setState("rowIndex", rowIndex);
+        clipDrag.dragTo(x1, y1);
       }
 
-      clipDrag.dragTo(x1, y1);
+      if (moveMode === "insert") {
+        let x1 = clipDrag.insertGhostInfo.x1;
+        let y1 = clipDrag.insertGhostInfo.y1;
+        clipDrag.insertTo(x1, y1);
+      }
 
       return;
     }
@@ -96,7 +105,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
-      let x1 = ghostInfo.x1;
+      let x1 = draggingGhostInfo.x1;
       // snap time if shift key is not pressed
       if (!event.shiftKey) {
         const snap = trySnapTime(
@@ -126,7 +135,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
-      let x2 = ghostInfo.x2;
+      let x2 = draggingGhostInfo.x2;
       // snap time if shift key is not pressed
       if (!event.shiftKey) {
         const snap = trySnapTime(
