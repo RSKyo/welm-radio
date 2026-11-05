@@ -1,7 +1,30 @@
+:root {
+  --ghost-height: 50px;
+}
+
+.is-drag-ghost {
+  position: absolute;
+  height: var(--ghost-height);
+
+  border-left-color: var(--color-clip-dragging-border);
+  border-right-color: var(--color-clip-dragging-border);
+
+  pointer-events: none;
+
+  z-index: 20;
+}
+
+.is-drag-ghost > * {
+  opacity: 0.45;
+}
+
+
+
 .is-insert-ghost {
+  
   position: absolute;
   width: 1px;
-  /* height: 100%; */
+  height: var(--ghost-height);
   pointer-events: none;
   background: red;
 

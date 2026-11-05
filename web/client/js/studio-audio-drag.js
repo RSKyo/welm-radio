@@ -38,33 +38,67 @@ export function setup({
       return;
     }
 
-    const draggingGhostInfo = audioDrag.draggingGhostInfo;
-    let x1 = draggingGhostInfo.x1;
-    let y1 = draggingGhostInfo.y1;
+    const moveMode = audioDrag.moveMode;
+    if (moveMode === "normal") {
+      const draggingGhostInfo = audioDrag.draggingGhostInfo;
+      let x1 = draggingGhostInfo.x1;
+      let y1 = draggingGhostInfo.y1;
 
-    if (audioDrag.hasTarget) {
-      const trackId = audioDrag.targetEl.dataset.trackId;
-      const clipGroupElm = trackListElm.getClipGroup(trackId);
+      if (audioDrag.hasTarget) {
+        const trackId = audioDrag.targetEl.dataset.trackId;
+        const clipGroupElm = trackListElm.getClipGroup(trackId);
 
-      if (!event.shiftKey) {
-        const snapPoints = audioDrag.getState("snapPoints");
-        const snap = trySnapTime(
-          clipGroupElm.resolveTime(draggingGhostInfo.x1),
-          snapPoints,
-          clipGroupElm.snapThreshold,
-        );
-        x1 = snap.time * clipGroupElm.pixelsPerSecond;
+        if (!event.shiftKey) {
+          const snapPoints = audioDrag.getState("snapPoints");
+          const snap = trySnapTime(
+            clipGroupElm.resolveTime(draggingGhostInfo.x1),
+            snapPoints,
+            clipGroupElm.snapThreshold,
+          );
+          x1 = snap.time * clipGroupElm.pixelsPerSecond;
+        }
+
+        const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
+        y1 = top;
+
+        const clipStart = clipGroupElm.resolveTime(x1);
+        audioDrag.setState("clipStart", clipStart);
+        audioDrag.setState("rowIndex", rowIndex);
       }
 
-      const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
-      y1 = top;
-
-      const clipStart = clipGroupElm.resolveTime(x1);
-      audioDrag.setState("clipStart", clipStart);
-      audioDrag.setState("rowIndex", rowIndex);
+      audioDrag.dragTo(x1, y1);
     }
 
-    audioDrag.dragTo(x1, y1);
+    if (moveMode === "insert") {
+      const insertGhostInfo = audioDrag.insertGhostInfo;
+      let x1 = insertGhostInfo.x1;
+      let y1 = insertGhostInfo.y1;
+
+      if (audioDrag.hasTarget) {
+        const trackId = audioDrag.targetEl.dataset.trackId;
+        const clipGroupElm = trackListElm.getClipGroup(trackId);
+
+        if (!event.shiftKey) {
+          const snapPoints = audioDrag.getState("snapPoints");
+          const snap = trySnapTime(
+            clipGroupElm.resolveTime(x1),
+            snapPoints,
+            clipGroupElm.snapThreshold,
+          );
+          x1 = snap.time * clipGroupElm.pixelsPerSecond;
+        }
+
+        const localY = insertGhostInfo.localY;
+        const { rowIndex, clipTop } = clipGroupElm.resolveRowPosition(localY);
+        y1 = clipTop;
+
+        const clipStart = clipGroupElm.resolveTime(x1);
+        audioDrag.setState("clipStart", clipStart);
+        audioDrag.setState("rowIndex", rowIndex);
+      }
+
+      audioDrag.insertTo(x1, y1);
+    }
   }
 
   /** pointer up handler */
@@ -89,12 +123,31 @@ export function setup({
     const clipStart = audioDrag.getState("clipStart");
     const rowIndex = audioDrag.getState("rowIndex");
 
-    const item = createClipItemFromAudio(audio);
-    item.clipStart = clipStart;
-    item.rowIndex = rowIndex;
+    const clipItem = createClipItemFromAudio(audio);
+    clipItem.clipStart = clipStart;
+    clipItem.rowIndex = rowIndex;
 
-    clipGroupElm.addItem(item);
-    clipGroupElm.selectedClipId = item.clipId;
+    const moveMode = audioDrag.moveMode;
+
+    if (moveMode === "normal") {
+      clipGroupElm.addItem(clipItem);
+      clipGroupElm.selectedClipId = clipItem.clipId;
+      return;
+    }
+
+    if (moveMode === "insert") {
+      if (!clipGroupElm.isInsertPointAvailable(clipStart, rowIndex)) {
+        return;
+      }
+
+      clipGroupElm.shiftClipsForInsert(clipItem);
+
+      clipGroupElm.addItem(clipItem, {
+        resolveRow: false,
+      });
+      clipGroupElm.selectedClipId = clipItem.clipId;
+      return;
+    }
   }
 
   /** methods */

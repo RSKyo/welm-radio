@@ -276,7 +276,12 @@ export class ClipGroup extends ItemsElm {
       return "clip-not-selected";
     }
 
-    this.removeItem(clipElm.clipId);
+    const clipId = clipElm.clipId;
+    const clipItem = this.getItemByValue(clipId);
+
+    this.removeItem(clipId);
+
+    this.shiftClipsForRemove(clipItem);
 
     return "success";
   }
@@ -306,7 +311,7 @@ export class ClipGroup extends ItemsElm {
     return true;
   }
 
-  #isRowAvailable(clipItem, rowIndex) {
+  isRowAvailable(clipItem, rowIndex) {
     const clipStart = clipItem.clipStart;
     const clipEnd = clipStart + (clipItem.trimEnd - clipItem.trimStart);
 
@@ -318,21 +323,35 @@ export class ClipGroup extends ItemsElm {
     );
   }
 
-  #findAvailableRowIndex(clipItem) {
+  findAvailableRowIndex(clipItem) {
     const myRowIndex = clipItem.rowIndex ?? 0;
-    if (this.#isRowAvailable(clipItem, myRowIndex)) {
+    if (this.isRowAvailable(clipItem, myRowIndex)) {
       return myRowIndex;
     }
 
     let rowIndex = 0;
     while (
       rowIndex === myRowIndex ||
-      !this.#isRowAvailable(clipItem, rowIndex)
+      !this.isRowAvailable(clipItem, rowIndex)
     ) {
       rowIndex += 1;
     }
 
     return rowIndex;
+  }
+
+  isInsertPointAvailable(clipStart, rowIndex) {
+    for (const clipElm of this.#clipMap.values()) {
+      if (clipElm.rowIndex !== rowIndex) {
+        continue;
+      }
+
+      if (clipStart > clipElm.clipStart && clipStart < clipElm.clipEnd) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   resolveTime(localX) {
@@ -589,7 +608,7 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
-  createItemElement(item) {
+  createItemElement(item,{ resolveRow = true } = {}) {
     const clipId = item[this.valueField];
     const clipEl = clipTemplate.cloneNode(true);
     clipEl.dataset.value = clipId;
@@ -603,10 +622,11 @@ export class ClipGroup extends ItemsElm {
       audioCache: this.#audioCache,
     };
 
-    const clipRowIndex = this.#findAvailableRowIndex(clipOptions);
-    item.rowIndex = clipRowIndex;
-
-    clipOptions.rowIndex = clipRowIndex;
+    if (resolveRow) {
+      const clipRowIndex = this.findAvailableRowIndex(clipOptions);
+      item.rowIndex = clipRowIndex;
+      clipOptions.rowIndex = clipRowIndex;
+    }
 
     const clipElm = new Clip(clipEl, clipOptions);
 
@@ -676,7 +696,7 @@ export class ClipGroup extends ItemsElm {
     }
 
     if (resolveRow) {
-      const clipRowIndex = this.#findAvailableRowIndex(updatedItem);
+      const clipRowIndex = this.findAvailableRowIndex(updatedItem);
       updatedItem.rowIndex = clipRowIndex;
     }
 

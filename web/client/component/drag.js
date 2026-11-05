@@ -287,7 +287,6 @@ export class DragDelegate {
           this.#draggingGhostEl.hidden = true;
           this.#insertGhostEl.hidden = false;
         }
-
       } else if (mode == "dragging-start") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
         const x1 = localX - draggingGhostInfo.offsetLeft;
@@ -367,10 +366,8 @@ export class DragDelegate {
       draggingGhostEl.classList.add("is-dragging-end");
     }
 
-    draggingGhostEl.style.pointerEvents = "none";
     draggingGhostEl.classList.add("is-drag-ghost");
 
-    draggingGhostEl.style.position = "absolute";
     draggingGhostEl.style.visibility = "hidden";
 
     const ghostContainerEl = this.#targetEl ?? document.body;
@@ -436,9 +433,6 @@ export class DragDelegate {
 
     const insertGhostEl = document.createElement("div");
     insertGhostEl.classList.add("is-insert-ghost");
-    insertGhostEl.style.position = "absolute";
-    insertGhostEl.style.height = `${draggingRect.height}px`;
-    insertGhostEl.style.pointerEvents = "none";
     insertGhostEl.hidden = true;
 
     const ghostContainerEl = this.#targetEl ?? document.body;

@@ -151,20 +151,6 @@
   border-color: var(--color-danger-text);
 }
 
-.audio.is-drag-ghost {
-  height: var(--clip-height);
-
-  border-left-color: var(--color-clip-dragging-border);
-  border-right-color: var(--color-clip-dragging-border);
-
-  pointer-events: none;
-
-  z-index: 20;
-}
-
-.audio.is-drag-ghost > * {
-  opacity: 0.45;
-}
 
 .audio.is-drag-ghost .audio-content {
   padding-right: 4px;

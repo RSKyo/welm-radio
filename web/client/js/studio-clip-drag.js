@@ -46,12 +46,11 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       return;
     }
 
-    const draggingGhostInfo = clipDrag.draggingGhostInfo;
     const mode = clipDrag.mode;
-
     if (mode === "move") {
       const moveMode = clipDrag.moveMode;
       if (moveMode === "normal") {
+        const draggingGhostInfo = clipDrag.draggingGhostInfo;
         let x1 = draggingGhostInfo.x1;
         let y1 = draggingGhostInfo.y1;
 
@@ -92,8 +91,9 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       }
 
       if (moveMode === "insert") {
-        let x1 = clipDrag.insertGhostInfo.x1;
-        let y1 = clipDrag.insertGhostInfo.y1;
+        const insertGhostInfo = clipDrag.insertGhostInfo;
+        let x1 = insertGhostInfo.x1;
+        let y1 = insertGhostInfo.y1;
 
         if (clipDrag.hasTarget) {
           const trackId = clipDrag.targetEl.dataset.trackId;
@@ -109,7 +109,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
             x1 = snap.time * clipGroupElm.pixelsPerSecond;
           }
 
-          const localY = clipDrag.insertGhostInfo.localY;
+          const localY = insertGhostInfo.localY;
           const { rowIndex, clipTop } = clipGroupElm.resolveRowPosition(localY);
           y1 = clipTop;
 
@@ -129,6 +129,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
+      const draggingGhostInfo = clipDrag.draggingGhostInfo;
       let x1 = draggingGhostInfo.x1;
       // snap time if shift key is not pressed
       if (!event.shiftKey) {
@@ -159,6 +160,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
+      const draggingGhostInfo = clipDrag.draggingGhostInfo;
       let x2 = draggingGhostInfo.x2;
       // snap time if shift key is not pressed
       if (!event.shiftKey) {
@@ -230,24 +232,38 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       }
 
       if (moveMode === "insert") {
-        clipItem.clipStart = clipDrag.getState("clipStart");
-        clipItem.rowIndex = clipDrag.getState("rowIndex");
+        const clipStart = clipDrag.getState("clipStart");
+        const rowIndex = clipDrag.getState("rowIndex");
 
         const oldClipItem = { ...clipItem };
 
         const newClipItem = {
           ...clipItem,
-          clipStart: clipDrag.getState("clipStart"),
-          rowIndex: clipDrag.getState("rowIndex"),
+          clipStart: clipStart,
+          rowIndex: rowIndex,
         };
+
+        if (!targetClipGroupElm.isInsertPointAvailable(clipStart, rowIndex)) {
+          return;
+        }
 
         clipDrag.draggingEl.style.visibility = "hidden";
 
-        originClipGroupElm.shiftClipsForRemove(oldClipItem);
+        if (
+          targetTrackId === originTrackId &&
+          rowIndex === oldClipItem.rowIndex &&
+          clipStart > oldClipItem.clipStart
+        ) {
+          originClipGroupElm.shiftClipsForRemove(oldClipItem);
+          const duration = oldClipItem.trimEnd - oldClipItem.trimStart;
+          newClipItem.clipStart -= duration;
+          targetClipGroupElm.shiftClipsForInsert(newClipItem);
+        } else {
+          originClipGroupElm.shiftClipsForRemove(oldClipItem);
+          targetClipGroupElm.shiftClipsForInsert(newClipItem);
+        }
 
-        targetClipGroupElm.shiftClipsForInsert(newClipItem);
-
-        if (originTrackId === targetTrackId) {
+        if (targetTrackId === originTrackId) {
           targetClipGroupElm.updateItem(newClipItem, {
             resolveRow: false,
           });
