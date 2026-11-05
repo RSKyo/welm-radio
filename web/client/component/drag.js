@@ -243,7 +243,7 @@ export class DragDelegate {
       const mode = this.#mode;
 
       if (mode == "move") {
-        this.#moveMode = event.metaKey || event.ctrlKey ? "insert" : "move";
+        this.#moveMode = event.metaKey || event.ctrlKey ? "insert" : "normal";
 
         const element = document.elementFromPoint(clientX, clientY);
         const targetEl = element?.closest(this.#targetSelector) ?? null;
@@ -265,7 +265,12 @@ export class DragDelegate {
           ghostContainerEl,
         );
 
-        if (this.#moveMode === "move") {
+        this.#draggingGhostInfo.localX = localX;
+        this.#draggingGhostInfo.localY = localY;
+        this.#insertGhostInfo.localX = localX;
+        this.#insertGhostInfo.localY = localY;
+
+        if (this.#moveMode === "normal") {
           const x1 = localX - draggingGhostInfo.offsetLeft;
           const y1 = localY - draggingGhostInfo.offsetTop;
           this.#dragTo(x1, y1);
@@ -275,7 +280,7 @@ export class DragDelegate {
           this.#insertTo(x1, y1);
         }
 
-        if (this.#moveMode === "move") {
+        if (this.#moveMode === "normal") {
           this.#draggingGhostEl.hidden = false;
           this.#insertGhostEl.hidden = true;
         } else {
@@ -283,7 +288,6 @@ export class DragDelegate {
           this.#insertGhostEl.hidden = false;
         }
 
-        console.log(this.#insertGhostEl);
       } else if (mode == "dragging-start") {
         const { localX } = toLocalPoint(clientX, clientY, this.#targetEl);
         const x1 = localX - draggingGhostInfo.offsetLeft;
@@ -409,6 +413,8 @@ export class DragDelegate {
 
     const { bounds } = toLocalPoint(initClientX, initClientY, draggingGhostEl);
     this.#draggingGhostInfo = {
+      localX,
+      localY,
       width,
       height,
       x1,
@@ -425,9 +431,13 @@ export class DragDelegate {
   }
 
   #createInsertGhost() {
+    const draggingEl = this.#draggingEl;
+    const draggingRect = draggingEl.getBoundingClientRect();
+
     const insertGhostEl = document.createElement("div");
     insertGhostEl.classList.add("is-insert-ghost");
     insertGhostEl.style.position = "absolute";
+    insertGhostEl.style.height = `${draggingRect.height}px`;
     insertGhostEl.style.pointerEvents = "none";
     insertGhostEl.hidden = true;
 
@@ -443,8 +453,6 @@ export class DragDelegate {
       ghostContainerEl,
     );
 
-    const draggingEl = this.#draggingEl;
-    const draggingRect = draggingEl.getBoundingClientRect();
     const localPointInDragging = toLocalPoint(
       initClientX,
       initClientY,
@@ -456,6 +464,8 @@ export class DragDelegate {
     const offsetBottom = localPointInDragging.bounds.bottom;
 
     this.#insertGhostInfo = {
+      localX,
+      localY,
       width: 1,
       height: draggingRect.height,
       x1: localX,

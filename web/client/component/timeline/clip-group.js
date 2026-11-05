@@ -262,7 +262,7 @@ export class ClipGroup extends ItemsElm {
 
     originalClipItem.trimEnd = trimSplit;
 
-    this.updateItem(originalClipItem, "update item for splitting clip");
+    this.updateItem(originalClipItem);
     this.addItem(newClip);
 
     this.selectedClipId = newClip.clipId;
@@ -406,6 +406,68 @@ export class ClipGroup extends ItemsElm {
     }
 
     throw new Error(`Unknown trim edge: ${edge}`);
+  }
+
+  shiftClipsForRemove(clipItem) {
+    assertPlainObject(clipItem, "clipItem");
+
+    const clipId = clipItem.clipId;
+    const clipStart = clipItem.clipStart;
+    const rowIndex = clipItem.rowIndex;
+    const duration = clipItem.trimEnd - clipItem.trimStart;
+
+    const affectedItems = this.items
+      .filter((otherItem) => {
+        if (otherItem.clipId === clipId) {
+          return false;
+        }
+
+        if (otherItem.rowIndex !== rowIndex) {
+          return false;
+        }
+
+        return otherItem.clipStart > clipStart;
+      })
+      .sort((a, b) => a.clipStart - b.clipStart);
+
+    for (const otherItem of affectedItems) {
+      otherItem.clipStart -= duration;
+
+      this.updateItem(otherItem, {
+        resolveRow: false,
+      });
+    }
+  }
+
+  shiftClipsForInsert(clipItem) {
+    assertPlainObject(clipItem, "clipItem");
+
+    const clipId = clipItem.clipId;
+    const clipStart = clipItem.clipStart;
+    const rowIndex = clipItem.rowIndex;
+    const duration = clipItem.trimEnd - clipItem.trimStart;
+
+    const affectedItems = this.items
+      .filter((otherItem) => {
+        if (otherItem.clipId === clipId) {
+          return false;
+        }
+
+        if (otherItem.rowIndex !== rowIndex) {
+          return false;
+        }
+
+        return otherItem.clipStart >= clipStart;
+      })
+      .sort((a, b) => b.clipStart - a.clipStart);
+
+    for (const otherItem of affectedItems) {
+      otherItem.clipStart += duration;
+
+      this.updateItem(otherItem, {
+        resolveRow: false,
+      });
+    }
   }
 
   normalizeClipEdges(clipItem, mode) {
@@ -605,7 +667,7 @@ export class ClipGroup extends ItemsElm {
     this.#updateClipGroupHeight();
   }
 
-  renderUpdatedItem(updatedItem, assertionSubject = "item") {
+  renderUpdatedItem(updatedItem, { resolveRow = true } = {}) {
     const value = updatedItem[this.valueField];
     const clipElm = this.#clipMap.get(value);
 
@@ -613,8 +675,10 @@ export class ClipGroup extends ItemsElm {
       return;
     }
 
-    const clipRowIndex = this.#findAvailableRowIndex(updatedItem);
-    updatedItem.rowIndex = clipRowIndex;
+    if (resolveRow) {
+      const clipRowIndex = this.#findAvailableRowIndex(updatedItem);
+      updatedItem.rowIndex = clipRowIndex;
+    }
 
     clipElm.update(updatedItem);
   }

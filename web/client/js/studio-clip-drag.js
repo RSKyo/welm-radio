@@ -51,7 +51,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
     if (mode === "move") {
       const moveMode = clipDrag.moveMode;
-      if (moveMode === "move") {
+      if (moveMode === "normal") {
         let x1 = draggingGhostInfo.x1;
         let y1 = draggingGhostInfo.y1;
 
@@ -94,6 +94,30 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       if (moveMode === "insert") {
         let x1 = clipDrag.insertGhostInfo.x1;
         let y1 = clipDrag.insertGhostInfo.y1;
+
+        if (clipDrag.hasTarget) {
+          const trackId = clipDrag.targetEl.dataset.trackId;
+          const clipGroupElm = trackListElm.getClipGroup(trackId);
+
+          if (!event.shiftKey) {
+            const snapPoints = clipDrag.getState("snapPoints");
+            const snap = trySnapTime(
+              clipGroupElm.resolveTime(x1),
+              snapPoints,
+              clipGroupElm.snapThreshold,
+            );
+            x1 = snap.time * clipGroupElm.pixelsPerSecond;
+          }
+
+          const localY = clipDrag.insertGhostInfo.localY;
+          const { rowIndex, clipTop } = clipGroupElm.resolveRowPosition(localY);
+          y1 = clipTop;
+
+          const clipStart = clipGroupElm.resolveTime(x1);
+          clipDrag.setState("clipStart", clipStart);
+          clipDrag.setState("rowIndex", rowIndex);
+        }
+
         clipDrag.insertTo(x1, y1);
       }
 
@@ -189,17 +213,55 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
     const mode = clipDrag.mode;
     if (mode === "move") {
-      clipItem.clipStart = clipDrag.getState("clipStart");
-      clipItem.rowIndex = clipDrag.getState("rowIndex");
+      const moveMode = clipDrag.moveMode;
+      if (moveMode === "normal") {
+        clipItem.clipStart = clipDrag.getState("clipStart");
+        clipItem.rowIndex = clipDrag.getState("rowIndex");
 
-      originClipGroupElm.normalizeClipEdges(clipItem, mode);
+        originClipGroupElm.normalizeClipEdges(clipItem, mode);
 
-      if (originTrackId === targetTrackId) {
-        originClipGroupElm.updateItem(clipItem);
-      } else {
-        originClipGroupElm.removeItem(clipId);
-        targetClipGroupElm.addItem(clipItem);
-        targetClipGroupElm.selectedClipId = clipId;
+        if (originTrackId === targetTrackId) {
+          originClipGroupElm.updateItem(clipItem);
+        } else {
+          originClipGroupElm.removeItem(clipId);
+          targetClipGroupElm.addItem(clipItem);
+          targetClipGroupElm.selectedClipId = clipId;
+        }
+      }
+
+      if (moveMode === "insert") {
+        clipItem.clipStart = clipDrag.getState("clipStart");
+        clipItem.rowIndex = clipDrag.getState("rowIndex");
+
+        const oldClipItem = { ...clipItem };
+
+        const newClipItem = {
+          ...clipItem,
+          clipStart: clipDrag.getState("clipStart"),
+          rowIndex: clipDrag.getState("rowIndex"),
+        };
+
+        clipDrag.draggingEl.style.visibility = "hidden";
+
+        originClipGroupElm.shiftClipsForRemove(oldClipItem);
+
+        targetClipGroupElm.shiftClipsForInsert(newClipItem);
+
+        if (originTrackId === targetTrackId) {
+          targetClipGroupElm.updateItem(newClipItem, {
+            resolveRow: false,
+          });
+
+          clipDrag.draggingEl.style.visibility = "";
+        } else {
+          originClipGroupElm.removeItem(clipId);
+
+          targetClipGroupElm.addItem(newClipItem, {
+            resolveRow: false,
+          });
+
+          targetClipGroupElm.selectedClipId = clipId;
+        }
       }
     }
 
