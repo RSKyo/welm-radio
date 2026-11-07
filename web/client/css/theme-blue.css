@@ -18,44 +18,45 @@
 
   /* Surface background colors */
 
-  /* 页面最底层背景 */
-  --color-page: #f6f7f8;
+/* 页面最底层背景 */
+--color-page: #f2f4f6;
 
-  /* 普通内容区域，如侧边栏、面板 */
-  --color-surface: #f1f3f4;
+/* 普通内容区域，如侧边栏、面板 */
+--color-surface: #eceff2;
 
-  /* 视觉上浮起的区域，如卡片、悬浮面板 */
-  --color-surface-raised: #ffffff;
+/* 视觉上浮起的区域，如卡片、悬浮面板 */
+--color-surface-raised: #f9fafb;
 
-  /* 视觉上凹下的区域，如输入框、内嵌列表 */
-  --color-surface-sunken: #e9ecef;
+/* 视觉上凹下的区域，如输入框、内嵌列表 */
+--color-surface-sunken: #e2e6ea;
 
-  /* 覆盖在其他内容之上的浮层，如下拉菜单、弹窗 */
-  --color-surface-overlay: #ffffff;
+/* 覆盖在其他内容之上的浮层，如下拉菜单、弹窗 */
+--color-surface-overlay: #fcfdfe;
 
-  /* Text colors */
 
-  /* 主要文字，如标题、正文、列表内容 */
-  --color-text: #2f3439;
+/* Text colors */
 
-  /* 次要文字，如副标题、时间、文件大小 */
-  --color-text-secondary: #5f666d;
+/* 主要文字，如标题、正文、列表内容 */
+--color-text: #27303a;
 
-  /* 弱化文字，如提示、辅助说明、空状态文本 */
-  --color-text-muted: #8b9299;
+/* 次要文字，如副标题、时间、文件大小 */
+--color-text-secondary: #56616c;
 
-  /* 禁用状态文字，如不可用按钮、禁用选项 */
-  --color-text-disabled: #b7bcc1;
+/* 弱化文字，如提示、辅助说明、空状态文本 */
+--color-text-muted: #858f9a;
 
-  /* 反色文字，用于深色或强调色背景 */
-  --color-text-inverse: #ffffff;
+/* 禁用状态文字，如不可用按钮、禁用选项 */
+--color-text-disabled: #adb5bd;
 
-  /* 旧变量兼容，后续删除 */
-  --color-muted: var(--color-text-muted);
+/* 反色文字，用于深色或强调色背景 */
+--color-text-inverse: #ffffff;
 
-  /* 面板刻度、补零、单位、固定标识 */
-  --color-text-marking: #b8b8b8;
-  --color-text-marking-shadow: rgba(255, 255, 255, 0.55);
+/* 旧变量兼容，后续删除 */
+--color-muted: var(--color-text-muted);
+
+/* 面板刻度、补零、单位、固定标识 */
+--color-text-marking: #a3abb4;
+--color-text-marking-shadow: rgba(255, 255, 255, 0.7);
 
   /* Semantic colors */
 
@@ -176,18 +177,144 @@
   /* Custom colors */
 
   --color-slider-pan: #77428d;
-  --color-clip: #dce8f2;
-  --color-clip-hover: #d2e2ee;
-  --color-clip-selected: #bfd7e9;
-  --color-clip-selected-hover: #b3cee3;
-  --color-clip-border: #dce8f2;
-  --color-clip-dragging-border: #3f75a2;
+ 
+/* Voice — Clear Sky */
+/* 人声：清晰、交流、信息 */
+/* --color-clip: #A6D8EE;
+--color-clip-hover: #9ACFE8;
+--color-clip-selected: #88C2DE;
+--color-clip-selected-hover: #7DB8D5;
+--color-clip-border: #68A9C7;
+--color-clip-dragging-border: #66818F;
+--color-clip-title: #385A69; */
 
---color-track: #f0f0f0;
---color-track-hover: #eaeaea;
---color-track-selected: #fafafa;
---color-track-selected-hover: #f6f6f6;
---color-track-border: #e2e2e2;
+/* Voice — Track */
+/* --color-track: #e7f0f4;
+--color-track-hover: #e0e9ee;
+--color-track-selected: #eef5f8;
+--color-track-selected-hover: #e8f0f4;
+--color-track-border: #ccdbe2; */
+
+/* Music — Modern Lavender */
+/* 音乐：创作、情绪、艺术 */
+/* --color-clip: #D8C3F3;
+--color-clip-hover: #D1B8EE;
+--color-clip-selected: #C4A6E4;
+--color-clip-selected-hover: #BA9ADC;
+--color-clip-border: #A98BD0;
+--color-clip-dragging-border: #81708F;
+--color-clip-title: #5A4A6A; */
+
+/* Music — Track */
+/* --color-track: #eee9f3;
+--color-track-hover: #e8e1ee;
+--color-track-selected: #f4f0f7;
+--color-track-selected-hover: #eee8f3;
+--color-track-border: #d8cde1; */
+
+/* Bed — Soft Mint */
+/* 背景垫乐：柔和、持续、陪衬 */
+/* --color-clip: #B5E5CA;
+--color-clip-hover: #A9DFC2;
+--color-clip-selected: #98D3B4;
+--color-clip-selected-hover: #8DC9AA;
+--color-clip-border: #79B99A;
+--color-clip-dragging-border: #6B897A;
+--color-clip-title: #405F51; */
+
+/* Bed — Track */
+/* --color-track: #e8f1ec;
+--color-track-hover: #e1ebe5;
+--color-track-selected: #eff6f2;
+--color-track-selected-hover: #e9f2ed;
+--color-track-border: #ceddd4; */
+
+/* Ambience — Air Cyan */
+/* 环境声：空气、空间、水、自然 */
+/* --color-clip: #B1E1DF;
+--color-clip-hover: #A6D9D7;
+--color-clip-selected: #94CCCA;
+--color-clip-selected-hover: #89C2C0;
+--color-clip-border: #73B3B1;
+--color-clip-dragging-border: #688482;
+--color-clip-title: #3E5D5C; */
+
+/* Ambience — Track */
+/* --color-track: #e5efef;
+--color-track-hover: #deeaeb;
+--color-track-selected: #edf5f5;
+--color-track-selected-hover: #e7f1f1;
+--color-track-border: #cadadb; */
+
+/* Effect — Modern Peach */
+/* 音效：瞬时、动作、能量 */
+/* --color-clip: #F6C7A3;
+--color-clip-hover: #F1BD96;
+--color-clip-selected: #E8AE84;
+--color-clip-selected-hover: #DFA376;
+--color-clip-border: #D29063;
+--color-clip-dragging-border: #8E7768;
+--color-clip-title: #665044; */
+
+/* Effect — Track */
+/* --color-track: #f3ece7;
+--color-track-hover: #ede4dd;
+--color-track-selected: #f8f2ee;
+--color-track-selected-hover: #f2ebe6;
+--color-track-border: #dfd0c5; */
+
+/* Jingle — Modern Lemon */
+/* 标识音：明亮、提示、识别 */
+/* --color-clip: #ECE59C;
+--color-clip-hover: #E6DE90;
+--color-clip-selected: #D9D080;
+--color-clip-selected-hover: #D0C675;
+--color-clip-border: #BBB05F;
+--color-clip-dragging-border: #85806B;
+--color-clip-title: #5E5A3E; */
+
+/* Jingle — Track */
+/* --color-track: #f0efe4;
+--color-track-hover: #ebe9dc;
+--color-track-selected: #f6f4e9;
+--color-track-selected-hover: #f1eee1;
+--color-track-border: #d8d4bd; */
+
+/* Mixed — Slate Lavender */
+/* 混合成品：完整、成熟、综合 */
+/* --color-clip: #C8CADF;
+--color-clip-hover: #BEC1D8;
+--color-clip-selected: #ADB1CC;
+--color-clip-selected-hover: #A3A8C3;
+--color-clip-border: #9298B7;
+--color-clip-dragging-border: #70768D;
+--color-clip-title: #4E536A; */
+
+/* Mixed — Track */
+/* --color-track: #e9eaf0;
+--color-track-hover: #e2e4eb;
+--color-track-selected: #f1f2f6;
+--color-track-selected-hover: #ebedf2;
+--color-track-border: #d2d4de; */
+
+
+
+/* Default / Unknown — Modern Graphite Blue */
+/* --color-clip: #C7D2DC;
+--color-clip-hover: #BDC9D4;
+--color-clip-selected: #ACBBC8;
+--color-clip-selected-hover: #A2B2C0;
+--color-clip-border: #8FA2B2;
+--color-clip-dragging-border: #6F7F8C;
+--color-clip-title: #4C5B67; */
+
+/* Default / Unknown — Track */
+/* --color-track: #e8ecef;
+--color-track-hover: #e2e7eb;
+--color-track-selected: #f2f5f7;
+--color-track-selected-hover: #ebeff2;
+--color-track-border: #d1d8de; */
+
 }
 
 [data-theme="dark"] {

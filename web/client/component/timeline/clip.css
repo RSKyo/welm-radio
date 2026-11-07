@@ -25,6 +25,36 @@
   touch-action: none;
 }
 
+.clip-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: var(--clip-title-height);
+
+  overflow: hidden;
+
+  pointer-events: none;
+
+  z-index: 3;
+}
+
+.clip-title > span {
+  position: absolute;
+  top: 0;
+
+  width: calc(var(--clip-title-interval) - var(--clip-title-gap));
+  height: var(--clip-title-height);
+  line-height: var(--clip-title-height);
+
+  color: var(--color-clip-title);
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .clip-content {
   position: absolute;
   top: 0;

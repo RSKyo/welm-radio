@@ -156,6 +156,7 @@ export function setup({
     return {
       clipId: crypto.randomUUID(),
       title: "xxx",
+      type: audio.meta.type,
       audioStart: audio.meta.start,
       audioEnd: audio.meta.end,
       trimStart: audio.meta.start,
