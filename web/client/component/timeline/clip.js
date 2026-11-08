@@ -3,17 +3,22 @@ import {
   assertNonBlankString,
   assertNonNegative,
   assertNonNegativeInteger,
+  assertPlainObject,
   assertPositive,
 } from "../base/assert.js";
 import {
   createElementByHTML,
   normalizePixel,
   clampValue,
+  clonePlainObject,
 } from "../base/helper.js";
 
+const CLIP_TRIM_HANDLE_WIDTH = 4;
+const CLIP_TITLE_HEIGHT = 10;
+const CLIP_TITLE_INTERVAL = 150;
 
 const clipColorThemes = {
-  graphite: {
+  default: {
     clip: "#C7D2DC",
     clipHover: "#BDC9D4",
     clipSelected: "#ACBBC8",
@@ -104,10 +109,6 @@ const audioTypeClipColorTheme = {
   mixed: "slateLavender",
 };
 
-const CLIP_TRIM_HANDLE_WIDTH = 4;
-const CLIP_TITLE_HEIGHT = 10;
-const CLIP_TITLE_INTERVAL = 150;
-
 const TRIM_START_TEMPLATE = `
 <div class="clip-trim-start" data-role="dragging-start"></div>
 `;
@@ -133,6 +134,7 @@ export class Clip extends Elm {
   #type = null;
   #audioStart = null;
   #audioEnd = null;
+  #audioMeta = null;
   // state(read-write)
   #trimStart = null;
   #trimEnd = null;
@@ -189,6 +191,11 @@ export class Clip extends Elm {
     this.applyRequiredOption("audioEnd", (value, assertionSubject) => {
       assertPositive(value, assertionSubject);
       this.#audioEnd = value;
+    });
+
+    this.applyRequiredOption("audioMeta", (value, assertionSubject) => {
+      assertPlainObject(value, assertionSubject);
+      this.#audioMeta = value;
     });
 
     if (this.#audioEnd < this.#audioStart) {
@@ -308,12 +315,20 @@ export class Clip extends Elm {
     return this.#title;
   }
 
+  get type() {
+    return this.#type;
+  }
+
   get audioStart() {
     return this.#audioStart;
   }
 
   get audioEnd() {
     return this.#audioEnd;
+  }
+
+  get audioMeta() {
+    return clonePlainObject(this.#audioMeta);
   }
 
   get trimStart() {

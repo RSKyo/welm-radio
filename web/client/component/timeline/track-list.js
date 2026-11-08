@@ -8,6 +8,82 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { ClipGroup } from "./clip-group.js";
 
+const trackColorThemes = {
+  default: {
+    track: "#e8ecef",
+    trackHover: "#e2e7eb",
+    trackSelected: "#f2f5f7",
+    trackSelectedHover: "#ebeff2",
+    trackBorder: "#d1d8de",
+  },
+
+  sky: {
+    track: "#e7f0f4",
+    trackHover: "#e0e9ee",
+    trackSelected: "#eef5f8",
+    trackSelectedHover: "#e8f0f4",
+    trackBorder: "#ccdbe2",
+  },
+
+  lavender: {
+    track: "#eee9f3",
+    trackHover: "#e8e1ee",
+    trackSelected: "#f4f0f7",
+    trackSelectedHover: "#eee8f3",
+    trackBorder: "#d8cde1",
+  },
+
+  mint: {
+    track: "#e8f1ec",
+    trackHover: "#e1ebe5",
+    trackSelected: "#eff6f2",
+    trackSelectedHover: "#e9f2ed",
+    trackBorder: "#ceddd4",
+  },
+
+  cyan: {
+    track: "#e5efef",
+    trackHover: "#deeaeb",
+    trackSelected: "#edf5f5",
+    trackSelectedHover: "#e7f1f1",
+    trackBorder: "#cadadb",
+  },
+
+  peach: {
+    track: "#f3ece7",
+    trackHover: "#ede4dd",
+    trackSelected: "#f8f2ee",
+    trackSelectedHover: "#f2ebe6",
+    trackBorder: "#dfd0c5",
+  },
+
+  lemon: {
+    track: "#f0efe4",
+    trackHover: "#ebe9dc",
+    trackSelected: "#f6f4e9",
+    trackSelectedHover: "#f1eee1",
+    trackBorder: "#d8d4bd",
+  },
+
+  slateLavender: {
+    track: "#e9eaf0",
+    trackHover: "#e2e4eb",
+    trackSelected: "#f1f2f6",
+    trackSelectedHover: "#ebedf2",
+    trackBorder: "#d2d4de",
+  },
+};
+
+const audioTypeTrackColorTheme = {
+  voice: "sky",
+  music: "lavender",
+  bed: "mint",
+  ambience: "cyan",
+  effect: "peach",
+  jingle: "lemon",
+  mixed: "slateLavender",
+};
+
 const TRACK_TEMPLATE = `
 <div class="track" data-role="track">
   <div data-role="clip-group">
@@ -118,6 +194,28 @@ export class TrackList extends ItemsElm {
     }
 
     return snapPoints;
+  }
+
+  getTrackAudioType(trackId) {
+    const clipGroupElm = this.getClipGroup(trackId);
+
+    if (clipGroupElm == null) {
+      return null;
+    }
+
+    let longestDuration = -1;
+    let audioType = null;
+
+    for (const clipElm of clipGroupElm.getClips()) {
+      const duration = clipElm.duration;
+
+      if (duration > longestDuration) {
+        longestDuration = duration;
+        audioType = clipElm.type;
+      }
+    }
+
+    return audioType;
   }
 
   // -----------------------------------------------------------------------------
@@ -260,6 +358,10 @@ export class TrackList extends ItemsElm {
       this.#emitTrackHeightChange(trackId, height);
     });
 
+    clipGroupElm.onClipsChange(() => {
+      this.#updateTrackColor(trackId);
+    });
+
     this.#clipGroupMap.set(trackId, clipGroupElm);
 
     // set initial track height based on clip group height
@@ -269,9 +371,7 @@ export class TrackList extends ItemsElm {
     /** create clip */
 
     if (item.clips) {
-      for (const clip of item.clips) {
-        clipGroupElm.addItem(clip);
-      }
+      clipGroupElm.setItems(item.clips);
     }
 
     return trackEl;
@@ -319,11 +419,19 @@ export class TrackList extends ItemsElm {
   afterRenderItems(items) {
     this.#updateTimelineDuration();
     this.#updateSelectedUIState();
+
+    for (const item of items) {
+      const trackId = item[this.valueField];
+      this.#updateTrackColor(trackId);
+    }
   }
 
   // override
   afterRenderItem(addedItem) {
     this.#updateTimelineDuration();
+
+    const trackId = addedItem[this.valueField];
+    this.#updateTrackColor(trackId);
   }
 
   // override
@@ -362,5 +470,24 @@ export class TrackList extends ItemsElm {
 
   #updateWidthUIState() {
     this.rootElement.style.width = `${this.#timelineRuler.width}px`;
+  }
+
+  #updateTrackColor(trackId) {
+    const trackEl = this.getItemElement(trackId);
+
+    const type = this.getTrackAudioType(trackId);
+
+    const themeName = audioTypeTrackColorTheme[type] ?? "default";
+
+    const colors = trackColorThemes[themeName];
+
+    trackEl.style.setProperty("--color-track", colors.track);
+    trackEl.style.setProperty("--color-track-hover", colors.trackHover);
+    trackEl.style.setProperty("--color-track-selected", colors.trackSelected);
+    trackEl.style.setProperty(
+      "--color-track-selected-hover",
+      colors.trackSelectedHover,
+    );
+    trackEl.style.setProperty("--color-track-border", colors.trackBorder);
   }
 }

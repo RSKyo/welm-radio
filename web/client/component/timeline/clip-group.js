@@ -163,6 +163,10 @@ export class ClipGroup extends ItemsElm {
   // queries / access
   // -----------------------------------------------------------------------------
 
+  getClips() {
+    return Array.from(this.#clipMap.values());
+  }
+
   getClip(clipId) {
     assertNonBlankString(clipId, "clipId");
     return this.#clipMap.get(clipId) ?? null;
@@ -208,18 +212,35 @@ export class ClipGroup extends ItemsElm {
     this.#setSelectedClipId(null, { emitEvent: false });
   }
 
-  addClip(clip) {
+  addClip(clip, options = {}) {
     assertPlainObject(clip, "clip");
-    this.addItem(clip);
+
+    const addedClip = this.addItem(clip, options);
+
+    this.#emitClipsChange();
+
+    return addedClip;
+  }
+
+  updateClip(clip, options = {}) {
+    assertPlainObject(clip, "clip");
+
+    const updatedClip = this.updateItem(clip, options);
+
+    this.#emitClipsChange();
+
+    return updatedClip;
   }
 
   duplicateClip() {
     const clipElm = this.getSelectedClip();
+
     if (clipElm == null) {
       return "clip-not-selected";
     }
 
     const originalClipItem = this.getItemByValue(clipElm.clipId);
+
     const newClip = {
       ...originalClipItem,
       clipId: crypto.randomUUID(),
@@ -229,11 +250,14 @@ export class ClipGroup extends ItemsElm {
     this.addItem(newClip);
     this.selectedClipId = newClip.clipId;
 
+    this.#emitClipsChange();
+
     return "success";
   }
 
   splitClip() {
     const clipElm = this.getSelectedClip();
+
     if (clipElm == null) {
       return "clip-not-selected";
     }
@@ -267,21 +291,27 @@ export class ClipGroup extends ItemsElm {
 
     this.selectedClipId = newClip.clipId;
 
+    this.#emitClipsChange();
+
     return "success";
   }
 
-  removeClip() {
-    const clipElm = this.getSelectedClip();
-    if (clipElm == null) {
+  removeClip(clipId = null, { shift = true } = {}) {
+    clipId = clipId ?? this.#selectedClipId;
+
+    if (clipId == null) {
       return "clip-not-selected";
     }
 
-    const clipId = clipElm.clipId;
     const clipItem = this.getItemByValue(clipId);
 
     this.removeItem(clipId);
 
-    this.shiftClipsForRemove(clipItem);
+    if (shift) {
+      this.shiftClipsForRemove(clipItem);
+    }
+
+    this.#emitClipsChange();
 
     return "success";
   }
@@ -452,6 +482,7 @@ export class ClipGroup extends ItemsElm {
     for (const otherItem of affectedItems) {
       otherItem.clipStart -= duration;
 
+      // don't use this.updateClip directly, use updateItem instead
       this.updateItem(otherItem, {
         resolveRow: false,
       });
@@ -583,6 +614,17 @@ export class ClipGroup extends ItemsElm {
     });
   }
 
+  onClipsChange(handler) {
+    return this.handler.on("clipsChangeHandler", handler);
+  }
+
+  #emitClipsChange() {
+    this.handler.emit("clipsChangeHandler", {
+      elm: this,
+      trackId: this.#trackId,
+    });
+  }
+
   // -----------------------------------------------------------------------------
   // bind events
   // -----------------------------------------------------------------------------
@@ -608,7 +650,7 @@ export class ClipGroup extends ItemsElm {
   }
 
   // override
-  createItemElement(item,{ resolveRow = true } = {}) {
+  createItemElement(item, { resolveRow = true } = {}) {
     const clipId = item[this.valueField];
     const clipEl = clipTemplate.cloneNode(true);
     clipEl.dataset.value = clipId;

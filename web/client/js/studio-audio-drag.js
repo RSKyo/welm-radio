@@ -130,7 +130,7 @@ export function setup({
     const moveMode = audioDrag.moveMode;
 
     if (moveMode === "normal") {
-      clipGroupElm.addItem(clipItem);
+      clipGroupElm.addClip(clipItem);
       clipGroupElm.selectedClipId = clipItem.clipId;
       return;
     }
@@ -142,7 +142,7 @@ export function setup({
 
       clipGroupElm.shiftClipsForInsert(clipItem);
 
-      clipGroupElm.addItem(clipItem, {
+      clipGroupElm.addClip(clipItem, {
         resolveRow: false,
       });
       clipGroupElm.selectedClipId = clipItem.clipId;

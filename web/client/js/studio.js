@@ -1,4 +1,4 @@
-import { setThemeMode } from "./theme.js";
+import { theme } from "../component/theme.js";
 
 import { toast, safeRun, on, resolveElement } from "./helper.js";
 
@@ -16,7 +16,7 @@ import * as studioAudioList from "./studio-audio-list.js";
 import * as studioAudioDrag from "./studio-audio-drag.js";
 import * as studioClipDrag from "./studio-clip-drag.js";
 
-setThemeMode("light");
+theme.setMode("light");
 
 const audioMap = new Map();
 

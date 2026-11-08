@@ -223,10 +223,13 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
         originClipGroupElm.normalizeClipEdges(clipItem, mode);
 
         if (originTrackId === targetTrackId) {
-          originClipGroupElm.updateItem(clipItem);
+          originClipGroupElm.updateClip(clipItem);
         } else {
-          originClipGroupElm.removeItem(clipId);
-          targetClipGroupElm.addItem(clipItem);
+          originClipGroupElm.removeClip(clipId, {
+            shift: false,
+          });
+
+          targetClipGroupElm.addClip(clipItem);
           targetClipGroupElm.selectedClipId = clipId;
         }
       }
@@ -264,15 +267,17 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
         }
 
         if (targetTrackId === originTrackId) {
-          targetClipGroupElm.updateItem(newClipItem, {
+          targetClipGroupElm.updateClip(newClipItem, {
             resolveRow: false,
           });
 
           clipDrag.draggingEl.style.visibility = "";
         } else {
-          originClipGroupElm.removeItem(clipId);
+          originClipGroupElm.removeClip(clipId, {
+            shift: false,
+          });
 
-          targetClipGroupElm.addItem(newClipItem, {
+          targetClipGroupElm.addClip(newClipItem, {
             resolveRow: false,
           });
 
@@ -290,7 +295,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       clipItem.trimStart += deltaTime;
 
       originClipGroupElm.normalizeClipEdges(clipItem, mode);
-      originClipGroupElm.updateItem(clipItem);
+      originClipGroupElm.updateClip(clipItem);
     }
 
     if (mode === "dragging-end") {
@@ -299,7 +304,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       clipItem.trimEnd = clipItem.trimStart + (clipEnd - clipItem.clipStart);
 
       originClipGroupElm.normalizeClipEdges(clipItem, mode);
-      originClipGroupElm.updateItem(clipItem);
+      originClipGroupElm.updateClip(clipItem);
     }
   }
 }
