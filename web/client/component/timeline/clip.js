@@ -15,7 +15,6 @@ import {
 
 const CLIP_TRIM_HANDLE_WIDTH = 4;
 const CLIP_TITLE_HEIGHT = 10;
-const CLIP_TITLE_INTERVAL = 150;
 
 const clipColorThemes = {
   default: {
@@ -274,11 +273,6 @@ export class Clip extends Elm {
       `${CLIP_TITLE_HEIGHT}px`,
     );
 
-    this.rootElement.style.setProperty(
-      "--clip-title-interval",
-      `${CLIP_TITLE_INTERVAL}px`,
-    );
-
     const themeName = audioTypeClipColorTheme[this.#type] ?? "default";
     const colors = clipColorThemes[themeName];
 
@@ -521,6 +515,12 @@ export class Clip extends Elm {
         this.#updateUIState();
       }),
     );
+
+    this.registerOffHandler(
+      this.#timelineRuler.onTimelineViewportResize(() => {
+        this.#updateTitleUIState();
+      }),
+    );
   }
 
   // -----------------------------------------------------------------------------
@@ -562,12 +562,19 @@ export class Clip extends Elm {
   #updateTitleUIState() {
     this.#titleEl.replaceChildren();
 
-    const count = Math.max(1, Math.ceil(this.width / CLIP_TITLE_INTERVAL));
+    const interval = this.#timelineRuler.timelineViewportContentWidth * (2 / 3);
+    if (interval <= 0) {
+      return;
+    }
+
+    const count = Math.max(1, Math.ceil(this.width / interval));
 
     for (let i = 0; i < count; i++) {
       const spanEl = document.createElement("span");
+
       spanEl.textContent = this.#title;
-      spanEl.style.left = `${i * CLIP_TITLE_INTERVAL + CLIP_TRIM_HANDLE_WIDTH}px`;
+      spanEl.style.width = `${interval}px`;
+      spanEl.style.left = `${i * interval + CLIP_TRIM_HANDLE_WIDTH}px`;
 
       this.#titleEl.appendChild(spanEl);
     }

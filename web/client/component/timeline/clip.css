@@ -44,7 +44,6 @@
   position: absolute;
   top: 0;
 
-  width: calc(var(--clip-title-interval) - var(--clip-title-gap));
   height: var(--clip-title-height);
   line-height: var(--clip-title-height);
 

@@ -13,11 +13,10 @@
     to bottom,
     transparent 0,
     transparent calc(var(--clip-row-height) - 1px),
-    var(--color-divider) calc(var(--clip-row-height) - 1px),
-    var(--color-divider) var(--clip-row-height)
+    var(--color-clip-row-line) calc(var(--clip-row-height) - 1px),
+    var(--color-clip-row-line) var(--clip-row-height)
   );
 }
-
 
 .clip-group.is-trimming,
 .clip-group.is-trimming * {

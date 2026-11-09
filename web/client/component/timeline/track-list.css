@@ -17,8 +17,6 @@
   padding: 0 !important;
   margin: 0 !important;
 
-  border-bottom: 1px solid var(--color-track-border);
-
   background: var(--color-track);
 }
 
@@ -32,4 +30,33 @@
 
 .track.is-selected:hover {
   background: var(--color-track-selected-hover);
+}
+
+.track-header {
+  position: relative;
+
+  height: var(--track-title-height);
+
+  border-bottom: 1px dashed var(--color-track-border);
+}
+
+.track-title {
+  position: sticky;
+  left: 6px;
+
+  width: max-content;
+  max-width: 160px;
+  height: var(--track-title-height);
+  line-height: var(--track-title-height);
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  font-size: 11px;
+
+  color: var(--color-track-title);
+
+  pointer-events: none;
+  z-index: 10;
 }

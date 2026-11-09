@@ -5,11 +5,7 @@ import {
   assertHtmlElement,
   assertNumber,
 } from "../base/assert.js";
-import {
-  createElementByHTML,
-  formatTime,
-  clampValue,
-} from "../base/helper.js";
+import { createElementByHTML, formatTime, clampValue } from "../base/helper.js";
 
 const TRAILING_DURATION = 30;
 const TICK_TEMPLATE = `
@@ -193,6 +189,19 @@ export class TimelineRuler extends Elm {
       padding: { ...canvas.padding },
     };
   }
+
+  get timelineViewportContentWidth() {
+  const viewport = this.#timelineInfo.timelineViewport;
+  const rect = viewport.element.getBoundingClientRect();
+
+  return (
+    rect.width -
+    viewport.border.leftWidth -
+    viewport.border.rightWidth -
+    viewport.padding.left -
+    viewport.padding.right
+  );
+}
 
   // -----------------------------------------------------------------------------
   // state(read-write)
@@ -388,6 +397,14 @@ export class TimelineRuler extends Elm {
     this.handler.emit("widthChangeHandler", this.#getEventObject());
   }
 
+  onTimelineViewportResize(handler) {
+    return this.handler.on("timelineViewportResizeHandler", handler);
+  }
+
+  #emitTimelineViewportResize() {
+    this.handler.emit("timelineViewportResizeHandler", this.#getEventObject());
+  }
+
   #getEventObject() {
     return {
       elm: this,
@@ -504,6 +521,8 @@ export class TimelineRuler extends Elm {
         this.#render();
         this.#emitWidthChange();
       }
+
+      this.#emitTimelineViewportResize();
     });
   }
 }
