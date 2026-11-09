@@ -8,27 +8,26 @@ import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
 const CLIP_MIN_DURATION = 5;
-const CLIP_HEIGHT = 50;
-const CLIP_ROW_GAP = 3;
-const CLIP_ROW_HEIGHT = CLIP_HEIGHT + CLIP_ROW_GAP;
+const CLIP_HEIGHT = 40;
 const SNAP_THRESHOLD = 5;
 
-const EMPTY_TEMPLATE = `
-<div class="empty-placeholder">No Clips</div>
+const ROW_TEMPLATE = `
+<div class="clip-row">
+  <div class="clip-row-content"></div>
+</div>
 `;
 const CLIP_TEMPLATE = `
 <div data-role="clip">
 </div>
 `;
 
-const emptyTemplate = createElementByHTML(EMPTY_TEMPLATE);
+const rowTemplate = createElementByHTML(ROW_TEMPLATE);
 const clipTemplate = createElementByHTML(CLIP_TEMPLATE);
 
 export class ClipGroup extends ItemsElm {
   #trackId = null;
   #selectedClipId = null;
   #duration = 0;
-  #height = 0;
 
   // ruler
   #timelineRuler = null;
@@ -38,6 +37,8 @@ export class ClipGroup extends ItemsElm {
   #audioCache = null;
   // clip component map
   #clipMap = new Map();
+  // row elements cache
+  #rowElements = [];
 
   constructor(root, options = {}) {
     super(root, {
@@ -48,7 +49,6 @@ export class ClipGroup extends ItemsElm {
 
     this.#init();
     this.#bindEvents();
-    this.#updateClipGroupHeight();
   }
 
   // -----------------------------------------------------------------------------
@@ -73,14 +73,7 @@ export class ClipGroup extends ItemsElm {
       this.#audioCache = value;
     });
 
-    this.rootElement.style.setProperty(
-      "--clip-row-height",
-      `${CLIP_ROW_HEIGHT}px`,
-    );
-
-    this.rootElement.style.setProperty("--clip-row-gap", `${CLIP_ROW_GAP}px`);
-
-    // this.setItems(null);
+    this.setProperty(this.rootElement, "--clip-height", `${CLIP_HEIGHT}px`);
   }
 
   // -----------------------------------------------------------------------------
@@ -107,21 +100,6 @@ export class ClipGroup extends ItemsElm {
     this.#duration = value;
 
     this.#emitDurationChange();
-  }
-
-  get height() {
-    return this.#height;
-  }
-
-  #setHeight(value) {
-    if (value === this.#height) {
-      return;
-    }
-
-    this.#height = value;
-
-    this.#updateHeightUIState();
-    this.#emitHeightChange();
   }
 
   get snapThreshold() {
@@ -320,6 +298,30 @@ export class ClipGroup extends ItemsElm {
   // layout
   // -----------------------------------------------------------------------------
 
+  #getMaxRowIndex() {
+    let maxRowIndex = -1;
+
+    for (const clipElm of this.#clipMap.values()) {
+      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
+    }
+
+    return maxRowIndex;
+  }
+
+  #ensureRow(rowIndex) {
+    while (this.#rowElements.length <= rowIndex) {
+      const newRowIndex = this.#rowElements.length;
+
+      const rowEl = rowTemplate.cloneNode(true);
+      rowEl.dataset.rowIndex = newRowIndex;
+
+      this.rootElement.append(rowEl);
+      this.#rowElements.push(rowEl);
+    }
+
+    return this.#rowElements[rowIndex];
+  }
+
   #isPlacementAvailable(clipId, clipStart, clipEnd, rowIndex) {
     for (const otherClipElm of this.#clipMap.values()) {
       if (otherClipElm.clipId === clipId) {
@@ -386,29 +388,6 @@ export class ClipGroup extends ItemsElm {
 
   resolveTime(localX) {
     return Math.max(0, localX / this.pixelsPerSecond);
-  }
-
-  resolveRowPosition(localY) {
-    const rowIndex = Math.max(0, Math.floor(localY / CLIP_ROW_HEIGHT));
-    let clipTop = rowIndex * CLIP_ROW_HEIGHT + CLIP_ROW_GAP;
-    const offsetTop = CLIP_ROW_GAP === 0 ? 0 : 1 + (CLIP_ROW_GAP - 1) / 2;
-    clipTop = clipTop - offsetTop;
-
-    let top;
-    if (Math.abs(localY - clipTop) < SNAP_THRESHOLD) {
-      top = clipTop;
-    } else {
-      top = Math.max(0, localY);
-    }
-
-    return {
-      rowIndex,
-      clipTop,
-      top,
-      clipRowHeight: CLIP_ROW_HEIGHT,
-      clipRowGap: CLIP_ROW_GAP,
-      snapThreshold: SNAP_THRESHOLD,
-    };
   }
 
   getClipTrimTimeRange(clipId, edge) {
@@ -603,17 +582,6 @@ export class ClipGroup extends ItemsElm {
     });
   }
 
-  onHeightChange(handler) {
-    return this.handler.on("heightChangeHandler", handler);
-  }
-
-  #emitHeightChange() {
-    this.handler.emit("heightChangeHandler", {
-      elm: this,
-      height: this.#height,
-    });
-  }
-
   onClipsChange(handler) {
     return this.handler.on("clipsChangeHandler", handler);
   }
@@ -645,39 +613,21 @@ export class ClipGroup extends ItemsElm {
   // ---------------------------------------------------------------------------
 
   // override
-  createEmptyElement() {
-    return emptyTemplate.cloneNode(true);
-  }
-
-  // override
-  createItemElement(item, { resolveRow = true } = {}) {
+  createItemElement(item) {
     const clipId = item[this.valueField];
     const clipEl = clipTemplate.cloneNode(true);
+
     clipEl.dataset.value = clipId;
 
-    const clipOptions = {
+    const clipElm = new Clip(clipEl, {
       ...item,
       timelineRuler: this.#timelineRuler,
       timelinePlayhead: this.#timelinePlayhead,
-      height: CLIP_HEIGHT,
-      rowGap: CLIP_ROW_GAP,
       audioCache: this.#audioCache,
-    };
-
-    if (resolveRow) {
-      const clipRowIndex = this.findAvailableRowIndex(clipOptions);
-      item.rowIndex = clipRowIndex;
-      clipOptions.rowIndex = clipRowIndex;
-    }
-
-    const clipElm = new Clip(clipEl, clipOptions);
+    });
 
     clipElm.onClipEndChange(() => {
       this.#updateClipGroupDuration();
-    });
-
-    clipElm.onRowIndexChange(() => {
-      this.#updateClipGroupHeight();
     });
 
     this.#clipMap.set(clipId, clipElm);
@@ -688,13 +638,17 @@ export class ClipGroup extends ItemsElm {
   // override
   afterSetItems(items) {
     const selectedClipId = filterValue(this.#selectedClipId, this.itemValues);
-    this.#setSelectedClipId(selectedClipId, { updateUI: false });
 
-    // clear all clipElm
+    this.#setSelectedClipId(selectedClipId, {
+      updateUI: false,
+    });
+
     for (const clipElm of this.#clipMap.values()) {
       clipElm.destroy();
     }
+
     this.#clipMap.clear();
+    this.#rowElements = [];
   }
 
   // do nothing for afterAddItem
@@ -718,15 +672,27 @@ export class ClipGroup extends ItemsElm {
 
   // override
   afterRenderItems(items) {
-    this.#updateClipGroupHeight();
+    this.#updateRows();
     this.#updateClipGroupDuration();
     this.#updateSelectedUIState();
   }
 
   // override
-  afterRenderItem(addedItem) {
+  beforeRenderAddedItem(addedItem, options = {}) {
+    if (options.resolveRow !== false) {
+      addedItem.rowIndex = this.findAvailableRowIndex(addedItem);
+    }
+
+    const rowEl = this.#ensureRow(addedItem.rowIndex);
+    const contentEl = rowEl.querySelector(".clip-row-content");
+
+    options.parent = contentEl;
+  }
+
+  // override
+  afterRenderAddedItem(addedItem) {
+    this.#updateRows();
     this.#updateClipGroupDuration();
-    this.#updateClipGroupHeight();
   }
 
   renderUpdatedItem(updatedItem, { resolveRow = true } = {}) {
@@ -738,23 +704,27 @@ export class ClipGroup extends ItemsElm {
     }
 
     if (resolveRow) {
-      const clipRowIndex = this.findAvailableRowIndex(updatedItem);
-      updatedItem.rowIndex = clipRowIndex;
+      updatedItem.rowIndex = this.findAvailableRowIndex(updatedItem);
     }
+
+    const rowEl = this.#ensureRow(updatedItem.rowIndex);
+    const contentEl = rowEl.querySelector(".clip-row-content");
+
+    contentEl.append(clipElm.rootElement);
 
     clipElm.update(updatedItem);
   }
 
   // override
   afterRenderUpdatedItem(updatedItem) {
+    this.#updateRows();
     this.#updateClipGroupDuration();
-    this.#updateClipGroupHeight();
   }
 
   // override
   afterRenderRemovedItem(removedItem) {
+    this.#updateRows();
     this.#updateClipGroupDuration();
-    this.#updateClipGroupHeight();
   }
 
   // ---------------------------------------------------------------------------
@@ -771,16 +741,6 @@ export class ClipGroup extends ItemsElm {
     this.#setDuration(maxClipEnd);
   }
 
-  #updateClipGroupHeight() {
-    let maxRowIndex = 0;
-
-    for (const clipElm of this.#clipMap.values()) {
-      maxRowIndex = Math.max(maxRowIndex, clipElm.rowIndex);
-    }
-
-    this.#setHeight((maxRowIndex + 1) * CLIP_ROW_HEIGHT);
-  }
-
   #updateSelectedUIState() {
     this.eachItem(({ element, value }) => {
       if (!element) return;
@@ -789,7 +749,18 @@ export class ClipGroup extends ItemsElm {
     });
   }
 
-  #updateHeightUIState() {
-    this.rootElement.style.height = `${this.#height}px`;
+  #updateRows() {
+    const rowCount = Math.max(1, this.#getMaxRowIndex() + 1);
+
+    // ensure required rows
+    while (this.#rowElements.length < rowCount) {
+      this.#ensureRow(this.#rowElements.length);
+    }
+
+    // remove redundant rows
+    while (this.#rowElements.length > rowCount) {
+      const rowEl = this.#rowElements.pop();
+      rowEl.remove();
+    }
   }
 }

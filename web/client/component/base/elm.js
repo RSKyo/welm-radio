@@ -4,6 +4,7 @@ import {
   assertPlainObject,
   assertStringPlainObject,
   assertBoolean,
+  assertHtmlElement,
 } from "./assert.js";
 import { resolveElement } from "./helper.js";
 import { ElmHandler } from "./elm-handler.js";
@@ -153,6 +154,12 @@ export class Elm {
   registerOffHandler(off) {
     assertFunction(off, "off");
     this.#offHandlers.push(off);
+  }
+
+  setProperty(element, property, value) {
+    assertHtmlElement(element, "element");
+    assertNonBlankString(property, "property");
+    element.style.setProperty(property, value);
   }
 
   destroy() {

@@ -8,7 +8,6 @@ import {
 } from "../base/assert.js";
 import {
   createElementByHTML,
-  normalizePixel,
   clampValue,
   clonePlainObject,
 } from "../base/helper.js";
@@ -16,7 +15,17 @@ import {
 const CLIP_TRIM_HANDLE_WIDTH = 4;
 const CLIP_TITLE_HEIGHT = 10;
 
-const clipColorThemes = {
+const audioTypeColorTheme = {
+  voice: "sky",
+  music: "lavender",
+  bed: "mint",
+  ambience: "cyan",
+  effect: "peach",
+  jingle: "lemon",
+  mixed: "slateLavender",
+};
+
+const colorThemes = {
   default: {
     clip: "#C7D2DC",
     clipHover: "#BDC9D4",
@@ -98,16 +107,6 @@ const clipColorThemes = {
   },
 };
 
-const audioTypeClipColorTheme = {
-  voice: "sky",
-  music: "lavender",
-  bed: "mint",
-  ambience: "cyan",
-  effect: "peach",
-  jingle: "lemon",
-  mixed: "slateLavender",
-};
-
 const TRIM_START_TEMPLATE = `
 <div class="clip-trim-start" data-role="dragging-start"></div>
 `;
@@ -140,8 +139,6 @@ export class Clip extends Elm {
   #clipStart = null;
   #rowIndex = 0;
   // ui
-  #height = null;
-  #rowGap = null;
   #titleEl = null;
 
   // ruler
@@ -240,17 +237,6 @@ export class Clip extends Elm {
       this.#rowIndex = value;
     });
 
-    this.applyRequiredOption("height", (value, assertionSubject) => {
-      assertPositive(value, assertionSubject);
-      this.#height = normalizePixel(value);
-      this.rootElement.style.setProperty("--clip-height", `${value}px`);
-    });
-
-    this.applyRequiredOption("rowGap", (value, assertionSubject) => {
-      assertNonNegative(value, assertionSubject);
-      this.#rowGap = normalizePixel(value);
-    });
-
     this.applyRequiredOption("timelineRuler", (value) => {
       this.#timelineRuler = value;
     });
@@ -273,8 +259,8 @@ export class Clip extends Elm {
       `${CLIP_TITLE_HEIGHT}px`,
     );
 
-    const themeName = audioTypeClipColorTheme[this.#type] ?? "default";
-    const colors = clipColorThemes[themeName];
+    const themeName = audioTypeColorTheme[this.#type] ?? "default";
+    const colors = colorThemes[themeName];
 
     this.rootElement.style.setProperty("--color-clip", colors.clip);
     this.rootElement.style.setProperty("--color-clip-hover", colors.clipHover);
@@ -349,22 +335,6 @@ export class Clip extends Elm {
     return this.#rowIndex;
   }
 
-  get height() {
-    return this.#height;
-  }
-
-  get rowGap() {
-    return this.#rowGap;
-  }
-
-  get rowHeight() {
-    return this.height + this.rowGap;
-  }
-
-  get top() {
-    return this.rowIndex * this.rowHeight + this.rowGap;
-  }
-
   get left() {
     return this.#timelineRuler.timeToPixels(this.clipStart);
   }
@@ -387,7 +357,6 @@ export class Clip extends Elm {
 
   update(updatedItem) {
     const oldClipEnd = this.clipEnd;
-    const oldRowIndex = this.rowIndex;
 
     this.#setTrimEnd(updatedItem.trimEnd);
     this.#setTrimStart(updatedItem.trimStart);
@@ -399,10 +368,6 @@ export class Clip extends Elm {
 
     if (this.clipEnd !== oldClipEnd) {
       this.#emitClipEndChange();
-    }
-
-    if (this.rowIndex !== oldRowIndex) {
-      this.#emitRowIndexChange();
     }
   }
 
@@ -477,11 +442,8 @@ export class Clip extends Elm {
       clipEnd: this.clipEnd,
       duration: this.duration,
       left: this.left,
-      top: this.top,
       rowIndex: this.#rowIndex,
       width: this.width,
-      height: this.height,
-      rowGap: this.#rowGap,
     };
   }
 
@@ -495,14 +457,6 @@ export class Clip extends Elm {
 
   #emitClipEndChange() {
     this.handler.emit("clipEndChangeHandler", this.#getClipDetail());
-  }
-
-  onRowIndexChange(handler) {
-    return this.handler.on("rowIndexChangeHandler", handler);
-  }
-
-  #emitRowIndexChange() {
-    this.handler.emit("rowIndexChangeHandler", this.#getClipDetail());
   }
 
   // -----------------------------------------------------------------------------
@@ -553,8 +507,6 @@ export class Clip extends Elm {
   }
 
   #updatePositionUIState() {
-    const offsetTop = this.#rowGap === 0 ? 0 : 1 + (this.#rowGap - 1) / 2;
-    this.rootElement.style.top = `${this.top - offsetTop}px`;
     this.rootElement.style.left = `${this.left}px`;
     this.rootElement.style.width = `${this.width}px`;
   }

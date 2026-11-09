@@ -22,83 +22,83 @@ const audioTypeColorTheme = {
 
 const colorThemes = {
   default: {
-    track: "#e8ecef",
-    trackHover: "#e2e7eb",
-    trackSelected: "#f2f5f7",
-    trackSelectedHover: "#ebeff2",
-    trackBorder: "#C7D2DC",
-    trackTitle: "#8FA2B2",
-    clipRowLine: "#C7D2DC",
+    track: "#E0E6EB",
+    trackHover: "#D8E0E6",
+    trackSelected: "#EAF0F4",
+    trackSelectedHover: "#E2E9EE",
+    trackBorder: "#BCC8D1",
+    trackTitle: "#526575",
+    clipRowLine: "#D3DCE3",
   },
 
   sky: {
-    track: "#e7f0f4",
-    trackHover: "#e0e9ee",
-    trackSelected: "#eef5f8",
-    trackSelectedHover: "#e8f0f4",
-    trackBorder: "#A6D8EE",
-    trackTitle: "#68A9C7",
-    clipRowLine: "#A6D8EE",
+    track: "#DFEBF1",
+    trackHover: "#D6E5ED",
+    trackSelected: "#EAF3F7",
+    trackSelectedHover: "#E1EDF3",
+    trackBorder: "#B8D0DC",
+    trackTitle: "#456D80",
+    clipRowLine: "#D3E3EA",
   },
 
   lavender: {
-    track: "#eee9f3",
-    trackHover: "#e8e1ee",
-    trackSelected: "#f4f0f7",
-    trackSelectedHover: "#eee8f3",
-    trackBorder: "#D8C3F3",
-    trackTitle: "#A98BD0",
-    clipRowLine: "#D8C3F3",
+    track: "#E8E1EF",
+    trackHover: "#E0D8E9",
+    trackSelected: "#F2EDF6",
+    trackSelectedHover: "#EAE3F0",
+    trackBorder: "#CFC2DC",
+    trackTitle: "#705986",
+    clipRowLine: "#E1D8EB",
   },
 
   mint: {
-    track: "#e8f1ec",
-    trackHover: "#e1ebe5",
-    trackSelected: "#eff6f2",
-    trackSelectedHover: "#e9f2ed",
-    trackBorder: "#B5E5CA",
-    trackTitle: "#79B99A",
-    clipRowLine: "#B5E5CA",
+    track: "#E0EBE4",
+    trackHover: "#D7E5DD",
+    trackSelected: "#EAF3ED",
+    trackSelectedHover: "#E1ECE5",
+    trackBorder: "#BFD5C8",
+    trackTitle: "#466E57",
+    clipRowLine: "#D5E5DB",
   },
 
   cyan: {
-    track: "#e5efef",
-    trackHover: "#deeaeb",
-    trackSelected: "#edf5f5",
-    trackSelectedHover: "#e7f1f1",
-    trackBorder: "#B1E1DF",
-    trackTitle: "#73B3B1",
-    clipRowLine: "#B1E1DF",
+    track: "#DDEAE9",
+    trackHover: "#D4E4E3",
+    trackSelected: "#E9F2F1",
+    trackSelectedHover: "#E0ECEB",
+    trackBorder: "#B9D4D2",
+    trackTitle: "#426F6D",
+    clipRowLine: "#D1E3E1",
   },
 
   peach: {
-    track: "#f3ece7",
-    trackHover: "#ede4dd",
-    trackSelected: "#f8f2ee",
-    trackSelectedHover: "#f2ebe6",
-    trackBorder: "#F6C7A3",
-    trackTitle: "#D29063",
-    clipRowLine: "#F6C7A3",
+    track: "#F0E4DA",
+    trackHover: "#E9D9CC",
+    trackSelected: "#F7EEE7",
+    trackSelectedHover: "#EFE3D9",
+    trackBorder: "#E1C5B1",
+    trackTitle: "#8C5434",
+    clipRowLine: "#EED9CA",
   },
 
   lemon: {
-    track: "#f0efe4",
-    trackHover: "#ebe9dc",
-    trackSelected: "#f6f4e9",
-    trackSelectedHover: "#f1eee1",
-    trackBorder: "#ECE59C",
-    trackTitle: "#BBB05F",
-    clipRowLine: "#ECE59C",
+    track: "#ECEAD8",
+    trackHover: "#E5E1CC",
+    trackSelected: "#F5F3E6",
+    trackSelectedHover: "#ECE9D9",
+    trackBorder: "#DAD4AF",
+    trackTitle: "#716A37",
+    clipRowLine: "#E7E3C9",
   },
 
   slateLavender: {
-    track: "#e9eaf0",
-    trackHover: "#e2e4eb",
-    trackSelected: "#f1f2f6",
-    trackSelectedHover: "#ebedf2",
-    trackBorder: "#C8CADF",
-    trackTitle: "#9298B7",
-    clipRowLine: "#C8CADF",
+    track: "#E2E4EC",
+    trackHover: "#D9DCE7",
+    trackSelected: "#EEF0F5",
+    trackSelectedHover: "#E5E7EF",
+    trackBorder: "#C7C9D9",
+    trackTitle: "#59617E",
+    clipRowLine: "#DADCE8",
   },
 };
 
@@ -313,17 +313,17 @@ export class TrackList extends ItemsElm {
     });
   }
 
-  onTrackHeightChange(handler) {
-    return this.handler.on("trackHeightChangeHandler", handler);
-  }
+  // onTrackHeightChange(handler) {
+  //   return this.handler.on("trackHeightChangeHandler", handler);
+  // }
 
-  #emitTrackHeightChange(value, height) {
-    this.handler.emit("trackHeightChangeHandler", {
-      elm: this,
-      value,
-      height,
-    });
-  }
+  // #emitTrackHeightChange(value, height) {
+  //   this.handler.emit("trackHeightChangeHandler", {
+  //     elm: this,
+  //     value,
+  //     height,
+  //   });
+  // }
 
   // -----------------------------------------------------------------------------
   // bind events
@@ -351,7 +351,6 @@ export class TrackList extends ItemsElm {
 
     const titleEl = getBySelector(trackEl, '[data-role="track-title"]');
     titleEl.textContent = item.title ?? "Track";
-    console.log(titleEl);
 
     /** create clip group */
 
@@ -383,13 +382,13 @@ export class TrackList extends ItemsElm {
       this.#updateTimelineDuration();
     });
 
-    clipGroupElm.onHeightChange(({ height }) => {
-      const trackHeight = TRACK_TITLE_HEIGHT + height;
+    // clipGroupElm.onHeightChange(({ height }) => {
+    //   const trackHeight = TRACK_TITLE_HEIGHT + height;
 
-      trackEl.style.height = `${trackHeight}px`;
+    //   trackEl.style.height = `${trackHeight}px`;
 
-      this.#emitTrackHeightChange(trackId, trackHeight);
-    });
+    //   this.#emitTrackHeightChange(trackId, trackHeight);
+    // });
 
     clipGroupElm.onClipsChange(() => {
       this.#updateTrackColor(trackId);
@@ -460,7 +459,7 @@ export class TrackList extends ItemsElm {
   }
 
   // override
-  afterRenderItem(addedItem) {
+  afterRenderAddedItem(addedItem) {
     this.#updateTimelineDuration();
 
     const trackId = addedItem[this.valueField];

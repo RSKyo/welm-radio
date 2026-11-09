@@ -10,8 +10,10 @@ import {
   assertFunction,
   assertNonEmptyNonBlankStringArray,
   assertValueForMode,
+  assertBoolean,
 } from "./assert.js";
 import {
+  resolveElement,
   createElementByHTML,
   normalizeValue,
   clonePlainObject,
@@ -28,6 +30,7 @@ export class ItemsElm extends Elm {
   #items = [];
   #elements = new Map();
   #emptyElement = null;
+  #showEmptyUI = false;
 
   constructor(root, options = {}) {
     super(root, options);
@@ -40,6 +43,11 @@ export class ItemsElm extends Elm {
     this.applyOption("textField", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#textField = value;
+    });
+
+    this.applyOption("showEmptyUI", (value, assertionSubject) => {
+      assertBoolean(value, assertionSubject);
+      this.#showEmptyUI = value;
     });
   }
 
@@ -70,6 +78,10 @@ export class ItemsElm extends Elm {
   }
 
   #updateEmptyUIState() {
+    if (!this.#showEmptyUI) {
+      return;
+    }
+
     const show = this.#items.length === 0;
     const exists = this.#emptyElement != null;
 
@@ -156,8 +168,9 @@ export class ItemsElm extends Elm {
     this.beforeRenderItems(items, options);
 
     for (const item of items) {
-      this.renderItem(item, options);
-      this.afterRenderItem(item, options);
+      this.beforeRenderAddedItem(item, options);
+      this.renderAddedItem(item, options);
+      this.afterRenderAddedItem(item, options);
     }
 
     this.afterRenderItems(items, options);
@@ -167,23 +180,6 @@ export class ItemsElm extends Elm {
 
   beforeRenderItems(items, options = {}) {
     // Override this method to perform actions before rendering items.
-  }
-
-  renderItem(item, options = {}) {
-    // add the item element to the DOM
-    const element = this.createItemElement(item, options);
-    this.rootElement.append(element);
-
-    // store the element in the internal map for later reference
-    this.#elements.set(item[this.#valueField], element);
-  }
-
-  createItemElement(item, options = {}) {
-    throw new Error("createItemElement must be implemented by the subclass.");
-  }
-
-  afterRenderItem(item, options = {}) {
-    // Override this method to perform actions after rendering an item.
   }
 
   afterRenderItems(items, options = {}) {
@@ -232,9 +228,35 @@ export class ItemsElm extends Elm {
   }
 
   #addItemRender(addedItem, options = {}) {
-    this.renderItem(addedItem, options);
-    this.afterRenderItem(addedItem, options);
+    this.beforeRenderAddedItem(addedItem, options);
+    this.renderAddedItem(addedItem, options);
+    this.afterRenderAddedItem(addedItem, options);
     this.#updateEmptyUIState();
+  }
+
+  beforeRenderAddedItem(addedItem, options = {}) {
+    // Override this method to perform actions before rendering an item.
+  }
+
+  renderAddedItem(addedItem, options = {}) {
+    // add the item element to the DOM
+    const element = this.createItemElement(addedItem, options);
+    const parentEl = options.parent
+      ? resolveElement(options.parent)
+      : this.rootElement;
+
+    parentEl.append(element);
+
+    // store the element in the internal map for later reference
+    this.#elements.set(addedItem[this.#valueField], element);
+  }
+
+  createItemElement(item, options = {}) {
+    throw new Error("createItemElement must be implemented by the subclass.");
+  }
+
+  afterRenderAddedItem(addedItem, options = {}) {
+    // Override this method to perform actions after rendering an item.
   }
 
   // -----------------------------------------------------------------------------
@@ -285,12 +307,16 @@ export class ItemsElm extends Elm {
 
   // render the updated item
   #updateItemRender(updatedItem, options = {}) {
+    this.beforeRenderUpdatedItem(updatedItem, options);
     this.renderUpdatedItem(updatedItem, options);
     this.afterRenderUpdatedItem(updatedItem, options);
     this.#updateEmptyUIState();
   }
 
-  // render updated item
+  beforeRenderUpdatedItem(updatedItem, options = {}) {
+    // Override this method to perform actions before rendering an updated item.
+  }
+
   renderUpdatedItem(updatedItem, options = {}) {
     // replace the old element with the new element in the DOM
     const oldElement = this.#elements.get(updatedItem[this.#valueField]);
@@ -347,9 +373,14 @@ export class ItemsElm extends Elm {
   }
 
   #removeItemRender(removedItem, options = {}) {
+    this.beforeRenderRemovedItem(removedItem, options);
     this.renderRemovedItem(removedItem, options);
     this.afterRenderRemovedItem(removedItem, options);
     this.#updateEmptyUIState();
+  }
+
+  beforeRenderRemovedItem(removedItem, options = {}) {
+    // Override this method to perform actions before rendering a removed item.
   }
 
   renderRemovedItem(removedItem, options = {}) {

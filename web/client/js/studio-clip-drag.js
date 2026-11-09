@@ -6,7 +6,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
   const clipDrag = new DragDelegate(
     trackListElm.rootElement,
     ".clip",
-    ".clip-group",
+    ".clip-row-content",
   );
 
   /** bind events */
@@ -51,11 +51,14 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const moveMode = clipDrag.moveMode;
       if (moveMode === "normal") {
         const draggingGhostInfo = clipDrag.draggingGhostInfo;
+
         let x1 = draggingGhostInfo.x1;
         let y1 = draggingGhostInfo.y1;
 
         if (clipDrag.hasTarget) {
-          const trackId = clipDrag.targetEl.dataset.trackId;
+          const clipGroupEl = clipDrag.targetEl.closest(".clip-group");
+          const trackId = clipGroupEl.dataset.trackId;
+
           const clipGroupElm = trackListElm.getClipGroup(trackId);
 
           if (!event.shiftKey) {
@@ -67,6 +70,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
                 snapPoints,
                 clipGroupElm.snapThreshold,
               );
+
               x1 = snap.time * clipGroupElm.pixelsPerSecond;
             } else if (clipDrag.direction === "right") {
               const snap = trySnapTime(
@@ -74,17 +78,16 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
                 snapPoints,
                 clipGroupElm.snapThreshold,
               );
+
               const x2 = snap.time * clipGroupElm.pixelsPerSecond;
-              x1 = x1 + (x2 - draggingGhostInfo.x2);
+              x1 += x2 - draggingGhostInfo.x2;
             }
           }
 
-          const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
-          y1 = top;
+          y1 = 0;
 
           const clipStart = clipGroupElm.resolveTime(x1);
           clipDrag.setState("clipStart", clipStart);
-          clipDrag.setState("rowIndex", rowIndex);
         }
 
         clipDrag.dragTo(x1, y1);
@@ -92,30 +95,32 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
       if (moveMode === "insert") {
         const insertGhostInfo = clipDrag.insertGhostInfo;
+
         let x1 = insertGhostInfo.x1;
         let y1 = insertGhostInfo.y1;
 
         if (clipDrag.hasTarget) {
-          const trackId = clipDrag.targetEl.dataset.trackId;
+          const clipGroupEl = clipDrag.targetEl.closest(".clip-group");
+          const trackId = clipGroupEl.dataset.trackId;
+
           const clipGroupElm = trackListElm.getClipGroup(trackId);
 
           if (!event.shiftKey) {
             const snapPoints = clipDrag.getState("snapPoints");
+
             const snap = trySnapTime(
               clipGroupElm.resolveTime(x1),
               snapPoints,
               clipGroupElm.snapThreshold,
             );
+
             x1 = snap.time * clipGroupElm.pixelsPerSecond;
           }
 
-          const localY = insertGhostInfo.localY;
-          const { rowIndex, clipTop } = clipGroupElm.resolveRowPosition(localY);
-          y1 = clipTop;
+          y1 = 0;
 
           const clipStart = clipGroupElm.resolveTime(x1);
           clipDrag.setState("clipStart", clipStart);
-          clipDrag.setState("rowIndex", rowIndex);
         }
 
         clipDrag.insertTo(x1, y1);
@@ -125,7 +130,8 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     }
 
     if (mode === "dragging-start") {
-      const trackId = clipDrag.targetEl.dataset.trackId;
+      const clipGroupEl = clipDrag.targetEl.closest(".clip-group");
+      const trackId = clipGroupEl.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
@@ -156,7 +162,8 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
     }
 
     if (mode === "dragging-end") {
-      const trackId = clipDrag.targetEl.dataset.trackId;
+      const clipGroupEl = clipDrag.targetEl.closest(".clip-group");
+      const trackId = clipGroupEl.dataset.trackId;
       const clipGroupElm = trackListElm.getClipGroup(trackId);
       const snapPoints = clipDrag.getState("snapPoints");
 
@@ -204,7 +211,12 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       return;
     }
 
-    const targetTrackId = clipDrag.targetEl.dataset.trackId;
+    const targetRowEl = clipDrag.targetEl.closest(".clip-row");
+    const targetRowIndex = Number(targetRowEl.dataset.rowIndex);
+
+    const targetClipGroupEl = clipDrag.targetEl.closest(".clip-group");
+
+    const targetTrackId = targetClipGroupEl.dataset.trackId;
     const targetClipGroupElm = trackListElm.getClipGroup(targetTrackId);
     if (!targetClipGroupElm) {
       return;
@@ -218,7 +230,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
       const moveMode = clipDrag.moveMode;
       if (moveMode === "normal") {
         clipItem.clipStart = clipDrag.getState("clipStart");
-        clipItem.rowIndex = clipDrag.getState("rowIndex");
+        clipItem.rowIndex = targetRowIndex;
 
         originClipGroupElm.normalizeClipEdges(clipItem, mode);
 
@@ -236,17 +248,18 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
       if (moveMode === "insert") {
         const clipStart = clipDrag.getState("clipStart");
-        const rowIndex = clipDrag.getState("rowIndex");
 
         const oldClipItem = { ...clipItem };
 
         const newClipItem = {
           ...clipItem,
           clipStart: clipStart,
-          rowIndex: rowIndex,
+          rowIndex: targetRowIndex,
         };
 
-        if (!targetClipGroupElm.isInsertPointAvailable(clipStart, rowIndex)) {
+        if (
+          !targetClipGroupElm.isInsertPointAvailable(clipStart, targetRowIndex)
+        ) {
           return;
         }
 
@@ -254,7 +267,7 @@ export function setup({ trackListElm, getSnapPoints, trySnapTime } = {}) {
 
         if (
           targetTrackId === originTrackId &&
-          rowIndex === oldClipItem.rowIndex &&
+          targetRowIndex === oldClipItem.rowIndex &&
           clipStart > oldClipItem.clipStart
         ) {
           originClipGroupElm.shiftClipsForRemove(oldClipItem);

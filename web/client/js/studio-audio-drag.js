@@ -9,9 +9,14 @@ export function setup({
   trySnapTime,
 } = {}) {
   // drag delegate component
-  const audioDrag = new DragDelegate(audioListEl, ".audio", ".clip-group", {
-    ignoreDraggingSelector: ".audio-remove",
-  });
+  const audioDrag = new DragDelegate(
+    audioListEl,
+    ".audio",
+    ".clip-row-content",
+    {
+      ignoreDraggingSelector: ".audio-remove",
+    },
+  );
 
   /** bind events */
 
@@ -45,7 +50,9 @@ export function setup({
       let y1 = draggingGhostInfo.y1;
 
       if (audioDrag.hasTarget) {
-        const trackId = audioDrag.targetEl.dataset.trackId;
+        const clipGroupEl = audioDrag.targetEl.closest(".clip-group");
+        const trackId = clipGroupEl.dataset.trackId;
+
         const clipGroupElm = trackListElm.getClipGroup(trackId);
 
         if (!event.shiftKey) {
@@ -58,12 +65,10 @@ export function setup({
           x1 = snap.time * clipGroupElm.pixelsPerSecond;
         }
 
-        const { rowIndex, top } = clipGroupElm.resolveRowPosition(y1);
-        y1 = top;
+        y1 = 0;
 
         const clipStart = clipGroupElm.resolveTime(x1);
         audioDrag.setState("clipStart", clipStart);
-        audioDrag.setState("rowIndex", rowIndex);
       }
 
       audioDrag.dragTo(x1, y1);
@@ -75,7 +80,9 @@ export function setup({
       let y1 = insertGhostInfo.y1;
 
       if (audioDrag.hasTarget) {
-        const trackId = audioDrag.targetEl.dataset.trackId;
+        const clipGroupEl = audioDrag.targetEl.closest(".clip-group");
+        const trackId = clipGroupEl.dataset.trackId;
+
         const clipGroupElm = trackListElm.getClipGroup(trackId);
 
         if (!event.shiftKey) {
@@ -88,13 +95,10 @@ export function setup({
           x1 = snap.time * clipGroupElm.pixelsPerSecond;
         }
 
-        const localY = insertGhostInfo.localY;
-        const { rowIndex, clipTop } = clipGroupElm.resolveRowPosition(localY);
-        y1 = clipTop;
+        y1 = 0;
 
         const clipStart = clipGroupElm.resolveTime(x1);
         audioDrag.setState("clipStart", clipStart);
-        audioDrag.setState("rowIndex", rowIndex);
       }
 
       audioDrag.insertTo(x1, y1);
@@ -112,16 +116,20 @@ export function setup({
       return;
     }
 
-    const trackId = audioDrag.targetEl.dataset.trackId;
-    const clipGroupElm = trackListElm.getClipGroup(trackId);
-
     const audio = audioDrag.getState("audio");
     if (!audio) {
       return;
     }
 
+    const rowEl = audioDrag.targetEl.closest(".clip-row");
+    const rowIndex = Number(rowEl.dataset.rowIndex);
+
+    const clipGroupEl = audioDrag.targetEl.closest(".clip-group");
+    const trackId = clipGroupEl.dataset.trackId;
+
+    const clipGroupElm = trackListElm.getClipGroup(trackId);
+
     const clipStart = audioDrag.getState("clipStart");
-    const rowIndex = audioDrag.getState("rowIndex");
 
     const clipItem = createClipItemFromAudio(audio);
     clipItem.clipStart = clipStart;

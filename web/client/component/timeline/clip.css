@@ -1,15 +1,7 @@
 .clip {
-  --clip-height: 40px;
-  --clip-trim-width: 4px;
-}
-
-.clip {
   position: absolute;
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
+  top: 0 !important;
   height: var(--clip-height);
   box-sizing: border-box;
 
@@ -17,6 +9,7 @@
   margin: 0 !important;
 
   border: 1px solid var(--color-clip-border);
+  border-radius: 5px;
 
   color: var(--color-primary-text);
 

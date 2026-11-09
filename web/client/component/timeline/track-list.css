@@ -14,22 +14,17 @@
 
   height: max-content;
 
-  padding: 0 !important;
-  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+
+  margin-top: 4px;
 
   background: var(--color-track);
-}
-
-.track:hover {
-  background: var(--color-track-hover);
-}
-
-.track.is-selected {
-  background: var(--color-track-selected);
-}
-
-.track.is-selected:hover {
-  background: var(--color-track-selected-hover);
+  
+  border-radius: 5px;
 }
 
 .track-header {
