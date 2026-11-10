@@ -1,8 +1,15 @@
 .clip {
+  --default-clip-height: 40px;
+  --default-clip-trim-width: 4px;
+  --default-clip-title-height: 10px;
+  --default-clip-title-font-size: 9px;
+}
+
+.clip {
   position: absolute;
 
   top: 0 !important;
-  height: var(--clip-height);
+  height: var(--clip-height, var(--default-clip-height));
   box-sizing: border-box;
 
   padding: 0 !important;
@@ -24,7 +31,7 @@
   left: 0;
   right: 0;
 
-  height: var(--clip-title-height);
+  height: var(--clip-title-height, var(--default-clip-title-height));
 
   overflow: hidden;
 
@@ -37,14 +44,18 @@
   position: absolute;
   top: 0;
 
-  height: var(--clip-title-height);
-  line-height: var(--clip-title-height);
+  height: var(--clip-title-height, var(--default-clip-title-height));
+  line-height: var(--clip-title-height, var(--default-clip-title-height));
+
+  font-size: var(--clip-title-font-size, var(--default-clip-title-font-size));
 
   color: var(--color-clip-title);
 
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+
+  transform: translateX(4px);
 }
 
 .clip-content {
@@ -89,7 +100,7 @@
   top: 0;
   bottom: 0;
 
-  width: var(--clip-trim-width);
+  width: var(--clip-trim-width, var(--default-clip-trim-width));
 
   opacity: 1;
 

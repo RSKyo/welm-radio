@@ -1,4 +1,8 @@
 .track-list {
+  --track-title-height: 18px;
+}
+
+.track-list {
   position: relative;
 
   display: flex;

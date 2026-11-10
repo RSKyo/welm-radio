@@ -12,101 +12,6 @@ import {
   clonePlainObject,
 } from "../base/helper.js";
 
-const CLIP_TRIM_HANDLE_WIDTH = 4;
-const CLIP_TITLE_HEIGHT = 10;
-
-const audioTypeColorTheme = {
-  voice: "sky",
-  music: "lavender",
-  bed: "mint",
-  ambience: "cyan",
-  effect: "peach",
-  jingle: "lemon",
-  mixed: "slateLavender",
-};
-
-const colorThemes = {
-  default: {
-    clip: "#C7D2DC",
-    clipHover: "#BDC9D4",
-    clipSelected: "#ACBBC8",
-    clipSelectedHover: "#A2B2C0",
-    clipBorder: "#8FA2B2",
-    clipDraggingBorder: "#6F7F8C",
-    clipTitle: "#4C5B67",
-  },
-
-  sky: {
-    clip: "#A6D8EE",
-    clipHover: "#9ACFE8",
-    clipSelected: "#88C2DE",
-    clipSelectedHover: "#7DB8D5",
-    clipBorder: "#68A9C7",
-    clipDraggingBorder: "#66818F",
-    clipTitle: "#385A69",
-  },
-
-  lavender: {
-    clip: "#D8C3F3",
-    clipHover: "#D1B8EE",
-    clipSelected: "#C4A6E4",
-    clipSelectedHover: "#BA9ADC",
-    clipBorder: "#A98BD0",
-    clipDraggingBorder: "#81708F",
-    clipTitle: "#5A4A6A",
-  },
-
-  mint: {
-    clip: "#B5E5CA",
-    clipHover: "#A9DFC2",
-    clipSelected: "#98D3B4",
-    clipSelectedHover: "#8DC9AA",
-    clipBorder: "#79B99A",
-    clipDraggingBorder: "#6B897A",
-    clipTitle: "#405F51",
-  },
-
-  cyan: {
-    clip: "#B1E1DF",
-    clipHover: "#A6D9D7",
-    clipSelected: "#94CCCA",
-    clipSelectedHover: "#89C2C0",
-    clipBorder: "#73B3B1",
-    clipDraggingBorder: "#688482",
-    clipTitle: "#3E5D5C",
-  },
-
-  peach: {
-    clip: "#F6C7A3",
-    clipHover: "#F1BD96",
-    clipSelected: "#E8AE84",
-    clipSelectedHover: "#DFA376",
-    clipBorder: "#D29063",
-    clipDraggingBorder: "#8E7768",
-    clipTitle: "#665044",
-  },
-
-  lemon: {
-    clip: "#ECE59C",
-    clipHover: "#E6DE90",
-    clipSelected: "#D9D080",
-    clipSelectedHover: "#D0C675",
-    clipBorder: "#BBB05F",
-    clipDraggingBorder: "#85806B",
-    clipTitle: "#5E5A3E",
-  },
-
-  slateLavender: {
-    clip: "#C8CADF",
-    clipHover: "#BEC1D8",
-    clipSelected: "#ADB1CC",
-    clipSelectedHover: "#A3A8C3",
-    clipBorder: "#9298B7",
-    clipDraggingBorder: "#70768D",
-    clipTitle: "#4E536A",
-  },
-};
-
 const TRIM_START_TEMPLATE = `
 <div class="clip-trim-start" data-role="dragging-start"></div>
 `;
@@ -177,6 +82,7 @@ export class Clip extends Elm {
     this.applyRequiredOption("type", (value, assertionSubject) => {
       assertNonBlankString(value, assertionSubject);
       this.#type = value;
+      this.setDataset("type", value);
     });
 
     this.applyRequiredOption("audioStart", (value, assertionSubject) => {
@@ -248,39 +154,6 @@ export class Clip extends Elm {
     this.applyOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
-
-    this.rootElement.style.setProperty(
-      "--clip-trim-width",
-      `${CLIP_TRIM_HANDLE_WIDTH}px`,
-    );
-
-    this.rootElement.style.setProperty(
-      "--clip-title-height",
-      `${CLIP_TITLE_HEIGHT}px`,
-    );
-
-    const themeName = audioTypeColorTheme[this.#type] ?? "default";
-    const colors = colorThemes[themeName];
-
-    this.rootElement.style.setProperty("--color-clip", colors.clip);
-    this.rootElement.style.setProperty("--color-clip-hover", colors.clipHover);
-    this.rootElement.style.setProperty(
-      "--color-clip-selected",
-      colors.clipSelected,
-    );
-    this.rootElement.style.setProperty(
-      "--color-clip-selected-hover",
-      colors.clipSelectedHover,
-    );
-    this.rootElement.style.setProperty(
-      "--color-clip-border",
-      colors.clipBorder,
-    );
-    this.rootElement.style.setProperty(
-      "--color-clip-dragging-border",
-      colors.clipDraggingBorder,
-    );
-    this.rootElement.style.setProperty("--color-clip-title", colors.clipTitle);
   }
 
   // -----------------------------------------------------------------------------
@@ -526,7 +399,7 @@ export class Clip extends Elm {
 
       spanEl.textContent = this.#title;
       spanEl.style.width = `${interval}px`;
-      spanEl.style.left = `${i * interval + CLIP_TRIM_HANDLE_WIDTH}px`;
+      spanEl.style.left = `${i * interval}px`;
 
       this.#titleEl.appendChild(spanEl);
     }

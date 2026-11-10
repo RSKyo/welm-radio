@@ -8,7 +8,6 @@ import { ItemsElm } from "../base/items-elm.js";
 import { Clip } from "./clip.js";
 
 const CLIP_MIN_DURATION = 5;
-const CLIP_HEIGHT = 40;
 const SNAP_THRESHOLD = 5;
 
 const ROW_TEMPLATE = `
@@ -72,8 +71,6 @@ export class ClipGroup extends ItemsElm {
     this.applyOption("audioCache", (value, assertionSubject) => {
       this.#audioCache = value;
     });
-
-    this.setProperty(this.rootElement, "--clip-height", `${CLIP_HEIGHT}px`);
   }
 
   // -----------------------------------------------------------------------------

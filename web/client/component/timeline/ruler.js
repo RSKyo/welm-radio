@@ -191,17 +191,17 @@ export class TimelineRuler extends Elm {
   }
 
   get timelineViewportContentWidth() {
-  const viewport = this.#timelineInfo.timelineViewport;
-  const rect = viewport.element.getBoundingClientRect();
+    const viewport = this.#timelineInfo.timelineViewport;
+    const rect = viewport.element.getBoundingClientRect();
 
-  return (
-    rect.width -
-    viewport.border.leftWidth -
-    viewport.border.rightWidth -
-    viewport.padding.left -
-    viewport.padding.right
-  );
-}
+    return (
+      rect.width -
+      viewport.border.leftWidth -
+      viewport.border.rightWidth -
+      viewport.padding.left -
+      viewport.padding.right
+    );
+  }
 
   // -----------------------------------------------------------------------------
   // state(read-write)

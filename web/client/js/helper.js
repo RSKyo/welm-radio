@@ -394,6 +394,10 @@ export function toClientPoint(localX, localY, target) {
   };
 }
 
+export function toKebabCase(value) {
+  return value.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
 // -----------------------------------------------------------------------------
 // Time Operations
 // -----------------------------------------------------------------------------

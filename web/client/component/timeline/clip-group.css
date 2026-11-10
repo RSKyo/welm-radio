@@ -1,4 +1,8 @@
 .clip-group {
+  --default-clip-height: 40px;
+}
+
+.clip-group {
   position: relative;
 
   width: 100%;
@@ -21,9 +25,6 @@
 
   margin-left: 0 !important;
   margin-right: 0 !important;
-
-  /* padding-top: 1px;
-  padding-bottom: 1px; */
 }
 
 .clip-row:not(:last-child) {
@@ -34,7 +35,7 @@
   position: relative;
 
   width: 100%;
-  height: var(--clip-height);
+  height: var(--clip-height, var(--default-clip-height));
 
   padding: 0 !important;
   margin: 0 !important;

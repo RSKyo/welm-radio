@@ -113,16 +113,16 @@
   /* Border colors */
 
   /* 默认边框 */
-  --color-border: #CCD3D9;
+  --color-border: #ccd3d9;
 
   /* 悬停边框 */
-  --color-border-hover: #B9C2CA;
+  --color-border-hover: #b9c2ca;
 
   /* 强调边框 */
-  --color-border-strong: #A4AEB7;
+  --color-border-strong: #a4aeb7;
 
   /* 分隔线 */
-  --color-divider: #D9DFE4;
+  --color-divider: #d9dfe4;
 
   /* Form control colors */
 
@@ -176,6 +176,152 @@
   /* Custom colors */
 
   --color-slider-pan: #77428d;
+
+  --clip-height: 40px;
+  
+  --color-track: #e0e6eb;
+  --color-track-hover: #d8e0e6;
+  --color-track-selected: #eaf0f4;
+  --color-track-selected-hover: #e2e9ee;
+  --color-track-border: #bcc8d1;
+  --color-track-title: #526575;
+  --color-clip-row-line: #d3dce3;
+
+  --color-clip: #c7d2dc;
+  --color-clip-hover: #bdc9d4;
+  --color-clip-selected: #acbbc8;
+  --color-clip-selected-hover: #a2b2c0;
+  --color-clip-border: #8fa2b2;
+  --color-clip-dragging-border: #6f7f8c;
+  --color-clip-title: #4c5b67;
+
+  [data-type="voice"] {
+    --color-track: #dfebf1;
+    --color-track-hover: #d6e5ed;
+    --color-track-selected: #eaf3f7;
+    --color-track-selected-hover: #e1edf3;
+    --color-track-border: #b8d0dc;
+    --color-track-title: #456d80;
+    --color-clip-row-line: #d3e3ea;
+
+    --color-clip: #a6d8ee;
+    --color-clip-hover: #9acfe8;
+    --color-clip-selected: #88c2de;
+    --color-clip-selected-hover: #7db8d5;
+    --color-clip-border: #68a9c7;
+    --color-clip-dragging-border: #66818f;
+    --color-clip-title: #385a69;
+  }
+
+  [data-type="music"] {
+    --color-track: #e8e1ef;
+    --color-track-hover: #e0d8e9;
+    --color-track-selected: #f2edf6;
+    --color-track-selected-hover: #eae3f0;
+    --color-track-border: #cfc2dc;
+    --color-track-title: #705986;
+    --color-clip-row-line: #e1d8eb;
+
+    --color-clip: #d8c3f3;
+    --color-clip-hover: #d1b8ee;
+    --color-clip-selected: #c4a6e4;
+    --color-clip-selected-hover: #ba9adc;
+    --color-clip-border: #a98bd0;
+    --color-clip-dragging-border: #81708f;
+    --color-clip-title: #5a4a6a;
+  }
+
+  [data-type="bed"] {
+    --color-track: #e0ebe4;
+    --color-track-hover: #d7e5dd;
+    --color-track-selected: #eaf3ed;
+    --color-track-selected-hover: #e1ece5;
+    --color-track-border: #bfd5c8;
+    --color-track-title: #466e57;
+    --color-clip-row-line: #d5e5db;
+
+    --color-clip: #b5e5ca;
+    --color-clip-hover: #a9dfc2;
+    --color-clip-selected: #98d3b4;
+    --color-clip-selected-hover: #8dc9aa;
+    --color-clip-border: #79b99a;
+    --color-clip-dragging-border: #6b897a;
+    --color-clip-title: #405f51;
+  }
+
+  [data-type="ambience"] {
+    --color-track: #ddeae9;
+    --color-track-hover: #d4e4e3;
+    --color-track-selected: #e9f2f1;
+    --color-track-selected-hover: #e0eceb;
+    --color-track-border: #b9d4d2;
+    --color-track-title: #426f6d;
+    --color-clip-row-line: #d1e3e1;
+
+    --color-clip: #b1e1df;
+    --color-clip-hover: #a6d9d7;
+    --color-clip-selected: #94ccca;
+    --color-clip-selected-hover: #89c2c0;
+    --color-clip-border: #73b3b1;
+    --color-clip-dragging-border: #688482;
+    --color-clip-title: #3e5d5c;
+  }
+
+  [data-type="effect"] {
+    --color-track: #f0e4da;
+    --color-track-hover: #e9d9cc;
+    --color-track-selected: #f7eee7;
+    --color-track-selected-hover: #efe3d9;
+    --color-track-border: #e1c5b1;
+    --color-track-title: #8c5434;
+    --color-clip-row-line: #eed9ca;
+
+    --color-clip: #f6c7a3;
+    --color-clip-hover: #f1bd96;
+    --color-clip-selected: #e8ae84;
+    --color-clip-selected-hover: #dfa376;
+    --color-clip-border: #d29063;
+    --color-clip-dragging-border: #8e7768;
+    --color-clip-title: #665044;
+  }
+
+  [data-type="jingle"] {
+    --color-track: #ecead8;
+    --color-track-hover: #e5e1cc;
+    --color-track-selected: #f5f3e6;
+    --color-track-selected-hover: #ece9d9;
+    --color-track-border: #dad4af;
+    --color-track-title: #716a37;
+    --color-clip-row-line: #e7e3c9;
+
+    --color-clip: #ece59c;
+    --color-clip-hover: #e6de90;
+    --color-clip-selected: #d9d080;
+    --color-clip-selected-hover: #d0c675;
+    --color-clip-border: #bbb05f;
+    --color-clip-dragging-border: #85806b;
+    --color-clip-title: #5e5a3e;
+  }
+
+  [data-type="mixed"] {
+    --color-track: #e2e4ec;
+    --color-track-hover: #d9dce7;
+    --color-track-selected: #eef0f5;
+    --color-track-selected-hover: #e5e7ef;
+    --color-track-border: #c7c9d9;
+    --color-track-title: #59617e;
+    --color-clip-row-line: #dadce8;
+
+    --color-clip: #c8cadf;
+    --color-clip-hover: #bec1d8;
+    --color-clip-selected: #adb1cc;
+    --color-clip-selected-hover: #a3a8c3;
+    --color-clip-border: #9298b7;
+    --color-clip-dragging-border: #70768d;
+    --color-clip-title: #4e536a;
+  }
+
+  
 }
 
 [data-theme="dark"] {
@@ -257,19 +403,19 @@
   /* Interaction colors */
 
   /* 普通元素悬停背景 */
-  --color-hover: #E4E9ED;
+  --color-hover: #e4e9ed;
 
   /* 普通元素按下背景 */
-  --color-active: #D9E0E5;
+  --color-active: #d9e0e5;
 
   /* 悬停或按下时的强调文字 */
-  --color-interactive-text: #2F5F8F;
+  --color-interactive-text: #2f5f8f;
 
   /* Selection colors */
 
   /* 当前选中项 */
-  --color-selected: #E6F0F8;
-  --color-selected-text: #244F75;
+  --color-selected: #e6f0f8;
+  --color-selected-text: #244f75;
 
   /* 已勾选项 */
   --color-checked: #242a2f;

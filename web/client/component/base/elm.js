@@ -1,12 +1,13 @@
 import {
   assertNonBlankString,
   assertFunction,
-  assertPlainObject,
+  assertString,
   assertStringPlainObject,
   assertBoolean,
+  assertPlainObject,
   assertHtmlElement,
 } from "./assert.js";
-import { resolveElement } from "./helper.js";
+import { resolveElement, toKebabCase } from "./helper.js";
 import { ElmHandler } from "./elm-handler.js";
 import { ElmEvent } from "./elm-event.js";
 
@@ -156,10 +157,52 @@ export class Elm {
     this.#offHandlers.push(off);
   }
 
-  setProperty(element, property, value) {
-    assertHtmlElement(element, "element");
+  setCssProperty(property, value, element = null) {
     assertNonBlankString(property, "property");
-    element.style.setProperty(property, value);
+    assertString(value, "value");
+
+    if (element != null) {
+      assertHtmlElement(element, "element");
+    }
+
+    const targetElement = element ?? this.#rootElement;
+
+    targetElement.style.setProperty(property, value);
+  }
+
+  setCssVariable(name, value, element = null) {
+    assertNonBlankString(name, "name");
+
+    const property = name.startsWith("--") ? name : `--${toKebabCase(name)}`;
+
+    this.setCssProperty(property, value, element);
+  }
+
+  setColorVariable(name, value, element = null) {
+    assertNonBlankString(name, "name");
+
+    const property = name.startsWith("--")
+      ? name
+      : `--color-${toKebabCase(name)}`;
+
+    this.setCssProperty(property, value, element);
+  }
+
+  setDataset(key, value, element = null) {
+    assertNonBlankString(key, "key");
+    assertNonBlankString(value, "value");
+
+    if (element != null) {
+      assertHtmlElement(element, "element");
+    }
+
+    const targetElement = element ?? this.#rootElement;
+
+    targetElement.dataset[key] = value;
+
+    if (targetElement === this.#rootElement) {
+      this.#dataset[key] = value;
+    }
   }
 
   destroy() {

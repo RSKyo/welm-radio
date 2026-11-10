@@ -8,100 +8,6 @@ import {
 import { ItemsElm } from "../base/items-elm.js";
 import { ClipGroup } from "./clip-group.js";
 
-const TRACK_TITLE_HEIGHT = 18;
-
-const audioTypeColorTheme = {
-  voice: "sky",
-  music: "lavender",
-  bed: "mint",
-  ambience: "cyan",
-  effect: "peach",
-  jingle: "lemon",
-  mixed: "slateLavender",
-};
-
-const colorThemes = {
-  default: {
-    track: "#E0E6EB",
-    trackHover: "#D8E0E6",
-    trackSelected: "#EAF0F4",
-    trackSelectedHover: "#E2E9EE",
-    trackBorder: "#BCC8D1",
-    trackTitle: "#526575",
-    clipRowLine: "#D3DCE3",
-  },
-
-  sky: {
-    track: "#DFEBF1",
-    trackHover: "#D6E5ED",
-    trackSelected: "#EAF3F7",
-    trackSelectedHover: "#E1EDF3",
-    trackBorder: "#B8D0DC",
-    trackTitle: "#456D80",
-    clipRowLine: "#D3E3EA",
-  },
-
-  lavender: {
-    track: "#E8E1EF",
-    trackHover: "#E0D8E9",
-    trackSelected: "#F2EDF6",
-    trackSelectedHover: "#EAE3F0",
-    trackBorder: "#CFC2DC",
-    trackTitle: "#705986",
-    clipRowLine: "#E1D8EB",
-  },
-
-  mint: {
-    track: "#E0EBE4",
-    trackHover: "#D7E5DD",
-    trackSelected: "#EAF3ED",
-    trackSelectedHover: "#E1ECE5",
-    trackBorder: "#BFD5C8",
-    trackTitle: "#466E57",
-    clipRowLine: "#D5E5DB",
-  },
-
-  cyan: {
-    track: "#DDEAE9",
-    trackHover: "#D4E4E3",
-    trackSelected: "#E9F2F1",
-    trackSelectedHover: "#E0ECEB",
-    trackBorder: "#B9D4D2",
-    trackTitle: "#426F6D",
-    clipRowLine: "#D1E3E1",
-  },
-
-  peach: {
-    track: "#F0E4DA",
-    trackHover: "#E9D9CC",
-    trackSelected: "#F7EEE7",
-    trackSelectedHover: "#EFE3D9",
-    trackBorder: "#E1C5B1",
-    trackTitle: "#8C5434",
-    clipRowLine: "#EED9CA",
-  },
-
-  lemon: {
-    track: "#ECEAD8",
-    trackHover: "#E5E1CC",
-    trackSelected: "#F5F3E6",
-    trackSelectedHover: "#ECE9D9",
-    trackBorder: "#DAD4AF",
-    trackTitle: "#716A37",
-    clipRowLine: "#E7E3C9",
-  },
-
-  slateLavender: {
-    track: "#E2E4EC",
-    trackHover: "#D9DCE7",
-    trackSelected: "#EEF0F5",
-    trackSelectedHover: "#E5E7EF",
-    trackBorder: "#C7C9D9",
-    trackTitle: "#59617E",
-    clipRowLine: "#DADCE8",
-  },
-};
-
 const TRACK_TEMPLATE = `
 <div class="track" data-role="track">
   <div class="track-header">
@@ -154,11 +60,6 @@ export class TrackList extends ItemsElm {
     this.applyOption("audioCache", (value) => {
       this.#audioCache = value;
     });
-
-    this.rootElement.style.setProperty(
-      "--track-title-height",
-      `${TRACK_TITLE_HEIGHT}px`,
-    );
   }
 
   // -----------------------------------------------------------------------------
@@ -230,19 +131,26 @@ export class TrackList extends ItemsElm {
       return null;
     }
 
-    let longestDuration = -1;
-    let audioType = null;
+    const durationByType = new Map();
 
     for (const clipElm of clipGroupElm.getClips()) {
+      const type = clipElm.type;
       const duration = clipElm.duration;
 
+      durationByType.set(type, (durationByType.get(type) ?? 0) + duration);
+    }
+
+    let dominantType = null;
+    let longestDuration = -1;
+
+    for (const [type, duration] of durationByType) {
       if (duration > longestDuration) {
         longestDuration = duration;
-        audioType = clipElm.type;
+        dominantType = type;
       }
     }
 
-    return audioType;
+    return dominantType;
   }
 
   // -----------------------------------------------------------------------------
@@ -382,23 +290,11 @@ export class TrackList extends ItemsElm {
       this.#updateTimelineDuration();
     });
 
-    // clipGroupElm.onHeightChange(({ height }) => {
-    //   const trackHeight = TRACK_TITLE_HEIGHT + height;
-
-    //   trackEl.style.height = `${trackHeight}px`;
-
-    //   this.#emitTrackHeightChange(trackId, trackHeight);
-    // });
-
     clipGroupElm.onClipsChange(() => {
-      this.#updateTrackColor(trackId);
+      this.#updateTrackType(trackId);
     });
 
     this.#clipGroupMap.set(trackId, clipGroupElm);
-
-    // set initial track height based on clip group height
-    // when new clip group is created, it has an initial height that should be applied to the track element
-    trackEl.style.height = `${TRACK_TITLE_HEIGHT + clipGroupElm.height}px`;
 
     /** create clip */
 
@@ -454,7 +350,7 @@ export class TrackList extends ItemsElm {
 
     for (const item of items) {
       const trackId = item[this.valueField];
-      this.#updateTrackColor(trackId);
+      this.#updateTrackType(trackId);
     }
   }
 
@@ -463,7 +359,7 @@ export class TrackList extends ItemsElm {
     this.#updateTimelineDuration();
 
     const trackId = addedItem[this.valueField];
-    this.#updateTrackColor(trackId);
+    this.#updateTrackType(trackId);
   }
 
   // override
@@ -504,25 +400,12 @@ export class TrackList extends ItemsElm {
     this.rootElement.style.width = `${this.#timelineRuler.width}px`;
   }
 
-  #updateTrackColor(trackId) {
+  #updateTrackType(trackId) {
     const trackEl = this.getItemElement(trackId);
 
     const type = this.getTrackDominantAudioType(trackId);
-
-    const themeName = audioTypeColorTheme[type] ?? "default";
-
-    const colors = colorThemes[themeName];
-
-    // track colors
-    trackEl.style.setProperty("--color-track", colors.track);
-    trackEl.style.setProperty("--color-track-hover", colors.trackHover);
-    trackEl.style.setProperty("--color-track-selected", colors.trackSelected);
-    trackEl.style.setProperty(
-      "--color-track-selected-hover",
-      colors.trackSelectedHover,
-    );
-    trackEl.style.setProperty("--color-track-border", colors.trackBorder);
-    trackEl.style.setProperty("--color-track-title", colors.trackTitle);
-    trackEl.style.setProperty("--color-clip-row-line", colors.clipRowLine);
+    if (type) {
+      this.setDataset("type", type, trackEl);
+    }
   }
 }
