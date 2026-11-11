@@ -54,7 +54,7 @@ export async function setup({ audioMap, audioListEl } = {}) {
 
     const newAudioPaths = Array.from(audios.map((audio) => audio.audioPath));
 
-    if(!isEqualValue(audioPaths, newAudioPaths)) {
+    if (!isEqualValue(audioPaths, newAudioPaths)) {
       setLocalStorage(STUDIO_AUDIO_PATHS_KEY, newAudioPaths);
     }
 
@@ -67,6 +67,8 @@ export async function setup({ audioMap, audioListEl } = {}) {
     for (const audio of audioMap.values()) {
       const audioEl = audioTemplate.cloneNode(true);
       audioEl.dataset.audioPath = audio.audioPath;
+      audioEl.dataset["type"] = audio.meta.type;
+
       const textEl = audioEl.querySelector(".audio-text");
       textEl.textContent = audio.text;
       textEl.title = audio.text;
@@ -78,6 +80,7 @@ export async function setup({ audioMap, audioListEl } = {}) {
     if (event.target.classList.contains("audio-remove")) {
       const audioEl = closestElement(event, ".audio");
       const audioPath = audioEl.dataset.audioPath;
+      
 
       const audioPaths = getLocalStorage(STUDIO_AUDIO_PATHS_KEY) || [];
       const newAudioPaths = audioPaths.filter((item) => item !== audioPath);
@@ -88,11 +91,11 @@ export async function setup({ audioMap, audioListEl } = {}) {
     }
   }
 
-   function getLocalStorage(key) {
-  return JSON.parse(localStorage.getItem(key));
-}
+  function getLocalStorage(key) {
+    return JSON.parse(localStorage.getItem(key));
+  }
 
- function setLocalStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+  function setLocalStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
 }

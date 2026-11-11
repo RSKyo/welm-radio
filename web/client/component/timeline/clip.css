@@ -3,6 +3,7 @@
   --default-clip-trim-width: 4px;
   --default-clip-title-height: 10px;
   --default-clip-title-font-size: 9px;
+  --default-clip-border-radius: 5px;
 }
 
 .clip {
@@ -16,9 +17,9 @@
   margin: 0 !important;
 
   border: 1px solid var(--color-clip-border);
-  border-radius: 5px;
+  border-radius: var(--clip-border-radius, var(--default-clip-border-radius));
 
-  color: var(--color-primary-text);
+  color: var(--color-clip-title);
 
   /* cursor: pointer; */
   user-select: none;
