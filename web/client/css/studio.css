@@ -16,27 +16,78 @@
   background: var(--color-surface);
 }
 
+/* Drawer */
+
+.drawer {
+  --drawer-width-collapsed: 30px;
+  --drawer-width-expanded: 220px;
+  display: flex;
+  flex-direction: column;
+
+  width: var(--drawer-width-collapsed);
+  min-width: var(--drawer-width-collapsed);
+
+  background: var(--color-surface);
+
+  overflow: hidden;
+}
+
+.drawer-tools {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  align-items: center;
+}
+
+.drawer-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--drawer-width-collapsed);
+  height: var(--drawer-width-collapsed);
+
+  flex: none;
+}
+
+.drawer-content {
+  display: none;
+
+  flex: 1;
+  min-height: 0;
+}
+
+.drawer.is-expanded {
+  width: var(--drawer-width-expanded);
+  min-width: var(--drawer-width-expanded);
+}
+
+.drawer.is-expanded .drawer-tools {
+  flex: none;
+  flex-direction: row;
+
+  height: var(--drawer-width-collapsed);
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawer.is-expanded .drawer-content {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Audio List */
 
 .audio-list {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 4px;
 
-  min-height: 0;
-  max-height: 132px;
-
   padding: 4px;
 
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-
   overflow-y: auto;
-}
-
-.audio-list.open {
-  display: flex;
 }
 
 .audio {

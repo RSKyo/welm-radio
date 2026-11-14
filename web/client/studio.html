@@ -35,22 +35,25 @@
         </div>
       </div>
 
-      <!-- audios -->
-      <div class="hbox gap-4 p-4 bb audio-list"></div>
-
-      <!-- main -->
+      <!-- track area -->
       <div class="grow hbox">
-        <!-- right -->
-        <div class="grow vbox" style="background: var(--color-surface)">
-          <div class="hbox p-4 bb">
+        <!-- audio list -->
+        <div class="drawer br">
+          <div class="drawer-tools bb" style="height: 30px">
+            <div class="drawer-tool">
+<button id="toggle-drawer" class="icon-button">≡</button>
+            </div>
+             
+          </div>
+          <div class="drawer-content">
+            <div class="grow audio-list"></div>
+          </div>
+        </div>
+
+        <!-- track area -->
+        <div class="grow vbox">
+          <div class="toolbar bb" style="height: 30px">
             <div class="grow hbox gap-4">
-              <button
-                id="toggle-audios"
-                class="icon-button"
-                title="展开/折叠音频"
-              >
-                ≡
-              </button>
               <button id="track-add" class="icon-button" title="添加音轨">
                 ＋
               </button>
@@ -77,7 +80,7 @@
             <div data-role="timeline-viewport">
               <div data-role="timeline-canvas">
                 <div data-role="timeline-ruler"></div>
-                <div class="line" ></div>
+                <div class="line"></div>
                 <div id="track-list"></div>
                 <div data-role="timeline-playhead"></div>
                 <div data-role="timeline-cursor"></div>

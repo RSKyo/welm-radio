@@ -27,15 +27,15 @@ let timelineContainerPointerSeconds = 0;
 // Elements
 // -----------------------------------------------------------------------------
 
+const drawerEl = resolveElement(".drawer");
+const toggleDrawerBtn = resolveElement("#toggle-drawer");
 const audioListEl = resolveElement(".audio-list");
+
 const addTrackBtn = resolveElement("#track-add");
 const removeTrackBtn = resolveElement("#track-remove");
 const splitClipBtn = resolveElement("#clip-split");
 const removeClipBtn = resolveElement("#clip-remove");
 const duplicateClipBtn = resolveElement("#clip-duplicate");
-
-// const timelineEl = resolveElement(".timeline");
-// const timelineContentEl = resolveElement(".timeline-content");
 
 // -----------------------------------------------------------------------------
 // Components
@@ -143,7 +143,7 @@ function bindEvents() {
 
   // on(rulerElm, "pixelsPerSecondChange", rulerPixelsPerSecondChange);
 
-  on("#toggle-audios", "click", toggleAudios);
+  on(toggleDrawerBtn, "click", toggleDrawer);
   on(addTrackBtn, "click", addTrack);
   on(removeTrackBtn, "click", removeTrack);
   on(duplicateClipBtn, "click", duplicateClip);
@@ -156,16 +156,10 @@ function bindEvents() {
 
 async function initData() {
   addTrack();
-
-  if (audioMap.size > 0) {
-    audioListEl.classList.toggle("open");
-  } else {
-    audioListEl.classList.remove("open");
-  }
 }
 
-function toggleAudios() {
-  audioListEl.classList.toggle("open");
+function toggleDrawer() {
+  drawerEl.classList.toggle("is-expanded");
 }
 
 // -----------------------------------------------------------------------------
